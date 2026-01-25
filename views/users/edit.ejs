@@ -1,0 +1,42 @@
+<h1 class="mt-4">Edit User: <%= userToEdit.sAMAccountName %>
+</h1>
+
+<% if (typeof error !=='undefined' && error) { %>
+    <div class="alert alert-danger">
+        <%= error %>
+    </div>
+    <% } %>
+
+        <form action="/users/<%= userToEdit.sAMAccountName %>/edit" method="POST">
+            <div class="form-group">
+                <label for="cn">Common Name (cn)</label>
+                <input type="text" class="form-control" name="cn" value="<%= userToEdit.cn || '' %>">
+            </div>
+
+            <div class="form-group">
+                <label for="sn">Surname (sn)</label>
+                <input type="text" class="form-control" name="sn" value="<%= userToEdit.sn || '' %>">
+            </div>
+
+            <div class="form-group">
+                <label for="givenName">Given Name</label>
+                <input type="text" class="form-control" name="givenName" value="<%= userToEdit.givenName || '' %>">
+            </div>
+
+            <div class="form-group">
+                <label for="sAMAccountName">Username (sAMAccountName)</label>
+                <input type="text" class="form-control" name="sAMAccountName" value="<%= userToEdit.sAMAccountName %>"
+                    readonly>
+            </div>
+
+            <div class="form-group">
+                <label for="userAccountControl">Account Control</label>
+                <input type="text" class="form-control" name="userAccountControl"
+                    value="<%= userToEdit.userAccountControl %>">
+                <small class="form-text text-muted">512 = Normal Account, 514 = Disabled, 66048 = Password Never
+                    Expires</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="/users" class="btn btn-secondary">Cancel</a>
+        </form>

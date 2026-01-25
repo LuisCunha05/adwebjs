@@ -1,0 +1,41 @@
+<h1 class="mt-4">Group Management</h1>
+
+<form class="form-inline mb-4" action="/groups" method="GET">
+    <input type="text" name="q" class="form-control mr-2" placeholder="Search Groups..." value="<%= query %>">
+    <button type="submit" class="btn btn-primary">Search</button>
+</form>
+
+<% if (typeof error !=='undefined' && error) { %>
+    <div class="alert alert-danger">
+        <%= error %>
+    </div>
+    <% } %>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Group Name (CN)</th>
+                    <th>Name</th>
+                    <th>Members Count</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% groups.forEach(group=> { %>
+                    <tr>
+                        <td>
+                            <%= group.cn %>
+                        </td>
+                        <td>
+                            <%= group.name %>
+                        </td>
+                        <td>
+                            <%= group.member ? group.member.length : 0 %>
+                        </td>
+                        <td>
+                            <a href="/groups/<%= group.cn %>/edit" class="btn btn-sm btn-info">Edit</a>
+                        </td>
+                    </tr>
+                    <% }) %>
+            </tbody>
+        </table>
