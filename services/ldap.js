@@ -42,6 +42,15 @@ function parseEntry(entry) {
     return obj;
 }
 
+
+const logDebug = (msg) => {
+    console.log(`[${new Date().toISOString()}] ${msg}`);
+};
+
+const logError = (msg, err) => {
+    console.error(`[${new Date().toISOString()}] ${msg}`, err);
+};
+
 function getAdminClient() {
     return new Promise((resolve, reject) => {
         const client = createClient();
@@ -64,7 +73,7 @@ function getAdminClient() {
 }
 
 const authenticate = (username, password) => {
-    console.log(`LDAP Debug - Authenticating user: ${username}`);
+    logDebug(`LDAP Debug - Authenticating user: ${username}`);
     return new Promise((resolve, reject) => {
         // MOCK AUTHENTICATION
         if (process.env.MOCK_LDAP === 'true' || LDAP_URL.includes('localhost')) {
@@ -106,7 +115,7 @@ const authenticate = (username, password) => {
 
             navClient.search(BASE_DN, opts, (err, res) => {
                 if (err) {
-                    console.error('LDAP Search Error:', err);
+                    logError('LDAP Search Error:', err);
                     navClient.unbind();
                     return reject(err);
                 }
@@ -117,7 +126,7 @@ const authenticate = (username, password) => {
                     try {
                         userEntry = parseEntry(entry);
                     } catch (e) {
-                        console.error('LDAP Error processing entry:', e);
+                        logError('LDAP Error processing entry:', e);
                     }
                 });
 
@@ -132,13 +141,13 @@ const authenticate = (username, password) => {
                     client.bind(userEntry.dn, password, (err) => {
                         if (err) {
                             client.unbind();
-                            console.error('LDAP Debug - Authentication bind failed:', err);
+                            logError('LDAP Debug - Authentication bind failed:', err);
                             return reject(new Error('Invalid credentials'));
                         }
 
                         // Password verified
                         client.unbind();
-                        console.log(`LDAP Debug - User authenticated successfully: ${username}`);
+                        logDebug(`LDAP Debug - User authenticated successfully: ${username}`);
                         resolve(userEntry);
                     });
                 });
@@ -163,7 +172,7 @@ const searchUsers = (query, searchBy) => {
         }
 
         getAdminClient().then(client => {
-            console.log(`LDAP Debug - Searching users. Query: ${query}, By: ${searchBy}`);
+            logDebug(`LDAP Debug - Searching users. Query: ${query}, By: ${searchBy}`);
             // Wildcard search for the query provided
             // Filter example: (&(sAMAccountName=*john*)(objectClass=user)(objectCategory=person))
             const searchFilter = `(&(${searchBy}=*${query}*)(objectClass=user)(objectCategory=person))`;
@@ -208,7 +217,7 @@ const getUser = (id) => {
         }
 
         getAdminClient().then(client => {
-            console.log(`LDAP Debug - Getting user details for: ${id}`);
+            logDebug(`LDAP Debug - Getting user details for: ${id}`);
             const searchFilter = `(sAMAccountName=${id})`;
             const opts = {
                 filter: searchFilter,
@@ -255,14 +264,14 @@ const updateUser = (id, changes) => {
         }
 
         // 1. Get User DN first
-        console.log(`LDAP Debug - Updating user: ${id}`);
+        logDebug(`LDAP Debug - Updating user: ${id}`);
         getUser(id).then(user => {
             const dn = user.dn;
 
             getAdminClient().then(client => {
                 const changesList = [];
 
-                console.log('LDAP Debug - UpdateUser Changes:', changes);
+                logDebug(`LDAP Debug - UpdateUser Changes: ${JSON.stringify(changes)}`);
 
                 // Convert simple object changes to LDAP Change objects
                 for (const [key, value] of Object.entries(changes)) {
@@ -270,9 +279,18 @@ const updateUser = (id, changes) => {
                     // 'cn' requires specific rename operations (modifyDN) usually, so let's skip it for simple updates to avoid "Unwilling To Perform"
                     if (key === 'dn' || key === 'sAMAccountName' || key === 'memberOf' || key === 'cn') continue;
 
-                    // Create modification
-                    // If value is empty, maybe 'delete'? For now, assume 'replace'
-                    if (value === '' || value === null || value === undefined) {
+                    // CHECK IF VALUE CHANGED
+                    let newValue = value;
+                    let currentValue = user[key];
+
+                    // Normalize current value to array of strings for comparison if needed, or simple string
+                    // But simpler: normalize both to string or array of strings and compare JSON rep or basic equality
+
+                    // Case 1: Deletion
+                    if (newValue === '' || newValue === null || newValue === undefined) {
+                        // If current value is already empty/undefined, skip
+                        if (!currentValue) continue;
+
                         // CRITICAL: Do NOT try to delete mandatory attributes
                         if (key === 'userAccountControl') continue;
 
@@ -284,31 +302,41 @@ const updateUser = (id, changes) => {
                             }
                         }));
                     } else {
-                        // Ensure value is a string or array of strings
-                        const strValue = Array.isArray(value) ? value.map(v => String(v)) : [String(value)];
+                        // Case 2: Replacement
+                        // Normalize newValue to array of strings
+                        const strNewValues = Array.isArray(newValue) ? newValue.map(v => String(v)) : [String(newValue)];
+                        const strCurrentValues = Array.isArray(currentValue) ? currentValue.map(v => String(v)) : (currentValue ? [String(currentValue)] : []);
 
-                        changesList.push(new ldap.Change({
-                            operation: 'replace',
-                            modification: {
-                                type: key,
-                                values: strValue
-                            }
-                        }));
+                        // Sort to compare sets independent of order if that's desired, though usually order might not matter for single scalar
+                        // For simplicity, strict equality check for scalar, arrays check contents
+
+                        const isDifferent = JSON.stringify(strNewValues.sort()) !== JSON.stringify(strCurrentValues.sort());
+
+                        if (isDifferent) {
+                            changesList.push(new ldap.Change({
+                                operation: 'replace',
+                                modification: {
+                                    type: key,
+                                    values: strNewValues
+                                }
+                            }));
+                        }
                     }
                 }
 
                 if (changesList.length === 0) {
                     client.unbind();
+                    logDebug(`LDAP Debug - No changes detected for user: ${id}`);
                     return resolve(user); // No changes
                 }
 
                 client.modify(dn, changesList, (err) => {
                     client.unbind();
                     if (err) {
-                        console.error('LDAP Debug - Update failed:', err);
+                        logError('LDAP Debug - Update failed:', err);
                         return reject(err);
                     }
-                    console.log(`LDAP Debug - User updated successfully: ${id}`);
+                    logDebug(`LDAP Debug - User updated successfully: ${id}`);
                     resolve({ ...user, ...changes });
                 });
             }).catch(reject);
@@ -328,7 +356,7 @@ const searchGroups = (query) => {
         }
 
         getAdminClient().then(client => {
-            console.log(`LDAP Debug - Searching groups: ${query}`);
+            logDebug(`LDAP Debug - Searching groups: ${query}`);
             const searchFilter = `(&(cn=*${query}*)(objectClass=group))`;
             const opts = {
                 filter: searchFilter,
@@ -369,21 +397,28 @@ const updateGroup = (id, changes) => {
             return resolve({ cn: id, ...changes });
         }
 
-        console.log(`LDAP Debug - Updating group: ${id}`);
+        logDebug(`LDAP Debug - Updating group: ${id}`);
 
         getGroup(id).then(group => {
             const dn = group.dn;
 
             getAdminClient().then(client => {
                 const changesList = [];
-                console.log('LDAP Debug - UpdateGroup Changes:', changes);
+                logDebug(`LDAP Debug - UpdateGroup Changes: ${JSON.stringify(changes)}`);
 
+                // Convert simple object changes to LDAP Change objects
                 for (const [key, value] of Object.entries(changes)) {
                     // Skip immutable or unsafe fields
                     if (key === 'dn' || key === 'cn') continue;
 
-                    // Handle deletion (empty string, null, or empty array)
-                    if (value === '' || value === null || value === undefined || (Array.isArray(value) && value.length === 0)) {
+                    // CHECK IF VALUE CHANGED
+                    let newValue = value;
+                    let currentValue = group[key];
+
+                    // Case 1: Deletion
+                    if (newValue === '' || newValue === null || newValue === undefined || (Array.isArray(value) && value.length === 0)) {
+                        if (!currentValue || (Array.isArray(currentValue) && currentValue.length === 0)) continue;
+
                         changesList.push(new ldap.Change({
                             operation: 'delete',
                             modification: {
@@ -392,31 +427,37 @@ const updateGroup = (id, changes) => {
                             }
                         }));
                     } else {
-                        // Ensure values are strings
-                        const strValues = Array.isArray(value) ? value.map(v => String(v)) : [String(value)];
+                        // Case 2: Replacement
+                        const strNewValues = Array.isArray(newValue) ? newValue.map(v => String(v)) : [String(newValue)];
+                        const strCurrentValues = Array.isArray(currentValue) ? currentValue.map(v => String(v)) : (currentValue ? [String(currentValue)] : []);
 
-                        changesList.push(new ldap.Change({
-                            operation: 'replace',
-                            modification: {
-                                type: key,
-                                values: strValues
-                            }
-                        }));
+                        const isDifferent = JSON.stringify(strNewValues.sort()) !== JSON.stringify(strCurrentValues.sort());
+
+                        if (isDifferent) {
+                            changesList.push(new ldap.Change({
+                                operation: 'replace',
+                                modification: {
+                                    type: key,
+                                    values: strNewValues
+                                }
+                            }));
+                        }
                     }
                 }
 
                 if (changesList.length === 0) {
                     client.unbind();
+                    logDebug(`LDAP Debug - No changes detected for group: ${id}`);
                     return resolve(group);
                 }
 
                 client.modify(dn, changesList, (err) => {
                     client.unbind();
                     if (err) {
-                        console.error('LDAP Debug - Group Update failed:', err);
+                        logError('LDAP Debug - Group Update failed:', err);
                         return reject(err);
                     }
-                    console.log(`LDAP Debug - Group updated successfully: ${id}`);
+                    logDebug(`LDAP Debug - Group updated successfully: ${id}`);
                     resolve({ ...group, ...changes });
                 });
             }).catch(reject);
@@ -437,7 +478,7 @@ const getGroup = (id) => {
         }
 
         getAdminClient().then(client => {
-            console.log(`LDAP Debug - Getting group details: ${id}`);
+            logDebug(`LDAP Debug - Getting group details: ${id}`);
             const searchFilter = `(&(cn=${id})(objectClass=group))`;
             const opts = {
                 filter: searchFilter,
