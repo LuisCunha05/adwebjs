@@ -4,7 +4,7 @@ import * as ldapService from '../services/ldap';
 const router = express.Router();
 
 router.get('/login', (req: Request, res: Response) => {
-    res.render('login', { error: req.query.error });
+    res.render('login', { error: req.query.error, layout: false });
 });
 
 router.post('/login', async (req: Request, res: Response) => {
