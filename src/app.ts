@@ -22,6 +22,9 @@ app.set('layout', 'layout'); // layouts/layout.ejs
 
 // Middleware
 app.use(express.static(path.join(__dirname, '../public')));
+// Serve Bootstrap from node_modules
+app.use('/css', express.static(path.join(__dirname, '../node_modules/bootstrap/dist/css')));
+app.use('/js', express.static(path.join(__dirname, '../node_modules/bootstrap/dist/js')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(session({
