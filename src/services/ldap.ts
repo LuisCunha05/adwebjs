@@ -9,6 +9,7 @@ const BASE_DN = process.env.LDAP_BASE_DN as string;
 const LDAP_ADMIN_DN = process.env.LDAP_ADMIN_DN as string;
 const LDAP_ADMIN_PASSWORD = process.env.LDAP_ADMIN_PASSWORD as string;
 const MOCK_LDAP = process.env.MOCK_LDAP === 'true';
+const LDAP_DEBUG = process.env.LDAP_DEBUG === 'true';
 
 // Mock data for development
 interface MockUser {
@@ -26,7 +27,9 @@ const MOCK_USERS: MockUser[] = [
 ];
 
 const logDebug = (msg: string) => {
-    console.log(`[${new Date().toISOString()}] ${msg}`);
+    if (LDAP_DEBUG) {
+        console.log(`[${new Date().toISOString()}] ${msg}`);
+    }
 };
 
 const logError = (msg: string, err: any) => {
