@@ -23,7 +23,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Pencil } from "lucide-react";
+import { Search, Pencil, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 const searchByOptions = [
@@ -34,20 +34,24 @@ const searchByOptions = [
   { value: "sn", label: "Sobrenome" },
 ] as const;
 
-function uacLabel(value: string | number | undefined): string {
+const UAC_DISABLED = 2;
+const UAC_DONT_EXPIRE_PASSWD = 65536;
+
+function uacToLabel(value: string | number | undefined): string {
   if (value == null) return "—";
   const n = Number(value);
-  if (n === 512) return "Ativo";
-  if (n === 514) return "Desativado";
-  if (n === 66048) return "Normal, senha não expira";
-  return String(value);
+  const disabled = (n & UAC_DISABLED) !== 0;
+  const pwdNeverExpires = (n & UAC_DONT_EXPIRE_PASSWD) !== 0;
+  const status = disabled ? "Desativada" : "Ativa";
+  if (pwdNeverExpires) return `${status}, senha não expira`;
+  return status;
 }
 
 function uacVariant(
   value: string | number | undefined
 ): "default" | "secondary" | "destructive" | "outline" {
-  const n = Number(value);
-  if (n === 514) return "destructive";
+  const n = Number(value) || 0;
+  if ((n & UAC_DISABLED) !== 0) return "destructive";
   return "secondary";
 }
 
@@ -85,11 +89,19 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
-        <p className="text-muted-foreground mt-1">
-          Pesquise e edite contas de usuário do Active Directory.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
+          <p className="text-muted-foreground mt-1">
+            Pesquise, crie e edite contas de usuário do Active Directory.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/users/new">
+            <UserPlus className="size-4 mr-2" />
+            Novo usuário
+          </Link>
+        </Button>
       </div>
       <Card>
         <CardHeader>
@@ -185,7 +197,7 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={uacVariant(u.userAccountControl)}>
-                        {uacLabel(u.userAccountControl)}
+                        {uacToLabel(u.userAccountControl)}
                       </Badge>
                     </TableCell>
                     <TableCell>

@@ -1,11 +1,7 @@
 import type { NextConfig } from "next";
 
-const apiUrl = process.env.API_URL || "http://127.0.0.1:3001";
-
-const nextConfig: NextConfig = {
-  async rewrites() {
-    return [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }];
-  },
-};
+// /api/* é tratado por app/api/[[...path]]/route.ts (proxy com cookies).
+// Não usar rewrites aqui para não perder sessão.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

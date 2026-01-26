@@ -67,16 +67,33 @@ LDAP_DEBUG=true
 
 ## Running the Application
 
-1.  **Start the server**:
-    ```bash
-    npm start
-    ```
+### Subir tudo de uma vez (API + frontend)
 
-2.  **Access the web interface**:
-    Open your browser and navigate to `http://localhost:3000`.
+1. **Instale as dependências do frontend** (uma vez):
+   ```bash
+   cd web && npm install && cd ..
+   ```
 
-3.  **Login**:
-    Use your Active Directory username and password.
+2. **Configure o `.env`** na raiz (copie de `env.example`). Defina as portas:
+   - **PORT** – porta da API (ex.: `3001`)
+   - **FRONTEND_PORT** – porta do frontend Next.js (ex.: `3000`)
+   - **API_URL** – URL da API (ex.: `http://127.0.0.1:3001`)
+   - **FRONTEND_URL** – URL do frontend para redirects (ex.: `http://127.0.0.1:3000`)
+
+3. **Suba API e frontend juntos**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Acesse** no navegador a URL do frontend (ex.: `http://localhost:3000`).
+
+### Apenas a API
+
+```bash
+npm start
+```
+
+A API usa a porta definida em **PORT** no `.env` (padrão 3000). O frontend em `web/` precisa ser iniciado à parte com `cd web && npm run dev` e usar **API_URL** no seu ambiente.
 
 ## Usage Walkthrough
 

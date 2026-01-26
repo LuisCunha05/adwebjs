@@ -7,6 +7,9 @@ import {
   LayoutDashboard,
   Users,
   FolderTree,
+  FolderOpen,
+  CalendarClock,
+  ScrollText,
   LogOut,
   ChevronRight,
 } from "lucide-react";
@@ -28,6 +31,9 @@ const navItems = (isAdmin: boolean) => [
     ? [
         { href: "/users", label: "Usuários", icon: Users },
         { href: "/groups", label: "Grupos", icon: FolderTree },
+        { href: "/ous", label: "OUs", icon: FolderOpen },
+        { href: "/schedule", label: "Agendamentos", icon: CalendarClock },
+        { href: "/audit", label: "Logs de auditoria", icon: ScrollText },
       ]
     : []),
 ];
