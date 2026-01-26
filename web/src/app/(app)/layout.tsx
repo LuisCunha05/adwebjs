@@ -7,9 +7,16 @@ import {
   LayoutDashboard,
   Users,
   FolderTree,
+  FolderOpen,
+  CalendarClock,
+  ScrollText,
   LogOut,
   ChevronRight,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +35,9 @@ const navItems = (isAdmin: boolean) => [
     ? [
         { href: "/users", label: "Usuários", icon: Users },
         { href: "/groups", label: "Grupos", icon: FolderTree },
+        { href: "/ous", label: "OUs", icon: FolderOpen },
+        { href: "/schedule", label: "Agendamentos", icon: CalendarClock },
+        { href: "/audit", label: "Logs de auditoria", icon: ScrollText },
       ]
     : []),
 ];
@@ -38,8 +48,14 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const { session, loading, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
+
+  const effectiveTheme = theme ?? "system";
+  const cycleTheme = () => {
+    setTheme(effectiveTheme === "light" ? "dark" : effectiveTheme === "dark" ? "system" : "light");
+  };
 
   useEffect(() => {
     if (!loading && !session) {
@@ -98,7 +114,17 @@ export default function AppLayout({
             );
           })}
         </nav>
-        <div className="absolute bottom-0 left-0 right-0 border-t border-border p-3">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-border p-3 space-y-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-3 px-3"
+            onClick={cycleTheme}
+            title={effectiveTheme === "light" ? "Claro" : effectiveTheme === "dark" ? "Escuro" : "Sistema"}
+          >
+            {effectiveTheme === "light" ? <Sun className="size-4" /> : effectiveTheme === "dark" ? <Moon className="size-4" /> : <Monitor className="size-4" />}
+            <span className="text-sm">{effectiveTheme === "light" ? "Claro" : effectiveTheme === "dark" ? "Escuro" : "Sistema"}</span>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

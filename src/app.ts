@@ -3,6 +3,7 @@ import bodyParser from 'body-parser';
 import session from 'express-session';
 import dotenv from 'dotenv';
 import apiRouter from './routes/api';
+import * as scheduleService from './services/schedule';
 
 dotenv.config();
 
@@ -21,20 +22,34 @@ app.use(
   })
 );
 
+// CORS: permite chamadas do front (ex.: FRONTEND_URL) com credentials
+const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  const origin = req.get('Origin');
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', frontendOrigin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 // Redireciona acesso de navegador à porta da API para o frontend (Next.js)
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   if (req.path.startsWith('/api')) return next();
   const accept = req.get('Accept') || '';
   if (!accept.includes('text/html')) return next();
-  const frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
-  return res.redirect(302, frontend + req.originalUrl);
+  return res.redirect(302, frontendOrigin + req.originalUrl);
 });
 
 app.use('/api', apiRouter);
 
 const server = app.listen(PORT, () => {
   console.log(`API running on port ${PORT}`);
+  scheduleService.startRunner(60_000);
 });
 
 server.on('error', (err: NodeJS.ErrnoException) => {
