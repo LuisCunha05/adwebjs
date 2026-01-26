@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, FolderTree, FolderOpen, UserX } from "lucide-react";
+import { Users, FolderTree, FolderOpen, UserX, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { stats as statsApi } from "@/lib/api";
+import { stats as statsApi, audit as auditApi } from "@/lib/api";
+
+const RECENT_DISABLES_THRESHOLD = 5;
+const RECENT_HOURS = 24;
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<{ usersCount: number; disabledCount: number; groupsCount: number } | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [recentDisables, setRecentDisables] = useState(0);
 
   useEffect(() => {
     setStatsError(null);
@@ -31,6 +35,24 @@ export default function DashboardPage() {
       });
   }, []);
 
+  useEffect(() => {
+    const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000).toISOString();
+    auditApi
+      .list({ action: "user.disable", since, limit: 200 })
+      .then((r) => setRecentDisables((r.entries ?? []).length))
+      .catch(() => setRecentDisables(0));
+  }, []);
+
+  const alerts: { id: string; title: string; message: string; href?: string }[] = [];
+  if (recentDisables >= RECENT_DISABLES_THRESHOLD) {
+    alerts.push({
+      id: "recent-disables",
+      title: "Vários usuários desativados recentemente",
+      message: `${recentDisables} conta(s) foram desativadas nas últimas ${RECENT_HOURS}h. Verifique se é intencional.`,
+      href: "/audit",
+    });
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -45,6 +67,36 @@ export default function DashboardPage() {
           {statsError}
         </div>
       )}
+
+      {alerts.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-amber-800 dark:text-amber-200">
+              <AlertTriangle className="size-4" />
+              Alertas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {alerts.map((a) => (
+              <div
+                key={a.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-white/80 px-3 py-2 text-sm dark:border-amber-800 dark:bg-black/20"
+              >
+                <div>
+                  <p className="font-medium text-amber-900 dark:text-amber-100">{a.title}</p>
+                  <p className="text-amber-800 dark:text-amber-200/90">{a.message}</p>
+                </div>
+                {a.href && (
+                  <Button variant="outline" size="sm" asChild className="shrink-0 border-amber-300 dark:border-amber-700">
+                    <Link href={a.href}>Ver</Link>
+                  </Button>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {stats !== null ? (
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>

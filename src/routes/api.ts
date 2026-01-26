@@ -86,11 +86,15 @@ router.get('/config/user-attributes', apiEnsureAuth, apiEnsureAdmin, (_req: Requ
 router.get('/users', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
     const query = (req.query.q as string) || '';
     const searchBy = (req.query.searchBy as string) || 'sAMAccountName';
-    if (!query.trim()) {
+    const ou = (req.query.ou as string)?.trim() || undefined;
+    const memberOf = (req.query.memberOf as string)?.trim() || undefined;
+    const disabledOnly = (req.query.disabledOnly as string) === 'true' || (req.query.disabledOnly as string) === '1';
+    const hasFilters = !!(ou || memberOf || disabledOnly);
+    if (!query.trim() && !hasFilters) {
         return res.json({ users: [] });
     }
     try {
-        const users = await ldapService.searchUsers(query, searchBy);
+        const users = await ldapService.searchUsers(query, searchBy, { ou, memberOf, disabledOnly });
         return res.json({ users });
     } catch (err: any) {
         return res.status(500).json({ error: err.message || 'Search failed', users: [] });

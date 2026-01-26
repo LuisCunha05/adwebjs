@@ -149,25 +149,63 @@ export const authenticate = async (username: string, password: string): Promise<
     }
 };
 
-export const searchUsers = async (query: string, searchBy: string): Promise<any[]> => {
+export interface SearchUsersOptions {
+    /** DN da OU onde buscar (base da busca). Se omitido, usa BASE_DN. */
+    ou?: string;
+    /** DN do grupo: apenas usuários que são membros (memberOf). */
+    memberOf?: string;
+    /** Se true, apenas contas desativadas (userAccountControl bit 2). */
+    disabledOnly?: boolean;
+}
+
+function escapeLdapFilter(val: string): string {
+    return val
+        .replace(/\\/g, '\\5c')
+        .replace(/\*/g, '\\2a')
+        .replace(/\(/g, '\\28')
+        .replace(/\)/g, '\\29')
+        .replace(/\x00/g, '\\00');
+}
+
+export const searchUsers = async (query: string, searchBy: string, options?: SearchUsersOptions): Promise<any[]> => {
     if (MOCK_LDAP || LDAP_URL.includes('localhost')) {
         logDebug(`LDAP Debug - MOCK Searching users. Query: ${query}, By: ${searchBy}`);
-        return MOCK_USERS.filter(u => u[searchBy] && (u[searchBy] as string).includes(query))
+        let out = MOCK_USERS.filter(u => u[searchBy] && (u[searchBy] as string).toString().toLowerCase().includes(query.toLowerCase()))
             .map(u => ({ ...u, dn: (u as any).dn || `CN=${u.sAMAccountName},OU=Users,DC=example,DC=com` }));
+        if (options?.disabledOnly) {
+            out = out.filter(u => (Number((u as any).userAccountControl) || 0) & 2);
+        }
+        return out;
     }
 
     const client = await getAdminClient();
     try {
         logDebug(`LDAP Debug - Searching users. Query: ${query}, By: ${searchBy}`);
-        const searchFilter = `(&(${searchBy}=*${query}*)(objectClass=user)(objectCategory=person))`;
+        const parts: string[] = [
+            '(objectClass=user)',
+            '(objectCategory=person)',
+        ];
+        if (query.trim()) {
+            parts.push(`(${searchBy}=*${escapeLdapFilter(query.trim())}*)`);
+        } else {
+            parts.push(`(${searchBy}=*)`);
+        }
+        if (options?.memberOf?.trim()) {
+            parts.push(`(memberOf=${options.memberOf.trim()})`);
+        }
+        if (options?.disabledOnly) {
+            parts.push('(userAccountControl:1.2.840.113556.1.4.803:=2)');
+        }
+        const searchFilter = '(&' + parts.join('') + ')';
+        const baseDn = (options?.ou?.trim() || BASE_DN);
 
-        const result = await client.search(BASE_DN, {
+        const result = await client.search(baseDn, {
             filter: searchFilter,
             scope: 'sub',
-            attributes: ['dn', 'sAMAccountName', 'userPrincipalName', 'cn', 'mail', 'memberOf']
+            attributes: ['dn', 'sAMAccountName', 'userPrincipalName', 'cn', 'mail', 'memberOf', 'userAccountControl', 'pwdLastSet'],
         });
 
-        return result.searchEntries;
+        return result.searchEntries || [];
     } catch (err) {
         logError('LDAP Search Error:', err);
         throw err;

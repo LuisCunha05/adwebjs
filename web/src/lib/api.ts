@@ -40,8 +40,17 @@ export const config = {
 };
 
 export const users = {
-  list: (q: string, searchBy: string) =>
-    api<{ users: any[] }>("/api/users", { params: { q, searchBy } }),
+  list: (
+    q: string,
+    searchBy: string,
+    opts?: { ou?: string; memberOf?: string; disabledOnly?: boolean }
+  ) => {
+    const params: Record<string, string> = { q, searchBy };
+    if (opts?.ou) params.ou = opts.ou;
+    if (opts?.memberOf) params.memberOf = opts.memberOf;
+    if (opts?.disabledOnly) params.disabledOnly = "true";
+    return api<{ users: any[] }>("/api/users", { params });
+  },
   get: (id: string) => api<any>(`/api/users/${encodeURIComponent(id)}`),
   create: (body: {
     parentOuDn: string;

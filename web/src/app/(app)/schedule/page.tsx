@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarClock, Loader2, Trash2, UserSearch } from "lucide-react";
+import { CalendarClock, Loader2, Trash2, UserSearch, Download } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 
@@ -18,6 +18,27 @@ type VacationGroup = {
   endDate: string;
   actionIds: string[];
 };
+
+function escapeCsv(s: string): string {
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadVacationsCsv(vacations: VacationGroup[]) {
+  const lines = [
+    "usuário,data_inicial,data_final",
+    ...vacations.map((v) =>
+      [escapeCsv(v.userId), escapeCsv(v.startDate), escapeCsv(v.endDate)].join(",")
+    ),
+  ];
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ferias-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function groupByVacation(actions: ScheduledAction[]): VacationGroup[] {
   const byVacation = new Map<string, VacationGroup>();
@@ -212,9 +233,17 @@ export default function SchedulePage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Agendamentos de férias</CardTitle>
-          <CardDescription>Próximas desativações/reativações automáticas.</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle>Agendamentos de férias</CardTitle>
+            <CardDescription>Próximas desativações/reativações automáticas.</CardDescription>
+          </div>
+          {vacations.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => downloadVacationsCsv(vacations)}>
+              <Download className="size-4 mr-2" />
+              Exportar férias (CSV)
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (
