@@ -8,11 +8,15 @@ import authRouter from './routes/auth';
 import indexRouter from './routes/index';
 import usersRouter from './routes/users';
 import groupsRouter from './routes/groups';
+import apiRouter from './routes/api';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Trust proxy so session works when frontend (Next.js) proxies /api to this server
+app.set('trust proxy', 1);
 
 // EJS Setup
 app.use(expressLayouts);
@@ -34,6 +38,7 @@ app.use(session({
 }));
 
 // Routes
+app.use('/api', apiRouter);
 app.use('/', authRouter);
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
