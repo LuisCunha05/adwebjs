@@ -10,6 +10,7 @@ const LDAP_ADMIN_DN = process.env.LDAP_ADMIN_DN as string;
 const LDAP_ADMIN_PASSWORD = process.env.LDAP_ADMIN_PASSWORD as string;
 const MOCK_LDAP = process.env.MOCK_LDAP === 'true';
 const LDAP_DEBUG = process.env.LDAP_DEBUG === 'true';
+const LDAP_GROUP_REQUIRED = process.env.LDAP_GROUP_REQUIRED as string;
 
 // Mock data for development
 interface MockUser {
@@ -77,7 +78,14 @@ export const authenticate = async (username: string, password: string): Promise<
         console.log('MOCK AUTH used for:', username);
         if (password === 'password') {
             const user = MOCK_USERS.find(u => u.userPrincipalName === username || u.sAMAccountName === username);
-            if (user) return user;
+            if (user) {
+                if (LDAP_GROUP_REQUIRED) {
+                    const groups = Array.isArray(user.memberOf) ? user.memberOf : (user.memberOf ? [user.memberOf] : []);
+                    const isMember = groups.some(g => g === LDAP_GROUP_REQUIRED || g.includes(LDAP_GROUP_REQUIRED));
+                    if (!isMember) throw new Error(`Unauthorized: User is not a member of the required group: ${LDAP_GROUP_REQUIRED}`);
+                }
+                return user;
+            }
             return { sAMAccountName: username, memberOf: ['CN=ADWEB-Admin'] };
         }
         if (username === 'admin') return { sAMAccountName: 'admin', memberOf: ['CN=ADWEB-Admin'] };
@@ -110,10 +118,23 @@ export const authenticate = async (username: string, password: string): Promise<
             await userClient.bind(userDn, password);
             userClient.unbind(); // Authenticated!
             logDebug(`LDAP Debug - User authenticated successfully: ${username}`);
+
+            // Check required group membership
+            if (LDAP_GROUP_REQUIRED) {
+                const groups = Array.isArray(userEntry.memberOf) ? userEntry.memberOf : (userEntry.memberOf ? [userEntry.memberOf] : []);
+                const isMember = groups.some((g: any) => g === LDAP_GROUP_REQUIRED || String(g).includes(LDAP_GROUP_REQUIRED));
+
+                if (!isMember) {
+                    logDebug(`LDAP Debug - User ${username} is NOT a member of required group: ${LDAP_GROUP_REQUIRED}`);
+                    throw new Error('Unauthorized: Member of required group is missing');
+                }
+                logDebug(`LDAP Debug - User ${username} group check passed for: ${LDAP_GROUP_REQUIRED}`);
+            }
+
             // Return user attributes
-            // ldapts entry keys are accessible directly usually
             return userEntry;
         } catch (err: any) {
+            if (err.message === 'Unauthorized') throw err;
             logError('LDAP Debug - Authentication bind failed:', err);
             throw new Error('Invalid credentials');
         } finally {
