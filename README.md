@@ -25,8 +25,8 @@ A Node.js web application for managing Active Directory Users and Groups using L
 
 1.  **Clone the repository**:
     ```bash
-    git clone <repository-url>
-    cd ad-js
+    git clone https://github.com/Tiozao-do-Linux/adwebjs.git
+    cd adwebjs
     ```
 
 2.  **Install dependencies**:
@@ -53,6 +53,9 @@ LDAP_ADMIN_PASSWORD=YourStrongPassword
 
 # Domain suffix for binding (fallback)
 LDAP_DOMAIN=yourdomain.com
+
+# Group required to access the application
+LDAP_GROUP_REQUIRED=ADWEB-Admin
 ```
 
 ### Important Notes
@@ -76,7 +79,7 @@ LDAP_DOMAIN=yourdomain.com
 
 ### 1. Login
 -   Enter your AD credentials.
--   If you are an admin (member of `ADWEB-Admin` group by default check in `routes/auth.js`), you will be granted access.
+-   If you are an admin (member of `LDAP_GROUP_REQUIRED` group by default check in `routes/auth.js`), you will be granted access.
 
 ### 2. Manage Users
 -   Go to **Manage Users**.
