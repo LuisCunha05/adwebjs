@@ -26,7 +26,7 @@ const MOCK_USERS: MockUser[] = [
     { sAMAccountName: 'jdoe', userPrincipalName: 'jdoe@example.com', pwdLastSet: '133000000000000000', userAccountControl: '512', memberOf: [] }
 ];
 
-const logDebug = (msg: string) => {
+export const logDebug = (msg: string) => {
     if (LDAP_DEBUG) {
         console.log(`[${new Date().toISOString()}] ${msg}`);
     }

@@ -56,6 +56,9 @@ LDAP_DOMAIN=yourdomain.com
 
 # Group required to access the application
 LDAP_GROUP_REQUIRED=ADWEB-Admin
+
+# Debug LDAP operations
+LDAP_DEBUG=true
 ```
 
 ### Important Notes

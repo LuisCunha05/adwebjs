@@ -33,6 +33,9 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 router.get('/logout', (req: Request, res: Response) => {
+    const username = (req.session as any).user?.sAMAccountName || (req.session as any).user?.userPrincipalName || 'unknown';
+    ldapService.logDebug(`LDAP Debug - User logout: ${username}`);
+
     req.session.destroy((err) => {
         res.redirect('/login');
     });
