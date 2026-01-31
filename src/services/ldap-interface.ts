@@ -1,4 +1,6 @@
 
+import { LdapUserAttributes } from './ad-user-attributes';
+
 export interface SearchUsersOptions {
     /** DN da OU onde buscar (base da busca). Se omitido, usa BASE_DN. */
     ou?: string;
@@ -31,13 +33,13 @@ export interface DisableUserOptions {
 }
 
 export interface ILdapService {
-    authenticate(username: string, password: string): Promise<any>;
-    searchUsers(query: string, searchBy: string, options?: SearchUsersOptions): Promise<any[]>;
-    getUser(id: string): Promise<any>;
-    createUser(input: CreateUserInput): Promise<any>;
+    authenticate(username: string, password: string): Promise<LdapUserAttributes>;
+    searchUsers(query: string, searchBy: string, options?: SearchUsersOptions): Promise<LdapUserAttributes[]>;
+    getUser(id: string): Promise<LdapUserAttributes>;
+    createUser(input: CreateUserInput): Promise<LdapUserAttributes>;
     deleteUser(id: string): Promise<void>;
     setPassword(id: string, newPassword: string): Promise<void>;
-    updateUser(id: string, changes: any): Promise<any>;
+    updateUser(id: string, changes: any): Promise<LdapUserAttributes>;
     searchGroups(query: string): Promise<any[]>;
     getGroup(id: string): Promise<any>;
     updateGroup(id: string, changes: any): Promise<any>;

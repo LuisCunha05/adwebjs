@@ -1,5 +1,5 @@
 import { Client, Attribute, Change } from 'ldapts';
-import { getFetchAttributes } from './ad-user-attributes';
+import { getFetchAttributes, LdapUserAttributes } from './ad-user-attributes';
 import { ILdapService, SearchUsersOptions, CreateUserInput, DisableUserOptions } from './ldap-interface';
 
 import {
@@ -73,7 +73,7 @@ export class LdapService implements ILdapService {
         return client;
     }
 
-    async authenticate(username: string, password: string): Promise<any> {
+    async authenticate(username: string, password: string): Promise<LdapUserAttributes> {
         logDebug(`LDAP Debug - Authenticating user: ${username}`);
 
         // 1. Admin Bind to search for user DN
@@ -116,7 +116,7 @@ export class LdapService implements ILdapService {
                     logDebug(`LDAP Debug - User ${username} group check passed for: ${LDAP_GROUP_REQUIRED}`);
                 }
 
-                return userEntry;
+                return userEntry as LdapUserAttributes;
             } catch (err: any) {
                 if (err.message === 'Unauthorized') throw err;
                 logError('LDAP Debug - Authentication bind failed:', err);
@@ -133,7 +133,7 @@ export class LdapService implements ILdapService {
         }
     }
 
-    async searchUsers(query: string, searchBy: string, options?: SearchUsersOptions): Promise<any[]> {
+    async searchUsers(query: string, searchBy: string, options?: SearchUsersOptions): Promise<LdapUserAttributes[]> {
         const client = await this.getAdminClient();
         try {
             logDebug(`LDAP Debug - Searching users. Query: ${query}, By: ${searchBy}`);
@@ -161,7 +161,7 @@ export class LdapService implements ILdapService {
                 attributes: ['dn', 'sAMAccountName', 'userPrincipalName', 'cn', 'mail', 'memberOf', 'userAccountControl', 'pwdLastSet'],
             });
 
-            return result.searchEntries || [];
+            return (result.searchEntries || []) as LdapUserAttributes[];
         } catch (err) {
             logError('LDAP Search Error:', err);
             throw err;
@@ -170,7 +170,7 @@ export class LdapService implements ILdapService {
         }
     }
 
-    async getUser(id: string): Promise<any> {
+    async getUser(id: string): Promise<LdapUserAttributes> {
         const client = await this.getAdminClient();
         try {
             logDebug(`LDAP Debug - Getting user details for: ${id}`);
@@ -181,7 +181,7 @@ export class LdapService implements ILdapService {
             });
 
             if (result.searchEntries.length === 0) throw new Error('User not found');
-            return result.searchEntries[0];
+            return result.searchEntries[0] as LdapUserAttributes;
         } catch (err) {
             logError('LDAP GetUser Error:', err);
             throw err;
@@ -190,7 +190,7 @@ export class LdapService implements ILdapService {
         }
     }
 
-    async createUser(input: CreateUserInput): Promise<any> {
+    async createUser(input: CreateUserInput): Promise<LdapUserAttributes> {
         const { parentOuDn, sAMAccountName, password } = input;
         if (!parentOuDn?.trim() || !sAMAccountName?.trim() || !password) {
             throw new Error('parentOuDn, sAMAccountName e password são obrigatórios');
@@ -245,7 +245,7 @@ export class LdapService implements ILdapService {
 
     async deleteUser(id: string): Promise<void> {
         const user = await this.getUser(id);
-        const dn = user.dn;
+        const dn = getSingleValue(user.dn);
         if (!dn) throw new Error('User has no DN');
 
         const client = await this.getAdminClient();
@@ -261,9 +261,12 @@ export class LdapService implements ILdapService {
         if (!newPassword || newPassword.length < 1) throw new Error('Nova senha é obrigatória');
 
         const user = await this.getUser(id);
+        const dn = getSingleValue(user.dn);
+        if (!dn) throw new Error('User has no DN');
+
         const client = await this.getAdminClient();
         try {
-            await client.modify(user.dn, [
+            await client.modify(dn, [
                 new Change({
                     operation: 'replace',
                     modification: new Attribute({ type: 'unicodePwd', values: [encodeUnicodePwd(newPassword)] })
@@ -275,10 +278,11 @@ export class LdapService implements ILdapService {
         }
     }
 
-    async updateUser(id: string, changes: any): Promise<any> {
+    async updateUser(id: string, changes: any): Promise<LdapUserAttributes> {
         logDebug(`LDAP Debug - Updating user: ${id}`);
         const user = await this.getUser(id);
-        const dn = user.dn;
+        const dn = getSingleValue(user.dn);
+        if (!dn) throw new Error('User has no DN');
 
         const client = await this.getAdminClient();
         try {
@@ -336,7 +340,7 @@ export class LdapService implements ILdapService {
 
             await client.modify(dn, modifications);
             logDebug(`LDAP Debug - User updated successfully: ${id}`);
-            return { ...user, ...changes };
+            return { ...user, ...changes } as LdapUserAttributes;
         } catch (err) {
             logError('LDAP Update Error', err);
             throw err;
@@ -441,7 +445,8 @@ export class LdapService implements ILdapService {
 
     async moveUserToOu(id: string, targetOuDn: string): Promise<void> {
         const user = await this.getUser(id);
-        const dn = (user.dn || '').trim();
+        const rawDn = getSingleValue(user.dn);
+        const dn = (rawDn || '').trim();
         if (!dn) throw new Error('User has no DN');
 
         const rdn = dn.split(',')[0];
@@ -474,9 +479,12 @@ export class LdapService implements ILdapService {
 
     async unlockUser(id: string): Promise<void> {
         const user = await this.getUser(id);
+        const dn = getSingleValue(user.dn);
+        if (!dn) throw new Error('User has no DN');
+
         const client = await this.getAdminClient();
         try {
-            await client.modify(user.dn, [
+            await client.modify(dn, [
                 new Change({ operation: 'replace', modification: new Attribute({ type: 'lockoutTime', values: ['0'] }) })
             ]);
             logDebug(`LDAP Debug - User unlocked: ${id}`);
