@@ -37,7 +37,7 @@ function encodeUnicodePwd(password: string): Buffer {
 }
 
 function escapeRdn(val: string): string {
-    return val.replace(/\\/g, '\\5C').replace(/"/g, '\\22').replace(/^(\s)|(\s)$/g, (_, a, b) => (a ? '\\20' : '\\20')).replace(/#/g, '\\23').replace(/\+/g, '\\2B').replace(/;/g, '\\3B').replace(/</g, '\\3C').replace(/=/g, '\\3D').replace(/>/g, '\\3E').replace(/,/g, '\\2C');
+    return val.replace(/\\/g, '\\5C').replace(/"/g, '\\22').replace(/^(\s)|(\s)$/g, (_, a, _b) => (a ? '\\20' : '\\20')).replace(/#/g, '\\23').replace(/\+/g, '\\2B').replace(/;/g, '\\3B').replace(/</g, '\\3C').replace(/=/g, '\\3D').replace(/>/g, '\\3E').replace(/,/g, '\\2C');
 }
 
 const UAC_ACCOUNTDISABLE = 2;

@@ -30,7 +30,7 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   }
   if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
+  return next();
 });
 
 // Redireciona acesso de navegador à porta da API para o frontend (Next.js)

@@ -231,7 +231,7 @@ router.delete('/users/:id', apiEnsureAuth, apiEnsureAdmin, (req: Request, res: R
     if (!(req.session as any).canDelete) {
         return res.status(403).json({ error: 'Sem permissão para excluir usuários. É necessário pertencer ao grupo configurado em LDAP_GROUP_DELETE.', code: 'REQUIRES_DELETE_GROUP' });
     }
-    next();
+    return next();
 }, async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     try {
@@ -245,7 +245,7 @@ router.delete('/users/:id', apiEnsureAuth, apiEnsureAdmin, (req: Request, res: R
 });
 
 // --- Stats ---
-router.get('/stats', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/stats', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Response) => {
     try {
         const stats = await ldapService.getStats();
         return res.json(stats);
@@ -255,7 +255,7 @@ router.get('/stats', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Re
 });
 
 // --- OUs ---
-router.get('/ous', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/ous', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Response) => {
     try {
         const ous = await ldapService.listOUs();
         return res.json({ ous: ous || [] });
@@ -265,7 +265,7 @@ router.get('/ous', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Resp
 });
 
 // --- Schedule (vacation, etc.) ---
-router.get('/schedule', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/schedule', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Response) => {
     try {
         const actions = scheduleService.list();
         return res.json({ actions });
