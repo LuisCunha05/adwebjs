@@ -1,14 +1,11 @@
 import express, { Request, Response, NextFunction } from 'express';
 import bodyParser from 'body-parser';
 import session from 'express-session';
-import dotenv from 'dotenv';
 import apiRouter from './routes/api';
 import * as scheduleService from './services/schedule';
-
-dotenv.config();
+import { PORT, SESSION_SECRET, FRONTEND_URL } from './config';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
 
@@ -16,14 +13,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'secret',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
   })
 );
 
 // CORS: permite chamadas do front (ex.: FRONTEND_URL) com credentials
-const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+const frontendOrigin = FRONTEND_URL;
 app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   const origin = req.get('Origin');
   if (origin) {

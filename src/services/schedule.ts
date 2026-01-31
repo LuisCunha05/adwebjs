@@ -3,12 +3,10 @@ import path from 'path';
 import { ldapService as ldap } from './container';
 import * as audit from './audit';
 
+import { SCHEDULE_DATA_DIR } from '../config';
+
 /** Pasta onde fica o JSON de agendamentos. Use SCHEDULE_DATA_DIR no .env para customizar (caminho absoluto ou relativo ao cwd). */
-const DATA_DIR = process.env.SCHEDULE_DATA_DIR
-    ? path.isAbsolute(process.env.SCHEDULE_DATA_DIR)
-        ? process.env.SCHEDULE_DATA_DIR
-        : path.join(process.cwd(), process.env.SCHEDULE_DATA_DIR)
-    : path.join(process.cwd(), 'data');
+const DATA_DIR = SCHEDULE_DATA_DIR;
 const FILE_PATH = path.join(DATA_DIR, 'scheduled-actions.json');
 
 export interface ScheduledAction {

@@ -1,11 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 
-const DATA_DIR = process.env.SCHEDULE_DATA_DIR
-    ? path.isAbsolute(process.env.SCHEDULE_DATA_DIR)
-        ? process.env.SCHEDULE_DATA_DIR
-        : path.join(process.cwd(), process.env.SCHEDULE_DATA_DIR)
-    : path.join(process.cwd(), 'data');
+import { SCHEDULE_DATA_DIR, AD_EXTRA_ATTRIBUTES } from '../config';
+
+const DATA_DIR = SCHEDULE_DATA_DIR;
 const CONFIG_PATH = path.join(DATA_DIR, 'ad-user-attributes.json');
 
 export interface EditAttribute {
@@ -47,7 +45,7 @@ const DEFAULT_EDIT: EditAttribute[] = [
 
 /** Atributos adicionais do .env: AD_EXTRA_ATTRIBUTES=cpf,outro */
 function extraFromEnv(): string[] {
-    const s = process.env.AD_EXTRA_ATTRIBUTES || '';
+    const s = AD_EXTRA_ATTRIBUTES;
     return s.split(',').map((x) => x.trim()).filter(Boolean);
 }
 

@@ -1,16 +1,16 @@
 import { Client, Attribute, Change } from 'ldapts';
-import dotenv from 'dotenv';
 import { getFetchAttributes } from './ad-user-attributes';
 import { ILdapService, SearchUsersOptions, CreateUserInput, DisableUserOptions } from './ldap-interface';
 
-dotenv.config();
-
-const LDAP_URL = process.env.LDAP_URL as string;
-const BASE_DN = process.env.LDAP_BASE_DN as string;
-const LDAP_ADMIN_DN = process.env.LDAP_ADMIN_DN as string;
-const LDAP_ADMIN_PASSWORD = process.env.LDAP_ADMIN_PASSWORD as string;
-const LDAP_DEBUG = process.env.LDAP_DEBUG === 'true';
-const LDAP_GROUP_REQUIRED = process.env.LDAP_GROUP_REQUIRED as string;
+import {
+    LDAP_URL,
+    LDAP_BASE_DN as BASE_DN,
+    LDAP_ADMIN_DN,
+    LDAP_ADMIN_PASSWORD,
+    LDAP_DEBUG,
+    LDAP_GROUP_REQUIRED,
+    LDAP_DOMAIN
+} from '../config';
 
 const logDebug = (msg: string) => {
     if (LDAP_DEBUG) {
@@ -199,7 +199,7 @@ export class LdapService implements ILdapService {
         const cn = (input.cn || input.displayName || `${(input.givenName || '')} ${(input.sn || '')}`.trim() || sAMAccountName).slice(0, 64);
         const rdn = 'CN=' + escapeRdn(cn);
         const dn = `${rdn},${parentOuDn.replace(/^\s+|\s+$/g, '')}`;
-        const domain = process.env.LDAP_DOMAIN || (BASE_DN.match(/DC=([^,]+)/gi) || []).map((x: string) => x.replace(/^DC=/i, '')).join('.') || 'local';
+        const domain = LDAP_DOMAIN;
         const upn = input.userPrincipalName || `${sAMAccountName}@${domain}`;
 
         const attrs: Array<{ type: string; values: (string | Buffer)[] }> = [
