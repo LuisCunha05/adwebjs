@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from 'express';
 import bodyParser from 'body-parser';
 import session from 'express-session';
 import apiRouter from './routes/api';
-import * as scheduleService from './services/schedule';
 import { PORT, SESSION_SECRET, FRONTEND_URL } from './config';
 
 const app = express();
@@ -46,7 +45,6 @@ app.use('/api', apiRouter);
 
 const server = app.listen(PORT, () => {
   console.log(`API running on port ${PORT}`);
-  scheduleService.startRunner(60_000);
 });
 
 server.on('error', (err: NodeJS.ErrnoException) => {

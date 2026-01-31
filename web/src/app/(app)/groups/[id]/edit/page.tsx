@@ -251,7 +251,7 @@ export default function GroupEditPage() {
             <p className="text-muted-foreground py-4 text-center text-sm">Nenhum membro ou não foi possível carregar.</p>
           ) : (
             <ul className="space-y-2">
-              {displayMembers.map((m) => {
+              {displayMembers.map((m: any) => {
                 const loadingRm = actionLoading === m.dn;
                 const display = m.displayName || m.cn || m.sAMAccountName || m.dn;
                 return (

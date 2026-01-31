@@ -92,23 +92,33 @@ export const users = {
     api<{ ok: boolean }>(`/api/users/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
 
-export type ScheduledAction = {
-  id: string;
-  type: "disable" | "enable";
-  userId: string;
+export enum ScheduleStatus {
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED'
+}
+
+export interface ScheduledTask {
+  id: number;
+  type: string;
+  status: ScheduleStatus;
   runAt: string;
+  relatedId: number;
+  relatedTable: string;
   createdAt: string;
-  meta?: { vacationId?: string; startDate?: string; endDate?: string; description?: string };
-};
+  executedAt?: string;
+  error?: string;
+}
 
 export const schedule = {
-  list: () => api<{ actions: ScheduledAction[] }>("/api/schedule"),
+  list: () => api<{ actions: ScheduledTask[] }>("/api/schedule"),
   createVacation: (userId: string, startDate: string, endDate: string) =>
-    api<{ ok: boolean; disableId: string; enableId: string }>("/api/schedule/vacation", {
+    api<{ ok: boolean; vacationId: number }>("/api/schedule/vacation", {
       method: "POST",
       body: JSON.stringify({ userId, startDate, endDate }),
     }),
-  cancel: (id: string) =>
+  cancel: (id: number) =>
     api<{ ok: boolean }>(`/api/schedule/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
 

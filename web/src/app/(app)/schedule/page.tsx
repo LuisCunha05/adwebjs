@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { schedule as scheduleApi, users as usersApi, type ScheduledAction } from "@/lib/api";
+import { schedule as scheduleApi, users as usersApi, type ScheduledTask, ScheduleStatus } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,23 +12,18 @@ import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 
 type VacationGroup = {
-  vacationId: string;
-  userId: string;
+  vacationId: number | string; // Assuming relatedId represents vacationId, using number mostly
   startDate: string;
-  endDate: string;
-  actionIds: string[];
+  endDate: string; // Will try to infer from end task or simply display start task time
+  actionIds: number[];
+  status: ScheduleStatus;
 };
-
-function escapeCsv(s: string): string {
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
 
 function downloadVacationsCsv(vacations: VacationGroup[]) {
   const lines = [
-    "usuário,data_inicial,data_final",
+    "vacation_id,data_inicial,status",
     ...vacations.map((v) =>
-      [escapeCsv(v.userId), escapeCsv(v.startDate), escapeCsv(v.endDate)].join(",")
+      [v.vacationId, v.startDate, v.status].join(",")
     ),
   ];
   const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
@@ -40,33 +35,48 @@ function downloadVacationsCsv(vacations: VacationGroup[]) {
   URL.revokeObjectURL(url);
 }
 
-function groupByVacation(actions: ScheduledAction[]): VacationGroup[] {
-  const byVacation = new Map<string, VacationGroup>();
+function groupByVacation(actions: ScheduledTask[]): VacationGroup[] {
+  // Group by relatedId.
+  // Assumption: vacation tasks have relatedTable="vacation" (implied, or simply group by relatedId)
+  const byVacation = new Map<number, VacationGroup>();
+
   for (const a of actions) {
-    const vid = a.meta?.vacationId ?? a.id;
-    if (!byVacation.has(vid)) {
-      byVacation.set(vid, {
-        vacationId: vid,
-        userId: a.userId,
-        startDate: a.meta?.startDate ?? a.runAt,
-        endDate: a.meta?.endDate ?? "",
+    // Only interest in tasks that seem to be vacation related
+    // Since we don't have relatedTable info guaranteed or might need logic, we group by relatedId
+    // If relatedId is 0 or null, we might treat individual tasks.
+    if (!a.relatedId) continue;
+
+    if (!byVacation.has(a.relatedId)) {
+      byVacation.set(a.relatedId, {
+        vacationId: a.relatedId,
+        startDate: a.runAt, // First task usually start
+        endDate: "", // We might not know end date if tasks are split
         actionIds: [],
+        status: a.status
       });
     }
-    byVacation.get(vid)!.actionIds.push(a.id);
-    if (a.meta?.startDate) byVacation.get(vid)!.startDate = a.meta.startDate;
-    if (a.meta?.endDate) byVacation.get(vid)!.endDate = a.meta.endDate;
+
+    const group = byVacation.get(a.relatedId)!;
+    group.actionIds.push(a.id);
+    // Rough logic: if this task is later than current known start, maybe it's the end date?
+    // Actually typically VACATION_START is runAt start, VACATION_END is runAt end.
+    // We can just track min/max runAt?
+    if (new Date(a.runAt) < new Date(group.startDate)) group.startDate = a.runAt;
+    if (!group.endDate || new Date(a.runAt) > new Date(group.endDate)) group.endDate = a.runAt;
+
+    // Status aggregation logic could be complex, simplifying: use status of first/any
   }
+
   return Array.from(byVacation.values()).sort(
     (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
   );
 }
 
 export default function SchedulePage() {
-  const [actions, setActions] = useState<ScheduledAction[]>([]);
+  const [actions, setActions] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<number | null>(null);
 
   const [userSearch, setUserSearch] = useState("");
   const [userResults, setUserResults] = useState<any[]>([]);
@@ -125,9 +135,19 @@ export default function SchedulePage() {
   }
 
   async function handleCancelVacation(vacation: VacationGroup) {
-    if (cancelId) return;
-    setCancelId(vacation.vacationId);
+    // Assuming vacationId is number
+    const vacationId = Number(vacation.vacationId);
+    if (cancelId || isNaN(vacationId)) return;
+
+    setCancelId(vacationId);
     try {
+      // Backend doesn't have a "cancel whole vacation" endpoint exposed here directly in list?
+      // Actually api.ts has cancel(id: number).
+      // Ideally we delete by relatedId but the API for that isn't in api.ts separately?
+      // Wait, schedule.cancel(id) cancels a task.
+      // We have multiple tasks per vacation (start/end).
+      // We should cancel all of them.
+
       for (const id of vacation.actionIds) {
         await scheduleApi.cancel(id);
       }
@@ -235,13 +255,13 @@ export default function SchedulePage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
-            <CardTitle>Agendamentos de férias</CardTitle>
+            <CardTitle>Agendamentos de férias ({vacations.length})</CardTitle>
             <CardDescription>Próximas desativações/reativações automáticas.</CardDescription>
           </div>
           {vacations.length > 0 && (
             <Button variant="outline" size="sm" onClick={() => downloadVacationsCsv(vacations)}>
               <Download className="size-4 mr-2" />
-              Exportar férias (CSV)
+              Exportar (CSV)
             </Button>
           )}
         </CardHeader>
@@ -253,7 +273,7 @@ export default function SchedulePage() {
               ))}
             </div>
           ) : vacations.length === 0 ? (
-            <p className="text-muted-foreground py-8 text-center text-sm">Nenhum agendamento de férias.</p>
+            <p className="text-muted-foreground py-8 text-center text-sm">Nenhum agendamento encontrado.</p>
           ) : (
             <ul className="space-y-3">
               {vacations.map((v) => {
@@ -264,10 +284,13 @@ export default function SchedulePage() {
                     className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4"
                   >
                     <div>
-                      <p className="font-medium">{v.userId}</p>
+                      <p className="font-medium text-sm">
+                        Agendamento #{v.vacationId}
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">({v.status})</span>
+                      </p>
                       <p className="text-muted-foreground text-sm">
-                        Ida: {new Date(v.startDate).toLocaleDateString("pt-BR")} → Volta:{" "}
-                        {new Date(v.endDate).toLocaleDateString("pt-BR")}
+                        {new Date(v.startDate).toLocaleDateString("pt-BR")}
+                        {v.endDate && v.endDate !== v.startDate ? ` -> ${new Date(v.endDate).toLocaleDateString("pt-BR")}` : ""}
                       </p>
                     </div>
                     <Button

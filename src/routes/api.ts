@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { ldapService } from '../services/container';
-import * as scheduleService from '../services/schedule';
+import { scheduleService, vacationScheduleService } from '../services/container';
 import * as auditService from '../services/audit';
 import { getFetchAttributes, getEditConfig } from '../services/ad-user-attributes';
 
@@ -285,15 +285,15 @@ router.post('/schedule/vacation', apiEnsureAuth, apiEnsureAdmin, async (req: Req
         return res.status(400).json({ error: 'Invalid dates: end must be after start' });
     }
     try {
-        const { disableId, enableId } = scheduleService.addVacation(String(userId), startDate, endDate);
+        const vacationId = vacationScheduleService.schedule(String(userId), startDate, endDate);
         auditService.log({
             action: 'vacation.schedule',
             actor: auditActor(req),
             target: String(userId),
-            details: { startDate, endDate, disableId, enableId },
+            details: { startDate, endDate, vacationId },
             success: true,
         });
-        return res.json({ ok: true, disableId, enableId });
+        return res.json({ ok: true, vacationId });
     } catch (err: any) {
         auditService.log({
             action: 'vacation.schedule',
@@ -308,7 +308,12 @@ router.post('/schedule/vacation', apiEnsureAuth, apiEnsureAdmin, async (req: Req
 });
 
 router.delete('/schedule/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = Number(idParam);
+    if (Number.isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid ID' });
+    }
+
     try {
         const removed = scheduleService.remove(id);
         if (!removed) return res.status(404).json({ error: 'Scheduled action not found' });

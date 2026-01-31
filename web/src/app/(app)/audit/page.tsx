@@ -70,17 +70,17 @@ export default function AuditPage() {
     limit?: number;
   }>({ limit: 200 });
 
-  const load = useCallback(() => {
+  const load = useCallback((overrides?: Partial<typeof filters>) => {
     setLoading(true);
     auditApi
-      .list(filters)
+      .list({ ...filters, ...overrides })
       .then((r) => setEntries(r.entries ?? []))
       .catch((err) => {
         setEntries([]);
         toast.error(err?.message ?? "Erro ao carregar logs.");
       })
       .finally(() => setLoading(false));
-  }, [filters.action, filters.actor, filters.target, filters.since, filters.until, filters.limit]);
+  }, [filters]);
 
   useEffect(() => {
     load();
@@ -160,7 +160,7 @@ export default function AuditPage() {
             </div>
           </div>
           <div className="mt-4 flex gap-2">
-            <Button onClick={load} disabled={loading}>
+            <Button onClick={() => load()} disabled={loading}>
               {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
               Atualizar
             </Button>
