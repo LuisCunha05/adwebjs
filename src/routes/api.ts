@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import * as ldapService from '../services/ldap';
+import { ldapService } from '../services/container';
 import * as scheduleService from '../services/schedule';
 import * as auditService from '../services/audit';
 import { getFetchAttributes, getEditConfig } from '../services/ad-user-attributes';

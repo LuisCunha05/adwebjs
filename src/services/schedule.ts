@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import * as ldap from './ldap';
+import { ldapService as ldap } from './container';
 import * as audit from './audit';
 
 /** Pasta onde fica o JSON de agendamentos. Use SCHEDULE_DATA_DIR no .env para customizar (caminho absoluto ou relativo ao cwd). */
