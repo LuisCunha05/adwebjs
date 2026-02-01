@@ -1,5 +1,5 @@
 const ldap = require('ldapjs');
-require('dotenv').config();
+// require('dotenv').config();
 
 const LDAP_URL = process.env.LDAP_URL;
 const BASE_DN = process.env.LDAP_BASE_DN;

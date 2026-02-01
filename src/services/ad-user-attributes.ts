@@ -1,67 +1,17 @@
 import fs from 'fs';
 import path from 'path';
 
-import { SCHEDULE_DATA_DIR, AD_EXTRA_ATTRIBUTES } from '../config';
+import { SCHEDULE_DATA_DIR, AD_EXTRA_ATTRIBUTES } from '../contants/config';
+import { DEFAULT_FETCH, DEFAULT_EDIT } from '../contants/ldap';
+import { ConfigFile, EditAttribute } from '../types/ldap';
 
 const DATA_DIR = SCHEDULE_DATA_DIR;
 const CONFIG_PATH = path.join(DATA_DIR, 'ad-user-attributes.json');
-
-export interface EditAttribute {
-    name: string;
-    label: string;
-    section: string;
-}
-
-export const DEFAULT_FETCH = [
-    'dn', 'sAMAccountName', 'userPrincipalName', 'cn', 'mail', 'memberOf', 'telephoneNumber', 'mobile',
-    'description', 'givenName', 'sn', 'displayName', 'userAccountControl', 'title', 'department', 'company',
-    'physicalDeliveryOfficeName', 'streetAddress', 'l', 'st', 'co', 'postalCode', 'manager', 'employeeID',
-    'employeeNumber', 'ipPhone', 'wWWHomePage', 'pwdLastSet', 'whenCreated', 'whenChanged',
-] as const;
-
-export type LdapUserAttributes = {
-    [K in typeof DEFAULT_FETCH[number]]?: string | string[];
-} & {
-    [key: string]: string | string[] | undefined;
-};
-
-const DEFAULT_EDIT: EditAttribute[] = [
-    { name: 'cn', label: 'Nome comum (cn)', section: 'Identidade' },
-    { name: 'givenName', label: 'Nome (givenName)', section: 'Identidade' },
-    { name: 'sn', label: 'Sobrenome (sn)', section: 'Identidade' },
-    { name: 'displayName', label: 'Nome de exibição', section: 'Identidade' },
-    { name: 'mail', label: 'E-mail', section: 'Contato' },
-    { name: 'telephoneNumber', label: 'Telefone', section: 'Contato' },
-    { name: 'mobile', label: 'Celular', section: 'Contato' },
-    { name: 'description', label: 'Descrição', section: 'Contato' },
-    { name: 'title', label: 'Cargo (title)', section: 'Organização' },
-    { name: 'department', label: 'Departamento', section: 'Organização' },
-    { name: 'company', label: 'Empresa (company)', section: 'Organização' },
-    { name: 'physicalDeliveryOfficeName', label: 'Escritório / Local', section: 'Endereço' },
-    { name: 'streetAddress', label: 'Endereço', section: 'Endereço' },
-    { name: 'l', label: 'Cidade (l)', section: 'Endereço' },
-    { name: 'st', label: 'Estado (st)', section: 'Endereço' },
-    { name: 'co', label: 'País (co)', section: 'Endereço' },
-    { name: 'postalCode', label: 'CEP', section: 'Endereço' },
-    { name: 'employeeID', label: 'Matrícula (employeeID)', section: 'Outros' },
-    { name: 'employeeNumber', label: 'Número do funcionário', section: 'Outros' },
-    { name: 'ipPhone', label: 'Telefone IP', section: 'Outros' },
-    { name: 'wWWHomePage', label: 'Página inicial (URL)', section: 'Outros' },
-];
 
 /** Atributos adicionais do .env: AD_EXTRA_ATTRIBUTES=cpf,outro */
 function extraFromEnv(): string[] {
     const s = AD_EXTRA_ATTRIBUTES;
     return s.split(',').map((x) => x.trim()).filter(Boolean);
-}
-
-interface ConfigFile {
-    fetch?: string[];
-    edit?: EditAttribute[];
-    /** Atributos extras só para fetch (ex.: cpf). Serão incluídos no fetch e em edit em "Outros" com label = nome. */
-    extraFetch?: string[];
-    /** Atributos customizados para edição (ex.: { name: "cpf", label: "CPF", section: "Documentos" }). */
-    extraEdit?: EditAttribute[];
 }
 
 function loadConfig(): ConfigFile | null {

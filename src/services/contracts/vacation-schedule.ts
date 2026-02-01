@@ -1,6 +1,7 @@
-import { IDatabase } from '../infrastructure/database-interface';
-import { IScheduleRepository, IVacationRepository, ScheduleStatus } from './interfaces';
-import { IVacationScheduler } from '../types/contracts/vacation-scheduler';
+import { IDatabase } from "../../types/database";
+import { IScheduleRepository, ScheduleStatus } from "../../types/schedule";
+import { IVacationRepository } from "../../types/vacation";
+import { IVacationScheduler } from '../../types/contracts/vacation-scheduler';
 
 export class VacationScheduleService implements IVacationScheduler {
     constructor(

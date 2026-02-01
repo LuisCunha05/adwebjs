@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import bodyParser from 'body-parser';
 import session from 'express-session';
 import apiRouter from './routes/api';
-import { PORT, SESSION_SECRET, FRONTEND_URL } from './config';
+import { PORT, SESSION_SECRET, FRONTEND_URL } from './contants/config';
 
 const app = express();
 

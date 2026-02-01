@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 /** Pasta onde fica o JSON de auditoria. Usa SCHEDULE_DATA_DIR ou data/ por padrão. */
-import { SCHEDULE_DATA_DIR } from '../config';
+import { SCHEDULE_DATA_DIR } from '../contants/config';
 
 const DATA_DIR = SCHEDULE_DATA_DIR;
 const FILE_PATH = path.join(DATA_DIR, 'audit-log.json');

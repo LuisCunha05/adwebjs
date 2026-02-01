@@ -1,5 +1,5 @@
-import { IDatabase } from '../infrastructure/database-interface';
-import { IScheduleRepository, ScheduledTask, ScheduleStatus } from '../services/interfaces';
+import { IDatabase } from "../types/database";
+import { IScheduleRepository, ScheduledTask, ScheduleStatus } from "../types/schedule";
 
 export class ScheduleRepository implements IScheduleRepository {
     constructor(private db: IDatabase) { }

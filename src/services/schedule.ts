@@ -1,4 +1,4 @@
-import { IScheduleRepository, ScheduledTask } from './interfaces';
+import { IScheduleRepository, ScheduledTask } from "../types/schedule";
 
 export class ScheduleService {
     constructor(

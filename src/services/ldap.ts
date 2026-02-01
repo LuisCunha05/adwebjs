@@ -1,6 +1,7 @@
 import { Client, Attribute, Change } from 'ldapts';
-import { getFetchAttributes, LdapUserAttributes } from './ad-user-attributes';
-import { ILdapService, SearchUsersOptions, CreateUserInput, DisableUserOptions } from './ldap-interface';
+import { getFetchAttributes } from './ad-user-attributes';
+import { LdapUserAttributes } from '../types/ldap';
+import { ILdapService, SearchUsersOptions, CreateUserInput, DisableUserOptions } from '../types/ldap';
 
 import {
     LDAP_URL,
@@ -10,7 +11,7 @@ import {
     LDAP_DEBUG,
     LDAP_GROUP_REQUIRED,
     LDAP_DOMAIN
-} from '../config';
+} from '../contants/config';
 
 const logDebug = (msg: string) => {
     if (LDAP_DEBUG) {
