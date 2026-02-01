@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
-import * as ldapService from '../services/ldap';
-import * as scheduleService from '../services/schedule';
+import { ldapService } from '../services/container';
+import { scheduleService, vacationScheduleService } from '../services/container';
 import * as auditService from '../services/audit';
 import { getFetchAttributes, getEditConfig } from '../services/ad-user-attributes';
 
@@ -231,7 +231,7 @@ router.delete('/users/:id', apiEnsureAuth, apiEnsureAdmin, (req: Request, res: R
     if (!(req.session as any).canDelete) {
         return res.status(403).json({ error: 'Sem permissão para excluir usuários. É necessário pertencer ao grupo configurado em LDAP_GROUP_DELETE.', code: 'REQUIRES_DELETE_GROUP' });
     }
-    next();
+    return next();
 }, async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     try {
@@ -245,7 +245,7 @@ router.delete('/users/:id', apiEnsureAuth, apiEnsureAdmin, (req: Request, res: R
 });
 
 // --- Stats ---
-router.get('/stats', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/stats', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Response) => {
     try {
         const stats = await ldapService.getStats();
         return res.json(stats);
@@ -255,7 +255,7 @@ router.get('/stats', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Re
 });
 
 // --- OUs ---
-router.get('/ous', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/ous', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Response) => {
     try {
         const ous = await ldapService.listOUs();
         return res.json({ ous: ous || [] });
@@ -265,7 +265,7 @@ router.get('/ous', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Resp
 });
 
 // --- Schedule (vacation, etc.) ---
-router.get('/schedule', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/schedule', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Response) => {
     try {
         const actions = scheduleService.list();
         return res.json({ actions });
@@ -285,15 +285,15 @@ router.post('/schedule/vacation', apiEnsureAuth, apiEnsureAdmin, async (req: Req
         return res.status(400).json({ error: 'Invalid dates: end must be after start' });
     }
     try {
-        const { disableId, enableId } = scheduleService.addVacation(String(userId), startDate, endDate);
+        const vacationId = vacationScheduleService.schedule(String(userId), startDate, endDate);
         auditService.log({
             action: 'vacation.schedule',
             actor: auditActor(req),
             target: String(userId),
-            details: { startDate, endDate, disableId, enableId },
+            details: { startDate, endDate, vacationId },
             success: true,
         });
-        return res.json({ ok: true, disableId, enableId });
+        return res.json({ ok: true, vacationId });
     } catch (err: any) {
         auditService.log({
             action: 'vacation.schedule',
@@ -308,7 +308,12 @@ router.post('/schedule/vacation', apiEnsureAuth, apiEnsureAdmin, async (req: Req
 });
 
 router.delete('/schedule/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = Number(idParam);
+    if (Number.isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid ID' });
+    }
+
     try {
         const removed = scheduleService.remove(id);
         if (!removed) return res.status(404).json({ error: 'Scheduled action not found' });

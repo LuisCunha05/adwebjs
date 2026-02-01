@@ -1,11 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 
-const DATA_DIR = process.env.SCHEDULE_DATA_DIR
-    ? path.isAbsolute(process.env.SCHEDULE_DATA_DIR)
-        ? process.env.SCHEDULE_DATA_DIR
-        : path.join(process.cwd(), process.env.SCHEDULE_DATA_DIR)
-    : path.join(process.cwd(), 'data');
+import { SCHEDULE_DATA_DIR, AD_EXTRA_ATTRIBUTES } from '../config';
+
+const DATA_DIR = SCHEDULE_DATA_DIR;
 const CONFIG_PATH = path.join(DATA_DIR, 'ad-user-attributes.json');
 
 export interface EditAttribute {
@@ -14,12 +12,18 @@ export interface EditAttribute {
     section: string;
 }
 
-const DEFAULT_FETCH = [
+export const DEFAULT_FETCH = [
     'dn', 'sAMAccountName', 'userPrincipalName', 'cn', 'mail', 'memberOf', 'telephoneNumber', 'mobile',
     'description', 'givenName', 'sn', 'displayName', 'userAccountControl', 'title', 'department', 'company',
     'physicalDeliveryOfficeName', 'streetAddress', 'l', 'st', 'co', 'postalCode', 'manager', 'employeeID',
     'employeeNumber', 'ipPhone', 'wWWHomePage', 'pwdLastSet', 'whenCreated', 'whenChanged',
-];
+] as const;
+
+export type LdapUserAttributes = {
+    [K in typeof DEFAULT_FETCH[number]]?: string | string[];
+} & {
+    [key: string]: string | string[] | undefined;
+};
 
 const DEFAULT_EDIT: EditAttribute[] = [
     { name: 'cn', label: 'Nome comum (cn)', section: 'Identidade' },
@@ -47,7 +51,7 @@ const DEFAULT_EDIT: EditAttribute[] = [
 
 /** Atributos adicionais do .env: AD_EXTRA_ATTRIBUTES=cpf,outro */
 function extraFromEnv(): string[] {
-    const s = process.env.AD_EXTRA_ATTRIBUTES || '';
+    const s = AD_EXTRA_ATTRIBUTES;
     return s.split(',').map((x) => x.trim()).filter(Boolean);
 }
 
