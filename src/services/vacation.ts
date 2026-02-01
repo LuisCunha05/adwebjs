@@ -1,4 +1,4 @@
-import { IVacationRepository, Vacation } from './interfaces';
+import { IVacationRepository, Vacation } from "../types/vacation";
 
 export class VacationService {
     constructor(

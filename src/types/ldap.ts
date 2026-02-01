@@ -1,7 +1,10 @@
+import { DEFAULT_FETCH } from '../contants/ldap';
 
-import { LdapUserAttributes } from './ad-user-attributes';
-
-export interface SearchUsersOptions {
+export type LdapUserAttributes = {
+    [K in (typeof DEFAULT_FETCH)[number]]?: string | string[];
+} & {
+    [key: string]: string | string[] | undefined;
+}; export interface SearchUsersOptions {
     /** DN da OU onde buscar (base da busca). Se omitido, usa BASE_DN. */
     ou?: string;
     /** DN do grupo: apenas usuários que são membros (memberOf). */
@@ -50,6 +53,20 @@ export interface ILdapService {
     listOUs(): Promise<any[]>;
     addMemberToGroup(groupCn: string, memberDn: string): Promise<void>;
     removeMemberFromGroup(groupCn: string, memberDn: string): Promise<void>;
-    resolveMemberDns(dns: string[]): Promise<{ dn: string; displayName?: string; cn?: string; sAMAccountName?: string }[]>;
-    getStats(): Promise<{ usersCount: number; disabledCount: number; groupsCount: number }>;
+    resolveMemberDns(dns: string[]): Promise<{ dn: string; displayName?: string; cn?: string; sAMAccountName?: string; }[]>;
+    getStats(): Promise<{ usersCount: number; disabledCount: number; groupsCount: number; }>;
 }
+export interface ConfigFile {
+    fetch?: string[];
+    edit?: EditAttribute[];
+    /** Atributos extras só para fetch (ex.: cpf). Serão incluídos no fetch e em edit em "Outros" com label = nome. */
+    extraFetch?: string[];
+    /** Atributos customizados para edição (ex.: { name: "cpf", label: "CPF", section: "Documentos" }). */
+    extraEdit?: EditAttribute[];
+}
+export interface EditAttribute {
+    name: string;
+    label: string;
+    section: string;
+}
+

@@ -1,6 +1,6 @@
 import { ldapService, scheduleRepository, vacationRepository } from '../services/container';
 import * as audit from '../services/audit';
-import { ScheduleStatus } from '../services/interfaces';
+import { ScheduleStatus } from "../types/schedule";
 
 export async function task() {
     // DB Init is handled in container

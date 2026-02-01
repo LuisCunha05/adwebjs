@@ -1,5 +1,5 @@
-import { IDatabase } from '../infrastructure/database-interface';
-import { IVacationRepository, Vacation } from '../services/interfaces';
+import { IDatabase } from "../types/database";
+import { IVacationRepository, Vacation } from "../types/vacation";
 
 export class VacationRepository implements IVacationRepository {
     constructor(private db: IDatabase) { }

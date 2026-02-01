@@ -1,8 +1,8 @@
 import { LdapService } from './ldap';
-import { ILdapService } from './ldap-interface';
+import { ILdapService } from '../types/ldap';
 import { ScheduleService } from './schedule';
 import { VacationService } from './vacation';
-import { VacationScheduleService } from './vacation-schedule';
+import { VacationScheduleService } from './contracts/vacation-schedule';
 import { SqliteDatabase } from '../infrastructure/database';
 import { ScheduleRepository } from '../repositories/schedule-repository';
 import { VacationRepository } from '../repositories/vacation-repository';
