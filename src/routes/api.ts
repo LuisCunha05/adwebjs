@@ -1,8 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { ldapService } from '../services/container';
-import { scheduleService, vacationScheduleService } from '../services/container';
-import * as auditService from '../services/audit';
+import { scheduleService, vacationScheduleService, auditService } from '../services/container';
 import { getFetchAttributes, getEditConfig } from '../services/ad-user-attributes';
+import { AuditAction } from '../types/audit';
 
 const router = express.Router();
 
@@ -418,7 +418,7 @@ router.get('/audit-logs', apiEnsureAuth, apiEnsureAdmin, async (req: Request, re
     try {
         const since = req.query.since as string | undefined;
         const until = req.query.until as string | undefined;
-        const action = req.query.action as string | undefined;
+        const action = req.query.action as AuditAction | undefined;
         const actor = req.query.actor as string | undefined;
         const target = req.query.target as string | undefined;
         const limit = req.query.limit ? Math.min(Number(req.query.limit), 2000) : 500;

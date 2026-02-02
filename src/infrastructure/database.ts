@@ -46,6 +46,20 @@ export class SqliteDatabase implements IDatabase {
                 error TEXT
             );
         `);
+
+        // Create audit_logs table
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                at TEXT NOT NULL,
+                action TEXT NOT NULL,
+                actor TEXT NOT NULL,
+                target TEXT,
+                details TEXT,
+                success INTEGER NOT NULL,
+                error TEXT
+            );
+        `);
     }
 
     exec(sql: string): void {

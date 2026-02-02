@@ -7,6 +7,9 @@ import { SqliteDatabase } from '../infrastructure/database';
 import { ScheduleRepository } from '../repositories/schedule-repository';
 import { VacationRepository } from '../repositories/vacation-repository';
 
+import { AuditService } from './audit';
+import { AuditRepository } from '../repositories/audit-repository';
+
 // Singleton instance
 const ldapService: ILdapService = new LdapService();
 
@@ -15,16 +18,19 @@ db.init();
 
 const scheduleRepository = new ScheduleRepository(db);
 const vacationRepository = new VacationRepository(db);
+const auditRepository = new AuditRepository(db);
 
 const scheduleService = new ScheduleService(scheduleRepository);
 const vacationService = new VacationService(vacationRepository);
 const vacationScheduleService = new VacationScheduleService(db, vacationRepository, scheduleRepository);
+const auditService = new AuditService(auditRepository);
 
 export {
     ldapService,
     scheduleService,
     vacationService,
     vacationScheduleService,
+    auditService,
     scheduleRepository,
     vacationRepository
 };
