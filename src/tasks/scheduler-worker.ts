@@ -1,14 +1,15 @@
-import { ldapService, scheduleRepository, vacationRepository } from '../services/container';
-import * as audit from '../services/audit';
+import { TaskFn } from 'node-cron';
+import { ldapService, scheduleRepository, vacationRepository, auditService } from '../services/container';
 import { ScheduleStatus } from "../types/schedule";
 
-export async function task() {
+
+export const task: TaskFn = async (context) => {
     // DB Init is handled in container
 
     // Debug log to verify execution
-    console.log(`[Worker] Task started at ${new Date().toISOString()}`);
+    console.log(`[Worker] Task started at ${context.dateLocalIso}`);
 
-    const now = new Date();
+    const now = context.date;
     // console.log(`[Worker] Checking for due actions at ${now.toISOString()}`); // Reduce noise
 
     // Check for due actions
@@ -52,7 +53,7 @@ export async function task() {
 
             if (a.type === 'VACATION_START') {
                 await ldapService.disableUser(userId);
-                audit.log({
+                auditService.log({
                     action: 'vacation.execute_disable',
                     actor: 'system',
                     target: userId,
@@ -61,7 +62,7 @@ export async function task() {
                 });
             } else if (a.type === 'VACATION_END') {
                 await ldapService.enableUser(userId);
-                audit.log({
+                auditService.log({
                     action: 'vacation.execute_enable',
                     actor: 'system',
                     target: userId,

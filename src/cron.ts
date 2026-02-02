@@ -9,7 +9,7 @@ const workerPath = path.join(__dirname, 'tasks/scheduler-worker.ts');
 
 cron.schedule('0 0 * * *', workerPath);
 
-console.log(`[Cron] Scheduled worker: ${workerPath} (Every minute)`);
+console.log(`[Cron] Scheduled worker: ${workerPath} (Every day at midnight)`);
 
 // Keep the process alive
 //TODO: remove this when migrating  to nextjs
