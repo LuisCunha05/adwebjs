@@ -1,12 +1,14 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { ldapService } from '../services/container';
+import { ldapService, userService } from '../services/container';
 import { scheduleService, vacationScheduleService, auditService } from '../services/container';
 import { getFetchAttributes, getEditConfig } from '../services/ad-user-attributes';
 import { AuditAction } from '../types/audit';
+import { apiEnsureAuth, requirePermission } from '../middleware/auth';
+import { PERMISSIONS } from '../services/permission';
+import { LDAP_GROUP_DELETE } from '../contants/config';
 
 const router = express.Router();
 
-const LDAP_GROUP_DELETE = (process.env.LDAP_GROUP_DELETE || '').trim();
 
 function auditActor(req: Request): string {
     return (req.session as any).user?.sAMAccountName ?? 'unknown';
@@ -19,21 +21,9 @@ function memberOfGroup(memberOf: unknown, groupDn: string): boolean {
     return groups.some((g: string) => String(g).toLowerCase().trim() === gdn);
 }
 
-const apiEnsureAuth = (req: Request, res: Response, next: NextFunction) => {
-    if ((req.session as any).user) {
-        next();
-    } else {
-        res.status(401).json({ error: 'Unauthorized', code: 'NOT_LOGGED_IN' });
-    }
-};
+// Ensure super admin middleware or specific permission check
+// We now use imported 'apiEnsureAuth' and 'requirePermission' from middleware/auth
 
-const apiEnsureAdmin = (req: Request, res: Response, next: NextFunction) => {
-    if ((req.session as any).user && (req.session as any).isAdmin) {
-        next();
-    } else {
-        res.status(403).json({ error: 'Forbidden', code: 'REQUIRES_ADMIN' });
-    }
-};
 
 // --- Auth ---
 router.post('/auth/login', async (req: Request, res: Response) => {
@@ -42,18 +32,45 @@ router.post('/auth/login', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Username and password required' });
     }
     try {
+        // 1. LDAP Auth
         const user = await ldapService.authenticate(username, password);
-        (req.session as any).user = user;
-        const adminGroupCN = 'ADWEB-Admin';
-        let isAdmin = false;
-        if (user.memberOf) {
-            const groups = Array.isArray(user.memberOf) ? user.memberOf : [user.memberOf];
-            isAdmin = groups.some((g: string) => g.includes(adminGroupCN));
+
+        // 2. Local Allow-List Check
+        const usernameStr = String(user.sAMAccountName);
+        const hasAccess = await userService.checkAccess(usernameStr);
+        if (!hasAccess) {
+            return res.status(403).json({ error: 'Access Denied: You are not authorized to access this application.', code: 'ACCESS_DENIED' });
         }
+
+        // 3. Load Permissions
+        const permissions = await userService.getPermissionsForUser(usernameStr);
+
+        (req.session as any).user = {
+            ...user,
+            permissions
+        };
+
+        // Legacy/Frontend compat flags
+        const isAdmin = permissions.includes('*') || permissions.includes(PERMISSIONS.USER_CREATE); // Rough heuristic for UI
         (req.session as any).isAdmin = isAdmin;
-        const canDelete = isAdmin && LDAP_GROUP_DELETE && memberOfGroup(user.memberOf, LDAP_GROUP_DELETE);
+
+        // Delete permission check
+        const hasDeletePerm = permissions.includes('*') || permissions.includes(PERMISSIONS.USER_DELETE);
+        const hasLegacyGroup = LDAP_GROUP_DELETE && memberOfGroup(user.memberOf, LDAP_GROUP_DELETE);
+        const canDelete = hasDeletePerm || (isAdmin && hasLegacyGroup);
         (req.session as any).canDelete = canDelete;
-        return res.json({ user: { sAMAccountName: user.sAMAccountName, cn: user.cn, mail: user.mail, userPrincipalName: user.userPrincipalName }, isAdmin, canDelete: !!canDelete });
+
+        return res.json({
+            user: {
+                sAMAccountName: user.sAMAccountName,
+                cn: user.cn,
+                mail: user.mail,
+                userPrincipalName: user.userPrincipalName,
+                permissions
+            },
+            isAdmin,
+            canDelete: !!canDelete
+        });
     } catch (err: any) {
         return res.status(401).json({ error: err.message || 'Authentication failed' });
     }
@@ -70,11 +87,22 @@ router.get('/auth/me', (req: Request, res: Response) => {
     const isAdmin = (req.session as any).isAdmin;
     const canDelete = (req.session as any).canDelete;
     if (!user) return res.status(401).json({ error: 'Not logged in' });
-    return res.json({ user: { sAMAccountName: user.sAMAccountName, cn: user.cn, mail: user.mail, userPrincipalName: user.userPrincipalName }, isAdmin: !!isAdmin, canDelete: !!canDelete });
+    const permissions = user.permissions || [];
+    return res.json({
+        user: {
+            sAMAccountName: user.sAMAccountName,
+            cn: user.cn,
+            mail: user.mail,
+            userPrincipalName: user.userPrincipalName,
+            permissions
+        },
+        isAdmin: !!isAdmin,
+        canDelete: !!canDelete
+    });
 });
 
 // --- Config (admin only) ---
-router.get('/config/user-attributes', apiEnsureAuth, apiEnsureAdmin, (_req: Request, res: Response) => {
+router.get('/config/user-attributes', apiEnsureAuth, requirePermission(PERMISSIONS.USER_READ), (_req: Request, res: Response) => {
     try {
         return res.json({ fetch: getFetchAttributes(), edit: getEditConfig() });
     } catch (err: any) {
@@ -83,7 +111,7 @@ router.get('/config/user-attributes', apiEnsureAuth, apiEnsureAdmin, (_req: Requ
 });
 
 // --- Users (admin only) ---
-router.get('/users', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/users', apiEnsureAuth, requirePermission(PERMISSIONS.USER_READ), async (req: Request, res: Response) => {
     const query = (req.query.q as string) || '';
     const searchBy = (req.query.searchBy as string) || 'sAMAccountName';
     const ou = (req.query.ou as string)?.trim() || undefined;
@@ -101,7 +129,7 @@ router.get('/users', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Re
     }
 });
 
-router.post('/users', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.post('/users', apiEnsureAuth, requirePermission(PERMISSIONS.USER_CREATE), async (req: Request, res: Response) => {
     const body = req.body || {};
     const { parentOuDn, sAMAccountName, password } = body;
     if (!parentOuDn || !sAMAccountName || !password) {
@@ -130,7 +158,7 @@ router.post('/users', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: R
 });
 
 // Rotas /users/:id/... precisam vir antes de /users/:id para o Express fazer match correto
-router.post('/users/:id/move', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.post('/users/:id/move', apiEnsureAuth, requirePermission(PERMISSIONS.USER_MOVE), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const targetOuDn = (req.body && typeof req.body === 'object' && req.body.targetOuDn) ? String(req.body.targetOuDn).trim() : undefined;
     if (!targetOuDn) {
@@ -146,7 +174,7 @@ router.post('/users/:id/move', apiEnsureAuth, apiEnsureAdmin, async (req: Reques
     }
 });
 
-router.get('/users/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/users/:id', apiEnsureAuth, requirePermission(PERMISSIONS.USER_READ), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     try {
         const user = await ldapService.getUser(id);
@@ -156,7 +184,7 @@ router.get('/users/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res
     }
 });
 
-router.patch('/users/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.patch('/users/:id', apiEnsureAuth, requirePermission(PERMISSIONS.USER_UPDATE), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     try {
         const updated = await ldapService.updateUser(id, req.body);
@@ -168,7 +196,7 @@ router.patch('/users/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, r
     }
 });
 
-router.post('/users/:id/disable', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.post('/users/:id/disable', apiEnsureAuth, requirePermission(PERMISSIONS.USER_ENABLE_DISABLE), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const targetOu = (req.body && typeof req.body === 'object' && req.body.targetOu) ? String(req.body.targetOu).trim() || undefined : undefined;
     try {
@@ -187,7 +215,7 @@ router.post('/users/:id/disable', apiEnsureAuth, apiEnsureAdmin, async (req: Req
     }
 });
 
-router.post('/users/:id/enable', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.post('/users/:id/enable', apiEnsureAuth, requirePermission(PERMISSIONS.USER_ENABLE_DISABLE), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     try {
         await ldapService.enableUser(id);
@@ -199,7 +227,7 @@ router.post('/users/:id/enable', apiEnsureAuth, apiEnsureAdmin, async (req: Requ
     }
 });
 
-router.post('/users/:id/unlock', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.post('/users/:id/unlock', apiEnsureAuth, requirePermission(PERMISSIONS.USER_UNLOCK), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     try {
         await ldapService.unlockUser(id);
@@ -211,7 +239,7 @@ router.post('/users/:id/unlock', apiEnsureAuth, apiEnsureAdmin, async (req: Requ
     }
 });
 
-router.post('/users/:id/reset-password', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.post('/users/:id/reset-password', apiEnsureAuth, requirePermission(PERMISSIONS.USER_RESET_PASSWORD), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const newPassword = req.body?.newPassword ?? req.body?.password;
     if (!newPassword || typeof newPassword !== 'string') {
@@ -227,7 +255,7 @@ router.post('/users/:id/reset-password', apiEnsureAuth, apiEnsureAdmin, async (r
     }
 });
 
-router.delete('/users/:id', apiEnsureAuth, apiEnsureAdmin, (req: Request, res: Response, next: NextFunction) => {
+router.delete('/users/:id', apiEnsureAuth, requirePermission(PERMISSIONS.USER_DELETE), (req: Request, res: Response, next: NextFunction) => {
     if (!(req.session as any).canDelete) {
         return res.status(403).json({ error: 'Sem permissão para excluir usuários. É necessário pertencer ao grupo configurado em LDAP_GROUP_DELETE.', code: 'REQUIRES_DELETE_GROUP' });
     }
@@ -245,7 +273,7 @@ router.delete('/users/:id', apiEnsureAuth, apiEnsureAdmin, (req: Request, res: R
 });
 
 // --- Stats ---
-router.get('/stats', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Response) => {
+router.get('/stats', apiEnsureAuth, requirePermission(PERMISSIONS.USER_READ), async (_req: Request, res: Response) => {
     try {
         const stats = await ldapService.getStats();
         return res.json(stats);
@@ -255,7 +283,7 @@ router.get('/stats', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: R
 });
 
 // --- OUs ---
-router.get('/ous', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Response) => {
+router.get('/ous', apiEnsureAuth, requirePermission(PERMISSIONS.USER_READ), async (_req: Request, res: Response) => {
     try {
         const ous = await ldapService.listOUs();
         return res.json({ ous: ous || [] });
@@ -265,7 +293,7 @@ router.get('/ous', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Res
 });
 
 // --- Schedule (vacation, etc.) ---
-router.get('/schedule', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res: Response) => {
+router.get('/schedule', apiEnsureAuth, requirePermission(PERMISSIONS.VACATION_READ), async (_req: Request, res: Response) => {
     try {
         const actions = scheduleService.list();
         return res.json({ actions });
@@ -274,7 +302,7 @@ router.get('/schedule', apiEnsureAuth, apiEnsureAdmin, async (_req: Request, res
     }
 });
 
-router.post('/schedule/vacation', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.post('/schedule/vacation', apiEnsureAuth, requirePermission(PERMISSIONS.VACATION_MANAGE), async (req: Request, res: Response) => {
     const { userId, startDate, endDate } = req.body || {};
     if (!userId || !startDate || !endDate) {
         return res.status(400).json({ error: 'userId, startDate and endDate required' });
@@ -307,7 +335,7 @@ router.post('/schedule/vacation', apiEnsureAuth, apiEnsureAdmin, async (req: Req
     }
 });
 
-router.delete('/schedule/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.delete('/schedule/:id', apiEnsureAuth, requirePermission(PERMISSIONS.VACATION_MANAGE), async (req: Request, res: Response) => {
     const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const id = Number(idParam);
     if (Number.isNaN(id)) {
@@ -324,7 +352,7 @@ router.delete('/schedule/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Reques
 });
 
 // --- Groups (admin only) ---
-router.get('/groups', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/groups', apiEnsureAuth, requirePermission(PERMISSIONS.GROUP_READ), async (req: Request, res: Response) => {
     const query = (req.query.q as string) || '';
     if (!query.trim()) {
         return res.json({ groups: [] });
@@ -338,7 +366,7 @@ router.get('/groups', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: R
 });
 
 // Rotas mais específicas primeiro (/:id/members/* antes de /:id)
-router.get('/groups/:id/members/resolved', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/groups/:id/members/resolved', apiEnsureAuth, requirePermission(PERMISSIONS.GROUP_READ), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     try {
         const group = await ldapService.getGroup(id);
@@ -356,7 +384,7 @@ router.get('/groups/:id/members/resolved', apiEnsureAuth, apiEnsureAdmin, async 
     }
 });
 
-router.post('/groups/:id/members/add', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.post('/groups/:id/members/add', apiEnsureAuth, requirePermission(PERMISSIONS.GROUP_MANAGE_MEMBERS), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { dn } = req.body;
     if (!dn || typeof dn !== 'string') return res.status(400).json({ error: 'dn required' });
@@ -370,7 +398,7 @@ router.post('/groups/:id/members/add', apiEnsureAuth, apiEnsureAdmin, async (req
     }
 });
 
-router.post('/groups/:id/members/remove', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.post('/groups/:id/members/remove', apiEnsureAuth, requirePermission(PERMISSIONS.GROUP_MANAGE_MEMBERS), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { dn } = req.body;
     if (!dn || typeof dn !== 'string') return res.status(400).json({ error: 'dn required' });
@@ -384,7 +412,7 @@ router.post('/groups/:id/members/remove', apiEnsureAuth, apiEnsureAdmin, async (
     }
 });
 
-router.get('/groups/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/groups/:id', apiEnsureAuth, requirePermission(PERMISSIONS.GROUP_READ), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     try {
         const group = await ldapService.getGroup(id);
@@ -394,7 +422,7 @@ router.get('/groups/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, re
     }
 });
 
-router.patch('/groups/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.patch('/groups/:id', apiEnsureAuth, requirePermission(PERMISSIONS.GROUP_UPDATE), async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { name, description, member } = req.body;
     const changes: any = {};
@@ -414,7 +442,7 @@ router.patch('/groups/:id', apiEnsureAuth, apiEnsureAdmin, async (req: Request, 
 });
 
 // --- Audit Logs (admin only) ---
-router.get('/audit-logs', apiEnsureAuth, apiEnsureAdmin, async (req: Request, res: Response) => {
+router.get('/audit-logs', apiEnsureAuth, requirePermission(PERMISSIONS.AUDIT_READ), async (req: Request, res: Response) => {
     try {
         const since = req.query.since as string | undefined;
         const until = req.query.until as string | undefined;
