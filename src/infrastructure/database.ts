@@ -5,23 +5,38 @@ import { IDatabase, IStatement } from "../types/database";
 import { SCHEDULE_DATA_DIR } from '../contants/config';
 
 export class SqliteDatabase implements IDatabase {
-    private db: DatabaseSync;
+    private initialized = false;
+    private _db?: DatabaseSync;
 
     constructor() {
-        const dataDir = SCHEDULE_DATA_DIR;
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
+        // Lightweight constructor
+    }
+
+    private get db(): DatabaseSync {
+        if (!this._db) {
+            this.init();
         }
-        const dbPath = path.join(dataDir, 'database.sqlite');
-        this.db = new DatabaseSync(dbPath);
+        return this._db!;
     }
 
     init(): void {
-        // Enable WAL mode for better concurrency
-        this.db.exec('PRAGMA journal_mode = WAL;');
+        if (this.initialized) return;
 
-        // Create vacations table
-        this.db.exec(`
+        const dataDir = SCHEDULE_DATA_DIR;
+        if (!fs.existsSync(dataDir)) {
+            try {
+                fs.mkdirSync(dataDir, { recursive: true });
+            } catch (e) {
+                console.error("Failed to create data dir", e);
+            }
+        }
+
+        const dbPath = path.join(dataDir, 'database.sqlite');
+        this._db = new DatabaseSync(dbPath);
+
+        this._db.exec('PRAGMA journal_mode = WAL;');
+
+        this._db.exec(`
             CREATE TABLE IF NOT EXISTS vacations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id TEXT NOT NULL,
@@ -32,8 +47,7 @@ export class SqliteDatabase implements IDatabase {
             );
         `);
 
-        // Create scheduled_tasks table with polymorphic relationship
-        this.db.exec(`
+        this._db.exec(`
             CREATE TABLE IF NOT EXISTS scheduled_tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 type VARCHAR(50) NOT NULL,
@@ -47,8 +61,7 @@ export class SqliteDatabase implements IDatabase {
             );
         `);
 
-        // Create audit_logs table
-        this.db.exec(`
+        this._db.exec(`
             CREATE TABLE IF NOT EXISTS audit_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 at TEXT NOT NULL,
@@ -60,6 +73,8 @@ export class SqliteDatabase implements IDatabase {
                 error TEXT
             );
         `);
+
+        this.initialized = true;
     }
 
     exec(sql: string): void {

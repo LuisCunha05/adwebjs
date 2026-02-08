@@ -1,40 +1,31 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { auth, type Session } from "@/lib/api";
+import { logout as logoutAction } from "@/app/actions/auth";
+import { type Session } from "@/lib/types";
 
 type AuthState = {
   session: Session | null;
   loading: boolean;
   logout: () => Promise<void>;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<void>; // kept for compatibility but might be no-op or reload
   setSessionFromLogin: (s: Session) => void;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ children, initialSession }: { children: React.ReactNode; initialSession: Session | null }) {
+  const [session, setSession] = useState<Session | null>(initialSession);
+  const [loading, setLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const s = await auth.me();
-      setSession(s);
-    } catch {
-      setSession(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Sync initialSession if it changes (e.g. revalidation)
   useEffect(() => {
-    load();
-  }, [load]);
+    setSession(initialSession);
+  }, [initialSession]);
 
   const logout = useCallback(async () => {
     try {
-      await auth.logout();
+      await logoutAction();
     } catch {
       /* ignore */
     }
@@ -42,9 +33,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = "/login";
   }, []);
 
+  const load = useCallback(async () => {
+    // In server actions model, we reload the page or rely on router.refresh() 
+    // updating the prop. But if we need client-side fetch, we could add getSession action call here.
+    // For now, no-op or simple refresh.
+    // let's leave as no-op or rely on prop update.
+  }, []);
+
   const setSessionFromLogin = useCallback((s: Session) => {
     setSession(s);
-    setLoading(false);
   }, []);
 
   return (
@@ -59,3 +56,4 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
+

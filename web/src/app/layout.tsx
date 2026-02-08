@@ -20,16 +20,20 @@ export const metadata: Metadata = {
   description: "Gerencie usuários e grupos do Active Directory",
 };
 
-export default function RootLayout({
+import { getSession } from "@/app/actions/auth";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
+
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
-          <AuthProvider>
+          <AuthProvider initialSession={session}>
             {children}
             <Toaster richColors position="top-right" />
           </AuthProvider>

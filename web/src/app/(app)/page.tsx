@@ -1,47 +1,26 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Users, FolderTree, FolderOpen, UserX, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { stats as statsApi, audit as auditApi } from "@/lib/api";
+import { getStats } from "@/app/actions/stats";
+import { listAuditLogs } from "@/app/actions/audit";
 
 const RECENT_DISABLES_THRESHOLD = 5;
 const RECENT_HOURS = 24;
 
-export default function DashboardPage() {
-  const [stats, setStats] = useState<{ usersCount: number; disabledCount: number; groupsCount: number } | null>(null);
-  const [statsError, setStatsError] = useState<string | null>(null);
-  const [recentDisables, setRecentDisables] = useState(0);
+export default async function DashboardPage() {
+  const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000).toISOString();
 
-  useEffect(() => {
-    setStatsError(null);
-    statsApi
-      .get()
-      .then((s) => {
-        setStats(s);
-        setStatsError(null);
-      })
-      .catch((err) => {
-        setStats({ usersCount: 0, disabledCount: 0, groupsCount: 0 });
-        const msg = err?.message ?? "Erro ao carregar estatísticas.";
-        setStatsError(
-          msg === "Not Found" || msg === "Not Found."
-            ? "Serviço não encontrado. Verifique se a API está em execução e se a sessão é válida (faça login de novo)."
-            : msg
-        );
-      });
-  }, []);
+  // Parallel fetch
+  const [statsRes, auditRes] = await Promise.all([
+    getStats(),
+    listAuditLogs({ action: "user.disable", since, limit: 200 }),
+  ]);
 
-  useEffect(() => {
-    const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000).toISOString();
-    auditApi
-      .list({ action: "user.disable", since, limit: 200 })
-      .then((r) => setRecentDisables((r.entries ?? []).length))
-      .catch(() => setRecentDisables(0));
-  }, []);
+  const stats = statsRes.ok && statsRes.data ? statsRes.data : { usersCount: 0, disabledCount: 0, groupsCount: 0 };
+  const statsError = statsRes.ok ? null : statsRes.error;
+  const recentDisables = auditRes.ok && auditRes.data ? auditRes.data.length : 0;
 
   const alerts: { id: string; title: string; message: string; href?: string }[] = [];
   if (recentDisables >= RECENT_DISABLES_THRESHOLD) {
@@ -97,46 +76,56 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {stats !== null ? (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Usuários</CardTitle>
-              <Users className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.usersCount}</div>
-              <p className="text-xs text-muted-foreground">contas no diretório</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Desativadas</CardTitle>
-              <UserX className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.disabledCount}</div>
-              <p className="text-xs text-muted-foreground">contas desativadas</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Grupos</CardTitle>
-              <FolderTree className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.groupsCount}</div>
-              <p className="text-xs text-muted-foreground">grupos no diretório</p>
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24" />
-          ))}
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Usuários</CardTitle>
+            <Users className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {statsRes.ok ? (
+              <>
+                <div className="text-2xl font-bold">{stats.usersCount}</div>
+                <p className="text-xs text-muted-foreground">contas no diretório</p>
+              </>
+            ) : (
+              <Skeleton className="h-8 w-20" />
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Desativadas</CardTitle>
+            <UserX className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {statsRes.ok ? (
+              <>
+                <div className="text-2xl font-bold">{stats.disabledCount}</div>
+                <p className="text-xs text-muted-foreground">contas desativadas</p>
+              </>
+            ) : (
+              <Skeleton className="h-8 w-20" />
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Grupos</CardTitle>
+            <FolderTree className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {statsRes.ok ? (
+              <>
+                <div className="text-2xl font-bold">{stats.groupsCount}</div>
+                <p className="text-xs text-muted-foreground">grupos no diretório</p>
+              </>
+            ) : (
+              <Skeleton className="h-8 w-20" />
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="overflow-hidden transition-all hover:shadow-md">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { auth, ApiError } from "@/lib/api";
+import { login } from "@/app/actions/auth";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,12 +32,19 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      const session = await auth.login(username, password);
-      setSessionFromLogin(session);
-      router.replace("/");
-      router.refresh();
+      const res = await login(username, password);
+      if (res.ok) {
+        // We could manually construct session or just refresh. 
+        // Refreshing will trigger middleware/layout to fetch session.
+        // But AuthProvider expects setSessionFromLogin for immediate update?
+        // Actually, router.refresh() will update RootLayout -> AuthProvider prop.
+        router.replace("/");
+        router.refresh();
+      } else {
+        setError(res.error || "Falha ao entrar.");
+      }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Falha ao entrar.");
+      setError("Erro inesperado.");
     } finally {
       setLoading(false);
     }

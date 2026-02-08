@@ -1,10 +1,6 @@
-"use client";
-
-import { useState, useTransition } from "react";
 import Link from "next/link";
-import { groups as groupsApi, ApiError } from "@/lib/api";
+import { listGroups } from "@/app/actions/groups";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -14,39 +10,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Pencil } from "lucide-react";
-import { toast } from "sonner";
+import { Pencil } from "lucide-react";
+import { GroupsSearch } from "./groups-search";
 
-export default function GroupsPage() {
-  const [q, setQ] = useState("");
-  const [submittedQ, setSubmittedQ] = useState("");
-  const [list, setList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isPending, startTransition] = useTransition();
+export default async function GroupsPage(props: { searchParams: Promise<{ q?: string }> }) {
+  const searchParams = await props.searchParams;
+  const q = searchParams.q || "";
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmittedQ(q.trim());
-    if (!q.trim()) {
-      setList([]);
-      return;
+  let list: any[] = [];
+  let error: string | undefined;
+
+  if (q) {
+    const res = await listGroups(q);
+    if (res.ok && res.data) {
+      list = res.data;
+    } else {
+      error = res.error;
     }
-    setLoading(true);
-    startTransition(async () => {
-      try {
-        const res = await groupsApi.list(q.trim());
-        setList(res.groups ?? []);
-        if ((res.groups ?? []).length === 0) {
-          toast.info("Nenhum grupo encontrado.");
-        }
-      } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Erro ao buscar.");
-        setList([]);
-      } finally {
-        setLoading(false);
-      }
-    });
   }
 
   return (
@@ -57,59 +37,28 @@ export default function GroupsPage() {
           Pesquise e edite grupos do Active Directory.
         </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Pesquisar</CardTitle>
-          <CardDescription>
-            Informe o nome ou parte do nome do grupo.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSearch} className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[200px] space-y-2">
-              <label htmlFor="q" className="text-sm font-medium leading-none">
-                Termo
-              </label>
-              <Input
-                id="q"
-                placeholder="Ex.: TI ou ADWEB"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="max-w-md"
-              />
-            </div>
-            <Button type="submit" disabled={loading || isPending}>
-              <Search className="size-4 mr-2" />
-              {loading || isPending ? "Buscando…" : "Buscar"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+
+      <GroupsSearch />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Resultados</CardTitle>
           <CardDescription>
-            {submittedQ
-              ? list.length === 0 && !loading && !isPending
+            {q
+              ? list.length === 0
                 ? "Nenhum resultado."
                 : `${list.length} grupo(s) encontrado(s).`
               : "Use a pesquisa acima para listar grupos."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading || isPending ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : !submittedQ ? (
+          {!q ? (
             <div className="text-muted-foreground py-12 text-center text-sm">
               Digite um termo e clique em Buscar.
             </div>
           ) : list.length === 0 ? (
             <div className="text-muted-foreground py-12 text-center text-sm">
-              Nenhum grupo encontrado para &ldquo;{submittedQ}&rdquo;.
+              {error ? <span className="text-destructive">{error}</span> : `Nenhum grupo encontrado para "${q}".`}
             </div>
           ) : (
             <Table>
