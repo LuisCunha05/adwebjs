@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
-import { type ScheduledTask, ScheduleStatus } from "@/lib/types";
+import { type ScheduledTask, ScheduleStatus } from "@/types/schedule";
 
 type VacationGroup = {
     vacationId: number | string;

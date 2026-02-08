@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { logout as logoutAction } from "@/app/actions/auth";
-import { type Session } from "@/lib/types";
+import { type Session } from "@/types/session";
 
 type AuthState = {
   session: Session | null;

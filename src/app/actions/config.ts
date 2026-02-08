@@ -1,7 +1,7 @@
 "use server";
 
-import { getFetchAttributes, getEditConfig } from "@backend/services/ad-user-attributes";
-import { type EditAttribute } from "@/lib/types";
+import { getFetchAttributes, getEditConfig } from "@/services/ad-user-attributes";
+import { type EditAttribute } from "@/types/ldap";
 
 interface ActionResult<T = void> {
     ok: boolean;

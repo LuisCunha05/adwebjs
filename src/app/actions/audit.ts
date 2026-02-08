@@ -1,7 +1,7 @@
 "use server";
 
-import { auditService } from "@backend/services/container";
-import { type AuditEntry } from "@/lib/types";
+import { auditService } from "@/services/container";
+import { type AuditEntry } from "@/types/audit";
 
 interface ActionResult<T = void> {
     ok: boolean;

@@ -1,8 +1,8 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { ldapService } from "@backend/services/container";
-import { type Session } from "@/lib/types";
+import { ldapService } from "@/services/container";
+import { type Session } from "@/types/session";
 
 function getVal(v: string | string[] | undefined): string | undefined {
     if (v === undefined) return undefined;

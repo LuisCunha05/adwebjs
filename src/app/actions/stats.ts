@@ -1,6 +1,6 @@
 "use server";
 
-import { ldapService } from "@backend/services/container";
+import { ldapService } from "@/services/container";
 
 interface ActionResult<T = void> {
     ok: boolean;

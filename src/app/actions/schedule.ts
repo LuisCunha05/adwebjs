@@ -1,7 +1,7 @@
 "use server";
 
-import { scheduleService, vacationScheduleService, auditService } from "@backend/services/container";
-import { type ScheduledTask } from "@/lib/types";
+import { scheduleService, vacationScheduleService, auditService } from "@/services/container";
+import { type ScheduledTask } from "@/types/schedule";
 
 interface ActionResult<T = void> {
     ok: boolean;
