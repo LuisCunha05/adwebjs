@@ -14,7 +14,7 @@ import { AuditRepository } from '../repositories/audit-repository';
 const ldapService: ILdapService = new LdapService();
 
 const db = new SqliteDatabase();
-db.init();
+// db.init() is now lazy
 
 const scheduleRepository = new ScheduleRepository(db);
 const vacationRepository = new VacationRepository(db);

@@ -20,7 +20,7 @@ export const LDAP_GROUP_DELETE = (process.env.LDAP_GROUP_DELETE || '').trim();
 
 // Domain suffix for binding (fallback logic)
 export const LDAP_DOMAIN = process.env.LDAP_DOMAIN ||
-    (LDAP_BASE_DN.match(/DC=([^,]+)/gi) || [])
+    ((LDAP_BASE_DN || '').match(/DC=([^,]+)/gi) || [])
         .map((x: string) => x.replace(/^DC=/i, ''))
         .join('.') || 'local';
 

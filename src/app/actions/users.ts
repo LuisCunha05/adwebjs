@@ -1,0 +1,119 @@
+"use server";
+
+import { ldapService, auditService } from "@/services/container";
+
+interface ActionResult<T = void> {
+    ok: boolean;
+    data?: T;
+    error?: string;
+}
+
+export async function moveUser(id: string, targetOuDn: string): Promise<ActionResult> {
+    if (!targetOuDn) return { ok: false, error: "targetOuDn é obrigatório" };
+    try {
+        await ldapService.moveUserToOu(id, targetOuDn);
+        auditService.log({ action: "user.move", actor: "server-action", target: id, details: { targetOuDn }, success: true });
+        return { ok: true };
+    } catch (err: any) {
+        auditService.log({ action: "user.move", actor: "server-action", target: id, details: { targetOuDn }, success: false, error: err.message });
+        return { ok: false, error: err.message || "Move failed" };
+    }
+}
+
+export async function getUser(id: string): Promise<ActionResult<any>> {
+    try {
+        const user = await ldapService.getUser(id);
+        // Serialize pure object to avoid "Only plain objects can be passed to Client Components" issues with complex LDAP objects if any
+        return { ok: true, data: JSON.parse(JSON.stringify(user)) };
+    } catch (err: any) {
+        return { ok: false, error: err.message || "User not found" };
+    }
+}
+
+export async function updateUser(id: string, data: Record<string, unknown>): Promise<ActionResult<any>> {
+    try {
+        const updated = await ldapService.updateUser(id, data);
+        auditService.log({ action: "user.update", actor: "server-action", target: id, details: { fields: Object.keys(data) }, success: true });
+        return { ok: true, data: JSON.parse(JSON.stringify(updated)) };
+    } catch (err: any) {
+        auditService.log({ action: "user.update", actor: "server-action", target: id, success: false, error: err.message });
+        return { ok: false, error: err.message || "Update failed" };
+    }
+}
+
+export async function disableUser(id: string, opts?: { targetOu?: string }): Promise<ActionResult> {
+    try {
+        await ldapService.disableUser(id, opts);
+        auditService.log({ action: "user.disable", actor: "server-action", target: id, details: opts, success: true });
+        return { ok: true };
+    } catch (err: any) {
+        auditService.log({ action: "user.disable", actor: "server-action", target: id, success: false, error: err.message });
+        return { ok: false, error: err.message || "Disable failed" };
+    }
+}
+
+export async function enableUser(id: string): Promise<ActionResult> {
+    try {
+        await ldapService.enableUser(id);
+        auditService.log({ action: "user.enable", actor: "server-action", target: id, success: true });
+        return { ok: true };
+    } catch (err: any) {
+        auditService.log({ action: "user.enable", actor: "server-action", target: id, success: false, error: err.message });
+        return { ok: false, error: err.message || "Enable failed" };
+    }
+}
+
+export async function unlockUser(id: string): Promise<ActionResult> {
+    try {
+        await ldapService.unlockUser(id);
+        auditService.log({ action: "user.unlock", actor: "server-action", target: id, success: true });
+        return { ok: true };
+    } catch (err: any) {
+        auditService.log({ action: "user.unlock", actor: "server-action", target: id, success: false, error: err.message });
+        return { ok: false, error: err.message || "Unlock failed" };
+    }
+}
+
+export async function resetPassword(id: string, newPassword: string): Promise<ActionResult> {
+    if (!newPassword) return { ok: false, error: "Password required" };
+    try {
+        await ldapService.setPassword(id, newPassword);
+        auditService.log({ action: "user.reset_password", actor: "server-action", target: id, success: true });
+        return { ok: true };
+    } catch (err: any) {
+        auditService.log({ action: "user.reset_password", actor: "server-action", target: id, success: false, error: err.message });
+        return { ok: false, error: err.message || "Reset password failed" };
+    }
+}
+
+export async function deleteUser(id: string): Promise<ActionResult> {
+    try {
+        await ldapService.deleteUser(id);
+        auditService.log({ action: "user.delete", actor: "server-action", target: id, success: true });
+        return { ok: true };
+    } catch (err: any) {
+        auditService.log({ action: "user.delete", actor: "server-action", target: id, success: false, error: err.message });
+        return { ok: false, error: err.message || "Delete failed" };
+    }
+}
+
+export async function listUsers(q: string, searchBy: string, opts?: { ou?: string; memberOf?: string; disabledOnly?: boolean }): Promise<ActionResult<any[]>> {
+    if (!q && !opts?.ou && !opts?.memberOf && !opts?.disabledOnly) return { ok: true, data: [] };
+    try {
+        const users = await ldapService.searchUsers(q, searchBy, opts);
+        return { ok: true, data: JSON.parse(JSON.stringify(users)) };
+    } catch (err: any) {
+        return { ok: false, error: err.message || "Search failed" };
+    }
+}
+
+export async function createUser(body: any): Promise<ActionResult<any>> {
+    try {
+        const user = await ldapService.createUser(body);
+        auditService.log({ action: "user.create", actor: "server-action", target: body.sAMAccountName, details: { parentOuDn: body.parentOuDn }, success: true });
+        return { ok: true, data: JSON.parse(JSON.stringify(user)) };
+    } catch (err: any) {
+        auditService.log({ action: "user.create", actor: "server-action", target: String(body.sAMAccountName), success: false, error: err.message });
+        return { ok: false, error: err.message || "Create failed" };
+    }
+}
