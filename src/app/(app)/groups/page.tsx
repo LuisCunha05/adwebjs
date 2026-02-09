@@ -12,8 +12,10 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil } from "lucide-react";
 import { GroupsSearch } from "./groups-search";
+import { verifySession } from "@/utils/manage-jwt";
 
 export default async function GroupsPage(props: { searchParams: Promise<{ q?: string }> }) {
+  await verifySession();
   const searchParams = await props.searchParams;
   const q = searchParams.q || "";
 

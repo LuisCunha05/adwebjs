@@ -3,8 +3,10 @@ import { getUser } from "@/actions/users";
 import { getUserAttributesConfig } from "@/actions/config";
 import { listOUs } from "@/actions/ous";
 import { UserEditForm } from "./user-edit-form";
+import { verifySession } from "@/utils/manage-jwt";
 
 export default async function UserEditPage(props: { params: Promise<{ id: string }> }) {
+  await verifySession();
   const params = await props.params; // Await params in case Next.js version requires it, though usually direct access in 14. 
   // Next 15 requires awaiting params.
 

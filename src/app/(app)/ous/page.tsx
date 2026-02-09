@@ -9,8 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FolderOpen } from "lucide-react";
+import { verifySession } from "@/utils/manage-jwt";
 
 export default async function OUsPage() {
+  await verifySession();
   const res = await listOUs();
   const list = res.ok && res.data ? res.data : [];
   const error = res.ok ? null : res.error;

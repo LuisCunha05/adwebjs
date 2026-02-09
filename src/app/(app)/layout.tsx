@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -26,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const navItems = (isAdmin: boolean) => [
@@ -47,32 +45,14 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { session, loading, logout } = useAuth();
+  const { session, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
-  const router = useRouter();
 
   const effectiveTheme = theme ?? "system";
   const cycleTheme = () => {
     setTheme(effectiveTheme === "light" ? "dark" : effectiveTheme === "dark" ? "system" : "light");
   };
-
-  useEffect(() => {
-    if (!loading && !session) {
-      router.replace("/login");
-    }
-  }, [loading, session, router]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30">
-        <div className="flex flex-col gap-4">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-64 w-72" />
-        </div>
-      </div>
-    );
-  }
 
   if (!session) {
     return null;

@@ -2,6 +2,8 @@
 
 import { ldapService, auditService } from "@/services/container";
 
+import { verifySession } from "@/utils/manage-jwt";
+
 interface ActionResult<T = void> {
     ok: boolean;
     data?: T;
@@ -9,6 +11,7 @@ interface ActionResult<T = void> {
 }
 
 export async function moveUser(id: string, targetOuDn: string): Promise<ActionResult> {
+    await verifySession();
     if (!targetOuDn) return { ok: false, error: "targetOuDn é obrigatório" };
     try {
         await ldapService.moveUserToOu(id, targetOuDn);
@@ -21,6 +24,7 @@ export async function moveUser(id: string, targetOuDn: string): Promise<ActionRe
 }
 
 export async function getUser(id: string): Promise<ActionResult<any>> {
+    await verifySession();
     try {
         const user = await ldapService.getUser(id);
         // Serialize pure object to avoid "Only plain objects can be passed to Client Components" issues with complex LDAP objects if any
@@ -31,6 +35,7 @@ export async function getUser(id: string): Promise<ActionResult<any>> {
 }
 
 export async function updateUser(id: string, data: Record<string, unknown>): Promise<ActionResult<any>> {
+    await verifySession();
     try {
         const updated = await ldapService.updateUser(id, data);
         auditService.log({ action: "user.update", actor: "server-action", target: id, details: { fields: Object.keys(data) }, success: true });
@@ -42,6 +47,7 @@ export async function updateUser(id: string, data: Record<string, unknown>): Pro
 }
 
 export async function disableUser(id: string, opts?: { targetOu?: string }): Promise<ActionResult> {
+    await verifySession();
     try {
         await ldapService.disableUser(id, opts);
         auditService.log({ action: "user.disable", actor: "server-action", target: id, details: opts, success: true });
@@ -53,6 +59,7 @@ export async function disableUser(id: string, opts?: { targetOu?: string }): Pro
 }
 
 export async function enableUser(id: string): Promise<ActionResult> {
+    await verifySession();
     try {
         await ldapService.enableUser(id);
         auditService.log({ action: "user.enable", actor: "server-action", target: id, success: true });
@@ -64,6 +71,7 @@ export async function enableUser(id: string): Promise<ActionResult> {
 }
 
 export async function unlockUser(id: string): Promise<ActionResult> {
+    await verifySession();
     try {
         await ldapService.unlockUser(id);
         auditService.log({ action: "user.unlock", actor: "server-action", target: id, success: true });
@@ -75,6 +83,7 @@ export async function unlockUser(id: string): Promise<ActionResult> {
 }
 
 export async function resetPassword(id: string, newPassword: string): Promise<ActionResult> {
+    await verifySession();
     if (!newPassword) return { ok: false, error: "Password required" };
     try {
         await ldapService.setPassword(id, newPassword);
@@ -87,6 +96,7 @@ export async function resetPassword(id: string, newPassword: string): Promise<Ac
 }
 
 export async function deleteUser(id: string): Promise<ActionResult> {
+    await verifySession();
     try {
         await ldapService.deleteUser(id);
         auditService.log({ action: "user.delete", actor: "server-action", target: id, success: true });
@@ -98,6 +108,7 @@ export async function deleteUser(id: string): Promise<ActionResult> {
 }
 
 export async function listUsers(q: string, searchBy: string, opts?: { ou?: string; memberOf?: string; disabledOnly?: boolean }): Promise<ActionResult<any[]>> {
+    await verifySession();
     if (!q && !opts?.ou && !opts?.memberOf && !opts?.disabledOnly) return { ok: true, data: [] };
     try {
         const users = await ldapService.searchUsers(q, searchBy, opts);
@@ -108,6 +119,7 @@ export async function listUsers(q: string, searchBy: string, opts?: { ou?: strin
 }
 
 export async function createUser(body: any): Promise<ActionResult<any>> {
+    await verifySession();
     try {
         const user = await ldapService.createUser(body);
         auditService.log({ action: "user.create", actor: "server-action", target: body.sAMAccountName, details: { parentOuDn: body.parentOuDn }, success: true });

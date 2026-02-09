@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStats } from "@/actions/stats";
 import { listAuditLogs } from "@/actions/audit";
+import { verifySession } from "@/utils/manage-jwt";
 
 const RECENT_DISABLES_THRESHOLD = 5;
 const RECENT_HOURS = 24;
 
 export default async function DashboardPage() {
+  await verifySession();
   const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000).toISOString();
 
   // Parallel fetch

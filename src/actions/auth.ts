@@ -1,8 +1,10 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { ldapService } from "@/services/container";
 import { type Session } from "@/types/session";
+import { loginSchema } from "@/schemas/login";
+import { redirect } from "next/navigation";
+import { createSession, deleteSession } from "@/utils/manage-jwt";
 
 function getVal(v: string | string[] | undefined): string | undefined {
     if (v === undefined) return undefined;
@@ -10,51 +12,46 @@ function getVal(v: string | string[] | undefined): string | undefined {
     return String(v);
 }
 
-const SESSION_COOKIE = "adweb_session";
 
-export async function login(username: string, password: string): Promise<{ ok: boolean; error?: string }> {
+
+export interface LoginState {
+    username: string;
+    error?: string;
+}
+
+export async function loginAction(state: LoginState, formData: FormData): Promise<LoginState> {
     try {
-        const user = await ldapService.authenticate(username, password);
+
+        const parsedData = loginSchema.safeParse({ username: formData.get("username"), password: formData.get("password") });
+
+        if (!parsedData.success) {
+            return { error: "Insira um nome de usuário(ou email) e senha", username: formData.get("username")?.toString() ?? '' };
+        }
+
+        const user = await ldapService.authenticate(parsedData.data.username, parsedData.data.password);
 
         const session: Session = {
             user: {
-                sAMAccountName: getVal(user.sAMAccountName) || username,
+                sAMAccountName: getVal(user.sAMAccountName) || parsedData.data.username,
                 cn: getVal(user.cn),
                 mail: getVal(user.mail),
                 userPrincipalName: getVal(user.userPrincipalName),
+                displayName: getVal(user.displayName),
             },
             isAdmin: true, // Authenticated users via ldap.authenticate are considered admins in this app context
         };
 
-        const cookieStore = await cookies();
-        // Set cookie for 7 days
-        const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-        cookieStore.set(SESSION_COOKIE, JSON.stringify(session), {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            expires,
-            sameSite: "lax",
-        });
+        await createSession(session);
 
-        return { ok: true };
-    } catch (err: any) {
-        return { ok: false, error: "Credenciais inválidas ou erro de conexão" };
+    } catch (err: unknown) {
+        console.log("err", err);
+        return { username: formData.get("username")?.toString() ?? '', error: "Credenciais inválidas ou erro de conexão" };
     }
+
+    redirect("/");
 }
 
 export async function logout() {
-    const cookieStore = await cookies();
-    cookieStore.delete(SESSION_COOKIE);
-    return { ok: true };
-}
-
-export async function getSession(): Promise<Session | null> {
-    const cookieStore = await cookies();
-    const val = cookieStore.get(SESSION_COOKIE)?.value;
-    if (!val) return null;
-    try {
-        return JSON.parse(val) as Session;
-    } catch {
-        return null;
-    }
+    await deleteSession();
+    redirect("/login");
 }

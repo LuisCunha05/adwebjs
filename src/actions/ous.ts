@@ -2,6 +2,8 @@
 
 import { ldapService } from "@/services/container";
 
+import { verifySession } from "@/utils/manage-jwt";
+
 interface ActionResult<T = void> {
     ok: boolean;
     data?: T;
@@ -9,6 +11,7 @@ interface ActionResult<T = void> {
 }
 
 export async function listOUs(): Promise<ActionResult<any[]>> {
+    await verifySession();
     try {
         const ous = await ldapService.listOUs();
         return { ok: true, data: JSON.parse(JSON.stringify(ous || [])) };
