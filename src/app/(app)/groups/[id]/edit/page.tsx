@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getGroup, getGroupMembersResolved } from "@/app/actions/groups";
+import { getGroup, getGroupMembersResolved } from "@/actions/groups";
 import { GroupEditForm } from "./group-edit-form";
 
 export default async function GroupEditPage(props: { params: Promise<{ id: string }> }) {

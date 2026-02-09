@@ -1,4 +1,4 @@
-import { listOUs } from "@/app/actions/ous";
+import { listOUs } from "@/actions/ous";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,

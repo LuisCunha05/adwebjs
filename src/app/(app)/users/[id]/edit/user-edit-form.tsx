@@ -27,8 +27,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, UserCheck, UserX, Unlock, Loader2, KeyRound, Trash2, FolderTree, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
-import { removeMemberFromGroup } from "@/app/actions/groups";
-import { updateUser, disableUser, enableUser, unlockUser, resetPassword, deleteUser, moveUser } from "@/app/actions/users";
+import { removeMemberFromGroup } from "@/actions/groups";
+import { updateUser, disableUser, enableUser, unlockUser, resetPassword, deleteUser, moveUser } from "@/actions/users";
 
 const UAC_DISABLED = 2;
 const UAC_DONT_EXPIRE_PASSWD = 65536;

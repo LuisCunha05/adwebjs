@@ -1,4 +1,4 @@
-import { listAuditLogs } from "@/app/actions/audit";
+import { listAuditLogs } from "@/actions/audit";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,

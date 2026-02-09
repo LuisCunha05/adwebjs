@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { logout as logoutAction } from "@/app/actions/auth";
+import { logout as logoutAction } from "@/actions/auth";
 import { type Session } from "@/types/session";
 
 type AuthState = {

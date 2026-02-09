@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
-import { listGroups } from "@/app/actions/groups";
+import { listGroups } from "@/actions/groups";
 
 const searchByOptions = [
     { value: "sAMAccountName", label: "Usuário" },

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { listUsers } from "@/app/actions/users";
-import { listOUs } from "@/app/actions/ous";
+import { listUsers } from "@/actions/users";
+import { listOUs } from "@/actions/ous";
 import { Button } from "@/components/ui/button";
 import {
   Table,

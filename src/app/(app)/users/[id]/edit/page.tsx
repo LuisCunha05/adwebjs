@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { getUser } from "@/app/actions/users";
-import { getUserAttributesConfig } from "@/app/actions/config";
-import { listOUs } from "@/app/actions/ous";
+import { getUser } from "@/actions/users";
+import { getUserAttributesConfig } from "@/actions/config";
+import { listOUs } from "@/actions/ous";
 import { UserEditForm } from "./user-edit-form";
 
 export default async function UserEditPage(props: { params: Promise<{ id: string }> }) {

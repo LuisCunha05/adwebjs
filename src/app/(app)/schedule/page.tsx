@@ -1,4 +1,4 @@
-import { listSchedule } from "@/app/actions/schedule";
+import { listSchedule } from "@/actions/schedule";
 import { ScheduleForm } from "./schedule-form";
 import { VacationList } from "./vacation-list";
 

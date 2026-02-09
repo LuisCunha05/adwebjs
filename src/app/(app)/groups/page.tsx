@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listGroups } from "@/app/actions/groups";
+import { listGroups } from "@/actions/groups";
 import { Button } from "@/components/ui/button";
 import {
   Table,

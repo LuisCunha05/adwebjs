@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createVacation } from "@/app/actions/schedule";
-import { listUsers } from "@/app/actions/users";
+import { createVacation } from "@/actions/schedule";
+import { listUsers } from "@/actions/users";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

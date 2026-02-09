@@ -3,8 +3,8 @@ import { Users, FolderTree, FolderOpen, UserX, AlertTriangle } from "lucide-reac
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getStats } from "@/app/actions/stats";
-import { listAuditLogs } from "@/app/actions/audit";
+import { getStats } from "@/actions/stats";
+import { listAuditLogs } from "@/actions/audit";
 
 const RECENT_DISABLES_THRESHOLD = 5;
 const RECENT_HOURS = 24;

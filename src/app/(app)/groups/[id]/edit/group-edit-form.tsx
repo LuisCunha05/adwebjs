@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { updateGroup, addMemberToGroup, removeMemberFromGroup } from "@/app/actions/groups";
-import { listUsers } from "@/app/actions/users";
+import { updateGroup, addMemberToGroup, removeMemberFromGroup } from "@/actions/groups";
+import { listUsers } from "@/actions/users";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

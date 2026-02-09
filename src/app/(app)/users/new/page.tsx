@@ -1,4 +1,4 @@
-import { listOUs } from "@/app/actions/ous";
+import { listOUs } from "@/actions/ous";
 import { NewUserForm } from "./new-user-form";
 
 export default async function NewUserPage() {
