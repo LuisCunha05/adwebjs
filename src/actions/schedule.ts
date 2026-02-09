@@ -3,6 +3,8 @@
 import { scheduleService, vacationScheduleService, auditService } from "@/services/container";
 import { type ScheduledTask } from "@/types/schedule";
 
+import { verifySession } from "@/utils/manage-jwt";
+
 interface ActionResult<T = void> {
     ok: boolean;
     data?: T;
@@ -10,6 +12,7 @@ interface ActionResult<T = void> {
 }
 
 export async function listSchedule(): Promise<ActionResult<ScheduledTask[]>> {
+    await verifySession();
     try {
         const actions = scheduleService.list();
         return { ok: true, data: JSON.parse(JSON.stringify(actions)) };
@@ -19,6 +22,7 @@ export async function listSchedule(): Promise<ActionResult<ScheduledTask[]>> {
 }
 
 export async function createVacation(userId: string, startDate: string, endDate: string): Promise<ActionResult<{ vacationId: number }>> {
+    await verifySession();
     if (!userId || !startDate || !endDate) return { ok: false, error: "Missing required fields" };
 
     const start = new Date(startDate);
@@ -38,6 +42,7 @@ export async function createVacation(userId: string, startDate: string, endDate:
 }
 
 export async function cancelTask(id: number): Promise<ActionResult> {
+    await verifySession();
     if (isNaN(id)) return { ok: false, error: "Invalid ID" };
     try {
         const removed = scheduleService.remove(id);

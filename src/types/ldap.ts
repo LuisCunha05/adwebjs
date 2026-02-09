@@ -1,4 +1,4 @@
-import { DEFAULT_FETCH } from '../contants/ldap';
+import { DEFAULT_FETCH } from '../constants/ldap';
 
 export type LdapUserAttributes = {
     [K in (typeof DEFAULT_FETCH)[number]]?: string | string[];

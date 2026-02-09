@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description: "Gerencie usuários e grupos do Active Directory",
 };
 
-import { getSession } from "@/app/actions/auth";
+import { getSession } from "@/utils/manage-jwt";
 
 export default async function RootLayout({
   children,

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { listUsers } from "@/app/actions/users";
-import { listOUs } from "@/app/actions/ous";
+import { listUsers } from "@/actions/users";
+import { listOUs } from "@/actions/ous";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil, UserPlus, Download } from "lucide-react";
 import { UsersSearch } from "./users-search";
 import { DownloadButton } from "./download-button";
+import { verifySession } from "@/utils/manage-jwt";
 
 const UAC_DISABLED = 2;
 const UAC_DONT_EXPIRE_PASSWD = 65536;
@@ -38,6 +39,7 @@ function uacVariant(
 }
 
 export default async function UsersPage(props: { searchParams: Promise<{ q?: string; searchBy?: string; ou?: string; memberOf?: string; disabledOnly?: string }> }) {
+  await verifySession();
   const searchParams = await props.searchParams;
   const q = searchParams.q || "";
   const searchBy = searchParams.searchBy || "sAMAccountName";

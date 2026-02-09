@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-import { SCHEDULE_DATA_DIR, AD_EXTRA_ATTRIBUTES } from '../contants/config';
-import { DEFAULT_FETCH, DEFAULT_EDIT } from '../contants/ldap';
+import { SCHEDULE_DATA_DIR, AD_EXTRA_ATTRIBUTES } from '../constants/config';
+import { DEFAULT_FETCH, DEFAULT_EDIT } from '../constants/ldap';
 import { ConfigFile, EditAttribute } from '../types/ldap';
 
 const DATA_DIR = SCHEDULE_DATA_DIR;

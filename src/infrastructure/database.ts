@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import fs from 'fs';
 import { IDatabase, IStatement } from "../types/database";
-import { SCHEDULE_DATA_DIR } from '../contants/config';
+import { SCHEDULE_DATA_DIR } from '../constants/config';
 
 export class SqliteDatabase implements IDatabase {
     private initialized = false;

@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { login } from "@/app/actions/auth";
-import { useAuth } from "@/components/auth-provider";
+import { useActionState } from "react";
+import { loginAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,39 +14,14 @@ import {
 } from "@/components/ui/card";
 import { LayoutDashboard } from "lucide-react";
 
+const DEFAULT_STATE = {
+  username: '',
+  error: undefined
+}
+
 export function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { setSessionFromLogin } = useAuth();
-  const errorParam = searchParams.get("error");
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(errorParam);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await login(username, password);
-      if (res.ok) {
-        // We could manually construct session or just refresh. 
-        // Refreshing will trigger middleware/layout to fetch session.
-        // But AuthProvider expects setSessionFromLogin for immediate update?
-        // Actually, router.refresh() will update RootLayout -> AuthProvider prop.
-        router.replace("/");
-        router.refresh();
-      } else {
-        setError(res.error || "Falha ao entrar.");
-      }
-    } catch (err) {
-      setError("Erro inesperado.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [state, action, isPending] = useActionState(loginAction, DEFAULT_STATE)
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 p-4">
@@ -62,13 +35,13 @@ export function LoginForm() {
             <CardDescription>Entre com seu usuário do domínio</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
+            <form action={action} className="space-y-4">
+              {state.error && (
                 <div
                   role="alert"
                   className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
                 >
-                  {error}
+                  {state.error}
                 </div>
               )}
               <div className="space-y-2">
@@ -79,10 +52,9 @@ export function LoginForm() {
                   type="text"
                   autoComplete="username"
                   placeholder="usuário ou email"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  defaultValue={state.username}
                   required
-                  disabled={loading}
+                  disabled={isPending}
                   className="transition-colors"
                 />
               </div>
@@ -93,16 +65,14 @@ export function LoginForm() {
                   name="password"
                   type="password"
                   autoComplete="current-password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="sua senha"
                   required
-                  disabled={loading}
+                  disabled={isPending}
                   className="transition-colors"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Entrando…" : "Entrar"}
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? "Entrando…" : "Entrar"}
               </Button>
             </form>
             <p className="text-muted-foreground mt-4 text-center text-xs">

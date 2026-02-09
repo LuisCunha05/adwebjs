@@ -3,6 +3,8 @@
 import { getFetchAttributes, getEditConfig } from "@/services/ad-user-attributes";
 import { type EditAttribute } from "@/types/ldap";
 
+import { verifySession } from "@/utils/manage-jwt";
+
 interface ActionResult<T = void> {
     ok: boolean;
     data?: T;
@@ -10,6 +12,7 @@ interface ActionResult<T = void> {
 }
 
 export async function getUserAttributesConfig(): Promise<ActionResult<{ fetch: string[]; edit: EditAttribute[] }>> {
+    await verifySession();
     try {
         return {
             ok: true,

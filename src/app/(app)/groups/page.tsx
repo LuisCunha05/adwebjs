@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listGroups } from "@/app/actions/groups";
+import { listGroups } from "@/actions/groups";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -12,8 +12,10 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil } from "lucide-react";
 import { GroupsSearch } from "./groups-search";
+import { verifySession } from "@/utils/manage-jwt";
 
 export default async function GroupsPage(props: { searchParams: Promise<{ q?: string }> }) {
+  await verifySession();
   const searchParams = await props.searchParams;
   const q = searchParams.q || "";
 

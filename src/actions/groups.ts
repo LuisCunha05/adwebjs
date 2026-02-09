@@ -2,6 +2,8 @@
 
 import { ldapService, auditService } from "@/services/container";
 
+import { verifySession } from "@/utils/manage-jwt";
+
 interface ActionResult<T = void> {
     ok: boolean;
     data?: T;
@@ -9,6 +11,7 @@ interface ActionResult<T = void> {
 }
 
 export async function listGroups(q: string): Promise<ActionResult<any[]>> {
+    await verifySession();
     if (!q) return { ok: true, data: [] };
     try {
         const groups = await ldapService.searchGroups(q);
@@ -19,6 +22,7 @@ export async function listGroups(q: string): Promise<ActionResult<any[]>> {
 }
 
 export async function getGroup(id: string): Promise<ActionResult<any>> {
+    await verifySession();
     try {
         const group = await ldapService.getGroup(id);
         return { ok: true, data: JSON.parse(JSON.stringify(group)) };
@@ -28,6 +32,7 @@ export async function getGroup(id: string): Promise<ActionResult<any>> {
 }
 
 export async function updateGroup(id: string, changes: { name?: string; description?: string; member?: string[] }): Promise<ActionResult<any>> {
+    await verifySession();
     try {
         const updated = await ldapService.updateGroup(id, changes);
         auditService.log({ action: "group.update", actor: "server-action", target: id, details: { fields: Object.keys(changes) }, success: true });
@@ -39,6 +44,7 @@ export async function updateGroup(id: string, changes: { name?: string; descript
 }
 
 export async function addMemberToGroup(id: string, dn: string): Promise<ActionResult> {
+    await verifySession();
     if (!dn) return { ok: false, error: "dn required" };
     try {
         await ldapService.addMemberToGroup(id, dn.trim());
@@ -51,6 +57,7 @@ export async function addMemberToGroup(id: string, dn: string): Promise<ActionRe
 }
 
 export async function removeMemberFromGroup(id: string, dn: string): Promise<ActionResult> {
+    await verifySession();
     if (!dn) return { ok: false, error: "dn required" };
     try {
         await ldapService.removeMemberFromGroup(id, dn.trim());
@@ -63,6 +70,7 @@ export async function removeMemberFromGroup(id: string, dn: string): Promise<Act
 }
 
 export async function getGroupMembersResolved(id: string): Promise<ActionResult<{ dn: string; displayName?: string; cn?: string; sAMAccountName?: string }[]>> {
+    await verifySession();
     try {
         const group = await ldapService.getGroup(id);
         const raw = group.member;

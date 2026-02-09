@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { cancelTask } from "@/app/actions/schedule";
+import { cancelTask } from "@/actions/schedule";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Trash2, Download } from "lucide-react";

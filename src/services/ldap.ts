@@ -11,7 +11,7 @@ import {
     LDAP_DEBUG,
     LDAP_GROUP_REQUIRED,
     LDAP_DOMAIN
-} from '../contants/config';
+} from '../constants/config';
 
 const logDebug = (msg: string) => {
     if (LDAP_DEBUG) {
@@ -88,7 +88,7 @@ export class LdapService implements ILdapService {
             const result = await navClient.search(BASE_DN, {
                 filter: searchFilter,
                 scope: 'sub',
-                attributes: ['dn', 'sAMAccountName', 'userPrincipalName', 'memberOf', 'cn', 'mail']
+                attributes: ['dn', 'sAMAccountName', 'userPrincipalName', 'memberOf', 'displayName', 'cn', 'mail']
             });
 
             if (result.searchEntries.length === 0) {

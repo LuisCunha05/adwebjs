@@ -1,4 +1,4 @@
-import { listOUs } from "@/app/actions/ous";
+import { listOUs } from "@/actions/ous";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -9,8 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FolderOpen } from "lucide-react";
+import { verifySession } from "@/utils/manage-jwt";
 
 export default async function OUsPage() {
+  await verifySession();
   const res = await listOUs();
   const list = res.ok && res.data ? res.data : [];
   const error = res.ok ? null : res.error;
