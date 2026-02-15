@@ -1,0 +1,16 @@
+services:
+  adwebapp:
+    container_name: adwebapp
+    build:
+      context: ./
+      args:
+        NODE_ENV: production
+    restart: always
+    ports:
+      - 3000:3000
+    networks:
+      - adwebapp-network
+
+networks:
+  adwebapp-network:
+    driver: bridge
