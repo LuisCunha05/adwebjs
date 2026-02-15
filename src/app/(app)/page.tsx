@@ -12,6 +12,7 @@ const RECENT_HOURS = 24;
 
 export default async function DashboardPage() {
   await verifySession();
+  // eslint-disable-next-line react-hooks/purity
   const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000).toISOString();
 
   // Parallel fetch
@@ -38,9 +39,7 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Active Directory Web Manager</h1>
-        <p className="text-muted-foreground mt-1">
-          Gerencie usuários, grupos e OUs do AD de forma centralizada.
-        </p>
+        <p className="text-muted-foreground mt-1">Gerencie usuários, grupos e OUs do AD de forma centralizada.</p>
       </div>
 
       {statsError && (
@@ -68,7 +67,12 @@ export default async function DashboardPage() {
                   <p className="text-amber-800 dark:text-amber-200/90">{a.message}</p>
                 </div>
                 {a.href && (
-                  <Button variant="outline" size="sm" asChild className="shrink-0 border-amber-300 dark:border-amber-700">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="shrink-0 border-amber-300 dark:border-amber-700"
+                  >
                     <Link href={a.href}>Ver</Link>
                   </Button>
                 )}
