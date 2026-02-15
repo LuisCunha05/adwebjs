@@ -122,19 +122,19 @@ Permite buscar e filtrar usuários por OU e grupo, mover contas entre OUs sem de
 
 2. **Dependências da API (raiz)**
    ```bash
-   npm install
+   corepack enable && pnpm install
    ```
 
-3. **Dependências do frontend**
-   ```bash
-   cd web && npm install && cd ..
-   ```
-
-4. **Variáveis de ambiente**  
+3. **Variáveis de ambiente**  
    Copiar o exemplo e editar conforme o ambiente:
    ```bash
    cp env.example .env
    # editar .env com suas URLs, credenciais e grupos
+   ```
+
+4. **Dependências do frontend**
+   ```bash
+   pnpm build && pnpm start
    ```
 
 ---
@@ -148,10 +148,8 @@ Crie um arquivo `.env` na **raiz do projeto** (onde está `package.json`). Use o
 | Variável | Obrigatório | Descrição |
 |----------|-------------|-----------|
 | `PORT` | Não | Porta da API (padrão: `3000`). Em dev costuma-se usar `3001`. |
-| `FRONTEND_PORT` | Não | Porta do Next.js em dev (padrão: `3000`). |
 | `API_URL` | Sim (front) | URL da API usada pelo proxy do Next, ex.: `http://127.0.0.1:3001`. |
 | `FRONTEND_URL` | Não | URL do frontend; usada em redirects e CORS (ex.: `http://127.0.0.1:3000`). |
-| `SESSION_SECRET` | Sim | Chave para assinatura da sessão; use um valor longo e aleatório. |
 | `LDAP_URL` | Sim | URL do LDAP/LDAPS, ex.: `ldaps://dc.empresa.com`. |
 | `LDAP_BASE_DN` | Sim | DN base de busca, ex.: `DC=empresa,DC=com,DC=br`. |
 | `LDAP_DOMAIN` | Não | Sufixo do domínio (ex.: `empresa.com.br`) para UPN/fallback. |
@@ -162,8 +160,9 @@ Crie um arquivo `.env` na **raiz do projeto** (onde está `package.json`). Use o
 | `LDAP_DEBUG` | Não | Se `true`, emite logs “LDAP Debug” no console (útil para troubleshooting). |
 | `SCHEDULE_DATA_DIR` | Não | Pasta dos JSONs de agendamento, auditoria e atributos. Caminho absoluto ou relativo ao cwd. Padrão: `data/`. |
 | `AD_EXTRA_ATTRIBUTES` | Não | Lista de atributos extras do AD (ex.: `cpf,outro`) para buscar e editar; entram na lista padrão. |
-
-### Pasta de dados
+| `JWT_SECRET_KEY` | Sim | Chave para assinatura da sessão; use um valor longo e aleatório. |
+| `SESSION_EXPIRATION_SECONDS` | Sim | Duracão da sessão em segundos. |
+| `SESSION_COOKIE_NAME` | Não | Nome para o cookie de sessão. |
 
 Por padrão são usados o diretório `data/` na raiz e, dentro dele:
 
@@ -692,7 +691,7 @@ Não. Ficam em arquivos JSON no disco (`scheduled-actions.json`, `audit-log.json
 ## Segurança
 
 - Use **LDAPS** em produção e evite expor a API na internet sem proteção.
-- `SESSION_SECRET` deve ser forte e único por ambiente.
+- `JWT_SECRET_KEY` deve ser forte e único por ambiente.
 - Nunca versione o `.env`; use `env.example` só como modelo.
 - A conta de serviço (`LDAP_ADMIN_DN`) deve ter o mínimo de permissões necessárias nas OUs gerenciadas.
 - Excluir usuário é restrito a quem está em `LDAP_GROUP_DELETE`; avalie bem quem entra nesse grupo.
