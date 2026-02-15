@@ -46,6 +46,7 @@ export async function getSession(): Promise<Session | null> {
 export async function verifySession() {
   const isAuthenticated = await getSession();
   if (!isAuthenticated) redirect("/login");
+  return isAuthenticated;
 }
 
 const createJwtToken = async (payload: Payload) => {
