@@ -142,7 +142,6 @@ Crie um arquivo `.env` na raiz do projeto.
 
 | Variável | Descrição |
 |----------|-----------|
-| `PORT` | Porta onde o Next.js irá rodar (padrão: `3000`). |
 | `LDAP_URL` | URL do LDAP/LDAPS, ex.: `ldaps://dc.empresa.com`. |
 | `LDAP_BASE_DN` | DN base de busca, ex.: `DC=empresa,DC=com,DC=br`. |
 | `LDAP_DOMAIN` | Sufixo do domínio (ex.: `empresa.com.br`) para UPN/fallback. |

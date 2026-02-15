@@ -1,12 +1,5 @@
 import path from 'path';
 
-// Load environment variables via built-in process.env (Node 20.6+ supports --env-file, or env-cmd is used)
-
-export const PORT = process.env.PORT || 3000;
-export const FRONTEND_PORT = process.env.FRONTEND_PORT || 3000;
-export const API_URL = process.env.API_URL || 'http://127.0.0.1:3001';
-export const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:3000';
-
 // LDAP Connection
 export const LDAP_URL = process.env.LDAP_URL as string;
 export const LDAP_BASE_DN = process.env.LDAP_BASE_DN as string;
