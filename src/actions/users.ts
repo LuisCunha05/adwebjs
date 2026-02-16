@@ -1,5 +1,6 @@
 "use server";
 
+import { LDAP_GROUP_DELETE } from "@/constants/config";
 import { ldapService, auditService } from "@/services/container";
 
 import { verifySession } from "@/utils/manage-jwt";
@@ -127,13 +128,25 @@ export async function resetPassword(id: string, newPassword: string): Promise<Ac
 }
 
 export async function deleteUser(id: string): Promise<ActionResult> {
-  await verifySession();
+  const session = await verifySession();
   try {
+    if (!LDAP_GROUP_DELETE) return { ok: false, error: "O sistema não permite essa ação" };
+    const currentUser = await ldapService.getUser(session.user.sAMAccountName);
+
+    if (!Array.isArray(currentUser.memberOf) || !currentUser.memberOf.includes(LDAP_GROUP_DELETE))
+      return { ok: false, error: "Ação não permitida" };
+
     await ldapService.deleteUser(id);
-    auditService.log({ action: "user.delete", actor: "server-action", target: id, success: true });
+    auditService.log({ action: "user.delete", actor: session.user.sAMAccountName, target: id, success: true });
     return { ok: true };
   } catch (err: any) {
-    auditService.log({ action: "user.delete", actor: "server-action", target: id, success: false, error: err.message });
+    auditService.log({
+      action: "user.delete",
+      actor: session.user.sAMAccountName,
+      target: id,
+      success: false,
+      error: err.message,
+    });
     return { ok: false, error: err.message || "Delete failed" };
   }
 }
