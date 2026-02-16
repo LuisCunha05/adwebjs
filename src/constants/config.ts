@@ -3,32 +3,31 @@ import { z } from "zod";
 
 const configSchema = z.object({
   // LDAP Connection
-  LDAP_URL: z.string().min(1, "LDAP_URL is required"),
-  LDAP_BASE_DN: z.string().min(1, "LDAP_BASE_DN is required"),
-  LDAP_ADMIN_DN: z.string().min(1, "LDAP_ADMIN_DN is required"),
-  LDAP_ADMIN_PASSWORD: z.string().min(1, "LDAP_ADMIN_PASSWORD is required"),
+  LDAP_URL: z.string().trim().min(1, "LDAP_URL is required"),
+  LDAP_BASE_DN: z.string().trim().min(1, "LDAP_BASE_DN is required"),
+  LDAP_ADMIN_DN: z.string().trim().min(1, "LDAP_ADMIN_DN is required"),
+  LDAP_ADMIN_PASSWORD: z.string().trim().min(1, "LDAP_ADMIN_PASSWORD is required"),
   LDAP_DEBUG: z
     .string()
+    .trim()
     .transform((val) => val === "true")
     .optional(),
-  LDAP_GROUP_REQUIRED: z.string().optional(),
-  LDAP_GROUP_DELETE: z
-    .string()
-    .transform((val) => (val || "").trim())
-    .default(""),
+  LDAP_GROUP_REQUIRED: z.string().trim().optional(),
+  LDAP_GROUP_DELETE: z.string().trim().optional(),
 
   // Session
-  SESSION_COOKIE_NAME: z.string().default("adweb_session"),
-  SESSION_EXPIRATION_SECONDS: z.coerce.number().default(3600),
+  JWT_SECRET_KEY: z.string().trim().min(20),
+  SESSION_COOKIE_NAME: z.string().trim().optional().default("adweb_session"),
+  SESSION_EXPIRATION_SECONDS: z.coerce.number().optional().default(3600),
 
   // Domain suffix for binding (fallback logic handled after parse if missing)
-  LDAP_DOMAIN: z.string().optional(),
+  LDAP_DOMAIN: z.string().trim().optional(),
 
   // Scheduled Data Directory
-  SCHEDULE_DATA_DIR: z.string().optional(),
+  SCHEDULE_DATA_DIR: z.string().trim().optional(),
 
   // Extra Attributes
-  AD_EXTRA_ATTRIBUTES: z.string().default(""),
+  AD_EXTRA_ATTRIBUTES: z.string().trim().default(""),
 });
 
 // Parse and validate environment variables
