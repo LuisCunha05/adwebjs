@@ -1,21 +1,21 @@
-"use server";
+'use server'
 
-import { ldapService } from "@/services/container";
+import { ldapService } from '@/services/container'
 
-import { verifySession } from "@/utils/manage-jwt";
+import { verifySession } from '@/utils/manage-jwt'
 
 interface ActionResult<T = void> {
-    ok: boolean;
-    data?: T;
-    error?: string;
+  ok: boolean
+  data?: T
+  error?: string
 }
 
 export async function listOUs(): Promise<ActionResult<any[]>> {
-    await verifySession();
-    try {
-        const ous = await ldapService.listOUs();
-        return { ok: true, data: JSON.parse(JSON.stringify(ous || [])) };
-    } catch (err: any) {
-        return { ok: true, data: [] }; // Return empty list on error as per original API
-    }
+  await verifySession()
+  try {
+    const ous = await ldapService.listOUs()
+    return { ok: true, data: JSON.parse(JSON.stringify(ous || [])) }
+  } catch {
+    return { ok: true, data: [] } // Return empty list on error as per original API
+  }
 }

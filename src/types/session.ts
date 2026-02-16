@@ -1,5 +1,11 @@
 export type Session = {
-  user: { sAMAccountName: string; cn?: string; mail?: string; userPrincipalName?: string; displayName?: string };
-  isAdmin: boolean;
-  canDelete?: boolean;
-};
+  user: {
+    sAMAccountName: string
+    cn?: string
+    mail?: string
+    userPrincipalName?: string
+    displayName?: string
+  }
+  isAdmin: boolean
+  canDelete?: boolean
+}

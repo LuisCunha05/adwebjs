@@ -118,3 +118,4 @@ dist
 # IDEs
 .idea/
 .vscode/
+.zed/
