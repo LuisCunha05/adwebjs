@@ -197,7 +197,7 @@ export async function listUsers(
   if (!q && !opts?.ou && !opts?.memberOf && !opts?.disabledOnly) return { ok: true, data: [] }
   try {
     const users = await ldapService.searchUsers(q, searchBy, opts)
-    return { ok: true, data: JSON.parse(JSON.stringify(users)) }
+    return { ok: true, data: users }
   } catch (err: any) {
     return { ok: false, error: err.message || 'Search failed' }
   }
@@ -214,7 +214,7 @@ export async function createUser(body: any): Promise<ActionResult<any>> {
       details: { parentOuDn: body.parentOuDn },
       success: true,
     })
-    return { ok: true, data: JSON.parse(JSON.stringify(user)) }
+    return { ok: true, data: user }
   } catch (err: any) {
     auditService.log({
       action: 'user.create',
