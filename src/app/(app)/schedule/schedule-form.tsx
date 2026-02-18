@@ -10,13 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarClock, Loader2, UserSearch } from "lucide-react";
 import { toast } from "sonner";
+import { ActiveDirectoryUser } from "@/schemas/attributesAd";
+import { PaginatedResult } from '@/types/ldap';
 
 export function ScheduleForm() {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
 
     const [userSearch, setUserSearch] = useState("");
-    const [userResults, setUserResults] = useState<any[]>([]);
+    const [userResults, setUserResults] = useState<ActiveDirectoryUser[]>([]);
     const [selectedUser, setSelectedUser] = useState<{ id: string; label: string } | null>(null);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -32,7 +34,17 @@ export function ScheduleForm() {
         try {
             // Search by sAMAccountName as per original logic
             const res = await listUsers(q, "sAMAccountName");
-            setUserResults(res.data ?? []);
+            if (res.data) {
+                if ('data' in res.data && Array.isArray(res.data.data)) {
+                    setUserResults(res.data.data);
+                } else if (Array.isArray(res.data)) {
+                    setUserResults(res.data);
+                } else {
+                    setUserResults([]);
+                }
+            } else {
+                setUserResults([]);
+            }
         } catch {
             setUserResults([]);
         } finally {
@@ -112,8 +124,8 @@ export function ScheduleForm() {
                                             className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
                                             onClick={() => {
                                                 setSelectedUser({
-                                                    id: u.sAMAccountName,
-                                                    label: [u.sAMAccountName, u.cn || u.displayName].filter(Boolean).join(" – "),
+                                                    id: u.sAMAccountName || "",
+                                                    label: [u.sAMAccountName, u.cn, u.displayName].filter(Boolean).join(" – "),
                                                 });
                                                 setUserResults([]);
                                                 setUserSearch("");

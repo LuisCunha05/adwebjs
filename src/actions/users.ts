@@ -3,6 +3,7 @@
 import { LDAP_GROUP_DELETE } from '@/constants/config'
 import { ActiveDirectoryUser, UpdateUserInput } from '@/schemas/attributesAd'
 import { auditService, ldapService } from '@/services/container'
+import { PaginatedResult } from '@/types/ldap'
 
 import { verifySession } from '@/utils/manage-jwt'
 
@@ -192,13 +193,20 @@ export async function deleteUser(id: string): Promise<ActionResult> {
 export async function listUsers(
   q: string,
   searchBy: string,
-  opts?: { ou?: string; memberOf?: string; disabledOnly?: boolean },
-): Promise<ActionResult<any[]>> {
+  opts?: {
+    ou?: string
+    memberOf?: string
+    disabledOnly?: boolean
+    page?: number
+    pageSize?: number
+  },
+): Promise<ActionResult<PaginatedResult<ActiveDirectoryUser> | ActiveDirectoryUser[]>> {
   await verifySession()
-  if (!q && !opts?.ou && !opts?.memberOf && !opts?.disabledOnly) return { ok: true, data: [] }
+  if (!q && !opts?.ou && !opts?.memberOf && !opts?.disabledOnly)
+    return { ok: true, data: [] }
   try {
-    const users = await ldapService.searchUsers(q, searchBy, opts)
-    return { ok: true, data: users }
+    const result = await ldapService.searchUsers(q, searchBy, opts)
+    return { ok: true, data: result }
   } catch (err: any) {
     return { ok: false, error: err.message || 'Search failed' }
   }

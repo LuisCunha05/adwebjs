@@ -12,9 +12,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, UserPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ActiveDirectoryUser } from "@/schemas/attributesAd";
+import { PaginatedResult } from '@/types/ldap';
+
+interface Group {
+    dn: string;
+    cn: string;
+    name?: string;
+    member?: string | string[];
+}
 
 interface GroupEditFormProps {
-    group: any;
+    group: Group;
     initialResolvedMembers: { dn: string; displayName?: string; cn?: string; sAMAccountName?: string }[];
 }
 
@@ -30,7 +39,7 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
     const [actionLoading, setActionLoading] = useState<string | null>(null);
 
     const [addSearch, setAddSearch] = useState("");
-    const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
+    const [userSearchResults, setUserSearchResults] = useState<ActiveDirectoryUser[]>([]);
     const [searching, setSearching] = useState(false);
 
     // We rely on Props for member list, but since we modify it via actions, we might want to refresh.
@@ -107,7 +116,17 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
         setSearching(true);
         try {
             const res = await listUsers(q, "sAMAccountName");
-            setUserSearchResults(res.data ?? []);
+            if (res.data) {
+                if ('data' in res.data && Array.isArray(res.data.data)) {
+                    setUserSearchResults(res.data.data);
+                } else if (Array.isArray(res.data)) {
+                    setUserSearchResults(res.data);
+                } else {
+                    setUserSearchResults([]);
+                }
+            } else {
+                setUserSearchResults([]);
+            }
         } catch {
             setUserSearchResults([]);
         } finally {
@@ -195,7 +214,7 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
                                     <li key={dn || u.sAMAccountName} className="flex items-center justify-between px-3 py-2">
                                         <div className="min-w-0">
                                             <span className="font-medium">{u.sAMAccountName}</span>
-                                            <span className="text-muted-foreground text-sm ml-2">{(u.name || u.cn || u.mail || "").toString()}</span>
+                                            <span className="text-muted-foreground text-sm ml-2">{(u.displayName || u.cn || u.mail || "").toString()}</span>
                                         </div>
                                         <Button
                                             variant="outline"

@@ -13,6 +13,16 @@ export interface SearchUsersOptions {
   memberOf?: string
   /** Se true, apenas contas desativadas (userAccountControl bit 2). */
   disabledOnly?: boolean
+  page?: number
+  pageSize?: number
+}
+
+export interface PaginatedResult<T> {
+  data: T[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
 }
 
 export interface CreateUserInput {
@@ -43,7 +53,7 @@ export interface ILdapService {
     query: string,
     searchBy: string,
     options?: SearchUsersOptions,
-  ): Promise<ActiveDirectoryUser[]>
+  ): Promise<PaginatedResult<ActiveDirectoryUser>>
   getUser(id: string): Promise<ActiveDirectoryUser>
   createUser(input: CreateUserInput): Promise<ActiveDirectoryUser>
   deleteUser(id: string): Promise<void>

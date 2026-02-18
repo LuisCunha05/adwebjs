@@ -30,6 +30,7 @@ import type {
   DisableUserOptions,
   ILdapService,
   LdapUserAttributes,
+  PaginatedResult,
   SearchUsersOptions,
 } from '../types/ldap'
 import { getFetchAttributes } from './ad-user-attributes'
@@ -186,7 +187,7 @@ export class LdapService implements ILdapService {
       try {
         userClient?.unbind()
         adminClient?.unbind()
-      } catch {}
+      } catch { }
     }
   }
 
@@ -194,7 +195,7 @@ export class LdapService implements ILdapService {
     query: string,
     searchBy: string,
     options?: SearchUsersOptions,
-  ): Promise<ActiveDirectoryUser[]> {
+  ): Promise<PaginatedResult<ActiveDirectoryUser>> {
     const client = await this.getAdminClient()
     try {
       logDebug(`LDAP Debug - Searching users. Query: ${query}, By: ${searchBy}`)
@@ -227,12 +228,11 @@ export class LdapService implements ILdapService {
           'pwdLastSet',
           'objectClass',
         ],
+        paged: true, // Fetch all results to handle pagination in memory or handle large result sets
       })
 
       const entries = result.searchEntries || []
       // Validate entries against schema (partial)
-      console.log({ entries })
-      //
       const parsedEntries = AdUserListSchema.safeParse(entries)
 
       if (!parsedEntries.success) {
@@ -240,7 +240,22 @@ export class LdapService implements ILdapService {
         throw new Error('Invalid shaped for returned list of users')
       }
 
-      return parsedEntries.data
+      const allUsers = parsedEntries.data
+      const total = allUsers.length
+      const page = options?.page || 1
+      const pageSize = options?.pageSize || 10
+      const totalPages = Math.ceil(total / pageSize)
+      const start = (page - 1) * pageSize
+      const end = start + pageSize
+      const data = allUsers.slice(start, end)
+
+      return {
+        data,
+        total,
+        page,
+        pageSize,
+        totalPages,
+      }
     } catch (err) {
       logError('LDAP Search Error:', err)
       throw err
