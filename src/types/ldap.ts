@@ -1,3 +1,4 @@
+import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
 import type { DEFAULT_FETCH } from '../constants/ldap'
 
 export type LdapUserAttributes = {
@@ -37,17 +38,17 @@ export interface DisableUserOptions {
 }
 
 export interface ILdapService {
-  authenticate(username: string, password: string): Promise<LdapUserAttributes>
+  authenticate(username: string, password: string): Promise<ActiveDirectoryUser>
   searchUsers(
     query: string,
     searchBy: string,
     options?: SearchUsersOptions,
-  ): Promise<LdapUserAttributes[]>
-  getUser(id: string): Promise<LdapUserAttributes>
-  createUser(input: CreateUserInput): Promise<LdapUserAttributes>
+  ): Promise<ActiveDirectoryUser[]>
+  getUser(id: string): Promise<ActiveDirectoryUser>
+  createUser(input: CreateUserInput): Promise<ActiveDirectoryUser>
   deleteUser(id: string): Promise<void>
   setPassword(id: string, newPassword: string): Promise<void>
-  updateUser(id: string, changes: any): Promise<LdapUserAttributes>
+  updateUser(id: string, changes: any): Promise<ActiveDirectoryUser>
   searchGroups(query: string): Promise<any[]>
   getGroup(id: string): Promise<any>
   updateGroup(id: string, changes: any): Promise<any>

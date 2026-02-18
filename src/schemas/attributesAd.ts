@@ -1,5 +1,20 @@
 import { z } from 'zod'
 
+// Helper to coerce LDAP arrays to a single string
+const ldapString = z.preprocess((val) => {
+  // 1. Handle "undefined" (missing attribute)
+  if (val === undefined || val === null) return ''
+
+  // 2. Handle empty array []
+  if (Array.isArray(val) && val.length === 0) return ''
+
+  // 3. Handle array with value ['John']
+  if (Array.isArray(val) && val.length > 0) return val[0]
+
+  // 4. Pass through if it's already a string (rare but safe)
+  return val
+}, z.string())
+
 export const ActiveDirectoryUserSchema = z.object({
   // -----------------------------------------------------------------------
   // MANDATORY ATTRIBUTES (System-Must-Contain & Must-Contain)
@@ -25,6 +40,12 @@ export const ActiveDirectoryUserSchema = z.object({
    * The list of classes from which this object is derived (e.g., ["top", "person", "organizationalPerson", "user"]).
    */
   objectClass: z.array(z.string()).min(1),
+
+  /**
+   * Distinguish Name (dn)
+   * Syntax: Unicode String | Single-Valued: TRUE
+   */
+  dn: z.string(),
 
   /**
    * Object-Sid (objectSid)
@@ -63,32 +84,32 @@ export const ActiveDirectoryUserSchema = z.object({
    * Given-Name (givenName)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  givenName: z.string().optional(),
+  givenName: ldapString.optional(),
 
   /**
    * Surname (sn)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  sn: z.string().optional(),
+  sn: ldapString.optional(),
 
   /**
    * Display-Name (displayName)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  displayName: z.string().optional(),
+  displayName: ldapString.optional(),
 
   /**
    * Description (description)
    * Syntax: Unicode String | Single-Valued: FALSE
    * Note: Often treated as single-value in UI, but schema allows multiple.
    */
-  description: z.array(z.string()).optional(),
+  description: z.array(z.string()).or(z.string()).optional(),
 
   /**
    * Initials (initials)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  initials: z.string().optional(),
+  initials: ldapString.optional(),
 
   // --- Account Control & Security ---
 
@@ -97,14 +118,14 @@ export const ActiveDirectoryUserSchema = z.object({
    * Syntax: Unicode String | Single-Valued: TRUE
    * Format: user@domain.com
    */
-  userPrincipalName: z.string().email().optional(),
+  userPrincipalName: z.string().email().or(z.array(z.string())).optional(),
 
   /**
    * User-Account-Control (userAccountControl)
    * Syntax: Integer | Single-Valued: TRUE
    * Bitmask for flags like ACCOUNTDISABLE, LOCKOUT, etc.
    */
-  userAccountControl: z.number().int().optional(),
+  userAccountControl: z.string().optional(),
 
   /**
    * Account-Expires (accountExpires)
@@ -130,7 +151,7 @@ export const ActiveDirectoryUserSchema = z.object({
    * Bad-Password-Count (badPwdCount)
    * Syntax: Integer | Single-Valued: TRUE
    */
-  badPwdCount: z.number().int().optional(),
+  badPwdCount: z.number().int().or(z.array(z.number())).optional(),
 
   // --- Contact Information ---
 
@@ -138,13 +159,13 @@ export const ActiveDirectoryUserSchema = z.object({
    * Telephone-Number (telephoneNumber)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  telephoneNumber: z.string().optional(),
+  telephoneNumber: ldapString.optional(),
 
   /**
    * Mail (mail)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  mail: z.string().email().optional(),
+  mail: z.string().email().or(z.array(z.string())).optional(),
 
   /**
    * Proxy-Addresses (proxyAddresses)
@@ -157,13 +178,13 @@ export const ActiveDirectoryUserSchema = z.object({
    * Mobile (mobile)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  mobile: z.string().optional(),
+  mobile: ldapString.optional(),
 
   /**
    * Physical-Delivery-Office-Name (physicalDeliveryOfficeName)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  physicalDeliveryOfficeName: z.string().optional(),
+  physicalDeliveryOfficeName: ldapString.optional(),
 
   // --- Organization ---
 
@@ -172,40 +193,40 @@ export const ActiveDirectoryUserSchema = z.object({
    * Syntax: Unicode String | Single-Valued: FALSE
    * Schema allows multiple titles, though typically used as single.
    */
-  title: z.array(z.string()).optional(),
+  title: z.array(z.string()).or(z.string()).optional(),
 
   /**
    * Department (department)
    * Syntax: Unicode String | Single-Valued: FALSE
    * Schema allows multiple departments.
    */
-  department: z.array(z.string()).optional(),
+  department: z.array(z.string()).or(z.string()).optional(),
 
   /**
    * Company (company)
    * Syntax: Unicode String | Single-Valued: FALSE
    */
-  company: z.array(z.string()).optional(),
+  company: z.array(z.string()).or(z.string()).optional(),
 
   /**
    * Manager (manager)
    * Syntax: Distinguished Name | Single-Valued: TRUE
    * Link to another object.
    */
-  manager: z.string().optional(),
+  manager: ldapString.optional(),
 
   /**
    * Employee-ID (employeeID)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  employeeID: z.string().optional(),
+  employeeID: ldapString.optional(),
 
   /**
    * Member-Of (memberOf)
    * Syntax: Distinguished Name | Single-Valued: FALSE
    * Computed attribute (back-link) showing group membership.
    */
-  memberOf: z.array(z.string()).optional(),
+  memberOf: z.array(z.string()).or(z.string()).optional(),
 
   // --- Location ---
 
@@ -213,32 +234,32 @@ export const ActiveDirectoryUserSchema = z.object({
    * Street-Address (streetAddress)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  streetAddress: z.string().optional(),
+  streetAddress: ldapString.optional(),
 
   /**
    * City / Locality (l)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  l: z.string().optional(),
+  l: ldapString.optional(),
 
   /**
    * State / Province (st)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  st: z.string().optional(),
+  st: ldapString.optional(),
 
   /**
    * Postal-Code (postalCode)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  postalCode: z.string().optional(),
+  postalCode: ldapString.optional(),
 
   /**
    * Country-Code (c)
    * Syntax: Unicode String | Single-Valued: TRUE
    * 2-character ISO code (e.g., "US").
    */
-  c: z.string().length(2).optional(),
+  c: z.string().length(2).or(z.array(z.string())).optional(),
 
   // --- Profile & Script ---
 
@@ -246,25 +267,25 @@ export const ActiveDirectoryUserSchema = z.object({
    * Script-Path (scriptPath)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  scriptPath: z.string().optional(),
+  scriptPath: ldapString.optional(),
 
   /**
    * Profile-Path (profilePath)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  profilePath: z.string().optional(),
+  profilePath: ldapString.optional(),
 
   /**
    * Home-Directory (homeDirectory)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  homeDirectory: z.string().optional(),
+  homeDirectory: ldapString.optional(),
 
   /**
    * Home-Drive (homeDrive)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  homeDrive: z.string().optional(),
+  homeDrive: ldapString.optional(),
 
   // --- System Metadata ---
 
@@ -272,30 +293,97 @@ export const ActiveDirectoryUserSchema = z.object({
    * When-Created (whenCreated)
    * Syntax: Generalized Time | Single-Valued: TRUE
    */
-  whenCreated: z.string().optional(),
+  whenCreated: ldapString.optional(),
 
   /**
    * When-Changed (whenChanged)
    * Syntax: Generalized Time | Single-Valued: TRUE
    */
-  whenChanged: z.string().optional(),
+  whenChanged: ldapString.optional(),
 
   /**
    * Object-GUID (objectGUID)
    * Syntax: Octet String (UUID) | Single-Valued: TRUE
    */
-  objectGUID: z.string().optional(),
+  objectGUID: ldapString.optional(),
   /**
    * wWWHomePage (Home page)
    * Syntax: String (Unicode) | Single-Valued: TRUE
    */
-  wWWHomePage: z.string().min(1).max(2048).optional(),
-  
+  wWWHomePage: z.string().min(1).max(2048).or(z.array(z.string())).optional(),
+
   /**
    * ipPhone (telefone Ip)
    * Syntax: String (Unicode) | Single-Valued: TRUE
    */
-  ipPhone: z.string().optional()
+  ipPhone: ldapString.optional(),
 })
 
 export type ActiveDirectoryUser = z.infer<typeof ActiveDirectoryUserSchema>
+
+export const PasswordSchema = z
+  .string()
+  .min(12, 'Password must be at least 12 characters long')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(/[^a-zA-Z0-9]/, 'Password must contain at least one special character')
+
+export const CreateUserFormSchema = z
+  .object({
+    parentOuDn: z.string().min(1, 'Parent OU DN is required'),
+    sAMAccountName: z.string().trim().min(1, 'sAMAccountName is required').max(20),
+    password: PasswordSchema,
+
+    // Optional fields with max length validation
+    cn: z.string().max(64).optional(),
+    givenName: z.string().max(64).optional(),
+    sn: z.string().max(64).optional(),
+    displayName: z.string().max(256).optional(),
+    mail: z.string().max(256).optional(),
+    description: z.string().max(1024).optional(),
+    title: z.string().max(64).optional(),
+    department: z.string().max(64).optional(),
+    company: z.string().max(64).optional(),
+    physicalDeliveryOfficeName: z.string().max(128).optional(),
+    streetAddress: z.string().max(1024).optional(),
+    telephoneNumber: z.string().max(64).optional(),
+    mobile: z.string().max(64).optional(),
+    userPrincipalName: z.string().optional(),
+  })
+  .transform((data) => {
+    const cn = (
+      data.cn ||
+      data.displayName ||
+      `${data.givenName || ''} ${data.sn || ''}`.trim() ||
+      data.sAMAccountName
+    ).slice(0, 64)
+
+    return {
+      ...data,
+      cn,
+    }
+  })
+
+export type CreateUserForm = z.infer<typeof CreateUserFormSchema>
+
+export const AdUserListSchema = z.array(ActiveDirectoryUserSchema)
+export type ListAdUser = z.infer<typeof AdUserListSchema>
+
+export const UpdateUserSchema = ActiveDirectoryUserSchema.partial().extend({
+  cn: z.string().max(64).optional(),
+  givenName: z.string().max(64).optional(),
+  sn: z.string().max(64).optional(),
+  displayName: z.string().max(256).optional(),
+  mail: z.string().max(256).optional(),
+  description: z.string().max(1024).optional(),
+  title: z.string().max(64).optional(),
+  department: z.string().max(64).optional(),
+  company: z.string().max(64).optional(),
+  physicalDeliveryOfficeName: z.string().max(128).optional(),
+  streetAddress: z.string().max(1024).optional(),
+  telephoneNumber: z.string().max(64).optional(),
+  mobile: z.string().max(64).optional(),
+  userPrincipalName: z.string().optional(),
+})
+
+export type UpdateUserInput = z.infer<typeof UpdateUserSchema>

@@ -31,6 +31,7 @@ export const DEFAULT_FETCH = [
   'pwdLastSet',
   'whenCreated',
   'whenChanged',
+  'objectClass',
 ] as const
 
 export const DEFAULT_EDIT: EditAttribute[] = [

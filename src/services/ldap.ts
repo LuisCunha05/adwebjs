@@ -16,6 +16,15 @@ import {
   LDAP_GROUP_REQUIRED,
   LDAP_URL,
 } from '../constants/config'
+import {
+  type ActiveDirectoryUser,
+  ActiveDirectoryUserSchema,
+  AdUserListSchema,
+  CreateUserFormSchema,
+  PasswordSchema,
+  type UpdateUserInput,
+  UpdateUserSchema,
+} from '../schemas/attributesAd'
 import type {
   CreateUserInput,
   DisableUserOptions,
@@ -97,7 +106,7 @@ export class LdapService implements ILdapService {
     return client
   }
 
-  async authenticate(username: string, password: string): Promise<LdapUserAttributes> {
+  async authenticate(username: string, password: string): Promise<ActiveDirectoryUser> {
     logDebug(`LDAP Debug - Authenticating user: ${username}`)
 
     // 1. Admin Bind to search for user DN\
@@ -123,6 +132,7 @@ export class LdapService implements ILdapService {
           'displayName',
           'cn',
           'mail',
+          'objectClass',
         ],
       })
 
@@ -133,15 +143,19 @@ export class LdapService implements ILdapService {
       const userEntry = result.searchEntries[0]
       const userDn = userEntry.dn
 
+      const parseUser = ActiveDirectoryUserSchema.safeParse(userEntry)
+
+      if (!parseUser.success) {
+        logDebug(`LDAP Debug - User ${username} has invalid shaped. ${parseUser.error.format()}`)
+        console.log({ errors: parseUser.error })
+        throw new Error('Invalid user shaped')
+      }
+
       if (LDAP_GROUP_REQUIRED) {
-        const groups = Array.isArray(userEntry.memberOf)
-          ? userEntry.memberOf
-          : userEntry.memberOf
-            ? [userEntry.memberOf]
-            : []
-        const isMember = groups.some(
-          (g) => g === LDAP_GROUP_REQUIRED || String(g) === LDAP_GROUP_REQUIRED,
-        )
+        const groups = parseUser.data.memberOf ?? []
+        const isMember = Array.isArray(groups)
+          ? groups.some((g) => g === LDAP_GROUP_REQUIRED || String(g) === LDAP_GROUP_REQUIRED)
+          : groups === LDAP_GROUP_REQUIRED
 
         if (!isMember) {
           logDebug(
@@ -158,7 +172,7 @@ export class LdapService implements ILdapService {
       userClient.unbind()
       logDebug(`LDAP Debug - User authenticated successfully: ${username}`)
 
-      return userEntry as LdapUserAttributes
+      return parseUser.data
     } catch (err: unknown) {
       if (err instanceof ResultCodeError) {
         if (err.message === 'Unauthorized') throw err
@@ -180,7 +194,7 @@ export class LdapService implements ILdapService {
     query: string,
     searchBy: string,
     options?: SearchUsersOptions,
-  ): Promise<LdapUserAttributes[]> {
+  ): Promise<ActiveDirectoryUser[]> {
     const client = await this.getAdminClient()
     try {
       logDebug(`LDAP Debug - Searching users. Query: ${query}, By: ${searchBy}`)
@@ -211,10 +225,22 @@ export class LdapService implements ILdapService {
           'memberOf',
           'userAccountControl',
           'pwdLastSet',
+          'objectClass',
         ],
       })
 
-      return (result.searchEntries || []) as LdapUserAttributes[]
+      const entries = result.searchEntries || []
+      // Validate entries against schema (partial)
+      console.log({ entries })
+      //
+      const parsedEntries = AdUserListSchema.safeParse(entries)
+
+      if (!parsedEntries.success) {
+        console.log({ searchError: parsedEntries.error })
+        throw new Error('Invalid shaped for returned list of users')
+      }
+
+      return parsedEntries.data
     } catch (err) {
       logError('LDAP Search Error:', err)
       throw err
@@ -223,7 +249,7 @@ export class LdapService implements ILdapService {
     }
   }
 
-  async getUser(id: string): Promise<LdapUserAttributes> {
+  async getUser(id: string): Promise<ActiveDirectoryUser> {
     const client = await this.getAdminClient()
     try {
       logDebug(`LDAP Debug - Getting user details for: ${id}`)
@@ -234,7 +260,14 @@ export class LdapService implements ILdapService {
       })
 
       if (result.searchEntries.length === 0) throw new Error('User not found')
-      return result.searchEntries[0] as LdapUserAttributes
+      const user = result.searchEntries[0] as LdapUserAttributes
+
+      const validation = ActiveDirectoryUserSchema.safeParse(user)
+      if (!validation.success) {
+        logError(`LDAP GetUser Validation Failed for ${id}:`, validation.error.format())
+        throw new Error(`Invalid shaped for user id: ${id}`)
+      }
+      return validation.data
     } catch (err) {
       logError('LDAP GetUser Error:', err)
       throw err
@@ -243,50 +276,36 @@ export class LdapService implements ILdapService {
     }
   }
 
-  async createUser(input: CreateUserInput): Promise<LdapUserAttributes> {
-    const { parentOuDn, sAMAccountName, password } = input
-    if (!parentOuDn?.trim() || !sAMAccountName?.trim() || !password) {
-      throw new Error('parentOuDn, sAMAccountName e password são obrigatórios')
+  async createUser(input: CreateUserInput): Promise<ActiveDirectoryUser> {
+    // Validate and transform input using CreateUserFormSchema
+    const validation = CreateUserFormSchema.safeParse(input)
+    if (!validation.success) {
+      const issues = validation.error.issues
+        .map((i) => `${i.path.join('.')}: ${i.message}`)
+        .join(', ')
+      throw new Error(`Validation failed: ${issues}`)
     }
 
-    const cn = (
-      input.cn ||
-      input.displayName ||
-      `${input.givenName || ''} ${input.sn || ''}`.trim() ||
-      sAMAccountName
-    ).slice(0, 64)
-    const rdn = 'CN=' + escapeRdn(cn)
+    const data = validation.data
+    const { parentOuDn, sAMAccountName, password, cn } = data
+
+    const rdn = `CN=${escapeRdn(cn)}`
     const dn = `${rdn},${parentOuDn.replace(/^\s+|\s+$/g, '')}`
     const domain = LDAP_DOMAIN
-    const upn = input.userPrincipalName || `${sAMAccountName}@${domain}`
+    const upn = data.userPrincipalName || `${sAMAccountName}@${domain}`
 
     const attrs: Array<{ type: string; values: (string | Buffer)[] }> = [
       {
         type: 'objectClass',
         values: ['top', 'person', 'organizationalPerson', 'user'],
       },
-      { type: 'sAMAccountName', values: [sAMAccountName.slice(0, 20)] },
+      { type: 'sAMAccountName', values: [sAMAccountName] },
       { type: 'userPrincipalName', values: [upn] },
       { type: 'cn', values: [cn] },
       { type: 'unicodePwd', values: [encodeUnicodePwd(password)] },
     ]
 
-    const opts: Record<string, string> = {
-      givenName: (input.givenName || '').slice(0, 64),
-      sn: (input.sn || cn).slice(0, 64),
-      displayName: (input.displayName || cn).slice(0, 256),
-      mail: (input.mail || '').slice(0, 256),
-      description: (input.description || '').slice(0, 1024),
-      title: (input.title || '').slice(0, 64),
-      department: (input.department || '').slice(0, 64),
-      company: (input.company || '').slice(0, 64),
-      physicalDeliveryOfficeName: (input.physicalDeliveryOfficeName || '').slice(0, 128),
-      streetAddress: (input.streetAddress || '').slice(0, 1024),
-      telephoneNumber: (input.telephoneNumber || '').slice(0, 64),
-      mobile: (input.mobile || '').slice(0, 64),
-    }
-
-    for (const [k, v] of Object.entries(opts)) {
+    for (const [k, v] of Object.entries(data)) {
       if (v) attrs.push({ type: k, values: [v] })
     }
 
@@ -325,6 +344,12 @@ export class LdapService implements ILdapService {
   }
 
   async setPassword(id: string, newPassword: string): Promise<void> {
+    // Validate password using PasswordSchema
+    const validation = PasswordSchema.safeParse(newPassword)
+    if (!validation.success) {
+      throw new Error(`Invalid password: ${validation.error.issues[0].message}`)
+    }
+
     if (!newPassword || newPassword.length < 1) throw new Error('Nova senha é obrigatória')
 
     const user = await this.getUser(id)
@@ -348,45 +373,30 @@ export class LdapService implements ILdapService {
     }
   }
 
-  async updateUser(
-    id: string,
-    changes: Record<string, string | number>,
-  ): Promise<LdapUserAttributes> {
+  async updateUser(id: string, changes: UpdateUserInput): Promise<ActiveDirectoryUser> {
     logDebug(`LDAP Debug - Updating user: ${id}`)
+
+    // Validate changes against schema
+    const validation = UpdateUserSchema.safeParse(changes)
+    console.log({ changes })
+    if (!validation.success) {
+      // Filter out invalid keys or throw?
+      // For update, usually we want to block invalid updates.
+      const issues = validation.error.issues
+        .map((i) => `${i.path.join('.')}: ${i.message}`)
+        .join(', ')
+      throw new Error(`Update validation failed: ${issues}`)
+    }
+
     const user = await this.getUser(id)
-    const dn = getSingleValue(user.dn)
-    if (!dn) throw new Error('User has no DN')
+    const dn = user.dn
 
     const client = await this.getAdminClient()
     try {
       const modifications: Change[] = []
       logDebug(`LDAP Debug - UpdateUser Changes: ${JSON.stringify(changes)}`)
 
-      const MAX_LEN: Record<string, number> = {
-        sn: 64,
-        givenName: 64,
-        displayName: 256,
-        title: 64,
-        department: 64,
-        company: 64,
-        physicalDeliveryOfficeName: 128,
-        streetAddress: 1024,
-        description: 1024,
-        telephoneNumber: 64,
-        mobile: 64,
-        mail: 256,
-        l: 128,
-        st: 128,
-        co: 128,
-        postalCode: 40,
-        employeeID: 64,
-        employeeNumber: 64,
-        ipPhone: 64,
-        wWWHomePage: 256,
-        cn: 64,
-      }
-
-      for (const [key, value] of Object.entries(changes)) {
+      for (const [key, value] of Object.entries(validation.data)) {
         if (
           key === 'dn' ||
           key === 'sAMAccountName' ||
@@ -397,7 +407,7 @@ export class LdapService implements ILdapService {
           continue
 
         const newValue = value
-        const currentValue = user[key]
+        const currentValue = user[key as keyof ActiveDirectoryUser]
 
         let values: string[] = []
         let op: 'add' | 'delete' | 'replace' = 'replace'
@@ -408,16 +418,9 @@ export class LdapService implements ILdapService {
           op = 'delete'
           values = []
         } else {
-          let processedValue = newValue
-          if (typeof processedValue === 'string' && MAX_LEN[key]) {
-            processedValue = (processedValue as string).substring(0, MAX_LEN[key])
-          } else if (typeof processedValue === 'string') {
-            if (key === 'sn') processedValue = (processedValue as string).substring(0, 64)
-            if (key === 'givenName') processedValue = (processedValue as string).substring(0, 64)
-            if (key === 'displayName') processedValue = (processedValue as string).substring(0, 256)
-          }
+          const processedValue = newValue
           values = Array.isArray(processedValue)
-            ? (processedValue as any[]).map(String)
+            ? processedValue.map(String)
             : [String(processedValue)]
           const curVals = Array.isArray(currentValue)
             ? currentValue.map(String)
@@ -445,7 +448,7 @@ export class LdapService implements ILdapService {
 
       await client.modify(dn, modifications)
       logDebug(`LDAP Debug - User updated successfully: ${id}`)
-      return { ...user, ...changes } as LdapUserAttributes
+      return { ...user, ...changes } as ActiveDirectoryUser
     } catch (err) {
       logError('LDAP Update Error', err)
       throw err
@@ -584,7 +587,7 @@ export class LdapService implements ILdapService {
     const user = await this.getUser(id)
     const current = Number(user.userAccountControl) || UAC_NORMAL
     await this.updateUser(id, {
-      userAccountControl: current | UAC_ACCOUNTDISABLE,
+      userAccountControl: String(current | UAC_ACCOUNTDISABLE),
     })
   }
 
@@ -592,7 +595,7 @@ export class LdapService implements ILdapService {
     const user = await this.getUser(id)
     const current = Number(user.userAccountControl) || UAC_NORMAL
     await this.updateUser(id, {
-      userAccountControl: current & ~UAC_ACCOUNTDISABLE,
+      userAccountControl: String(current & ~UAC_ACCOUNTDISABLE),
     })
   }
 

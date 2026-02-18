@@ -1,6 +1,7 @@
 'use server'
 
 import { LDAP_GROUP_DELETE } from '@/constants/config'
+import { ActiveDirectoryUser, UpdateUserInput } from '@/schemas/attributesAd'
 import { auditService, ldapService } from '@/services/container'
 
 import { verifySession } from '@/utils/manage-jwt'
@@ -50,8 +51,8 @@ export async function getUser(id: string): Promise<ActionResult<any>> {
 
 export async function updateUser(
   id: string,
-  data: Record<string, unknown>,
-): Promise<ActionResult<any>> {
+  data: UpdateUserInput,
+): Promise<ActionResult<ActiveDirectoryUser>> {
   await verifySession()
   try {
     const updated = await ldapService.updateUser(id, data)

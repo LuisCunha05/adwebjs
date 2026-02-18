@@ -41,9 +41,9 @@ function uacToFlags(value: number | string | undefined) {
     };
 }
 
-function flagsToUac(current: number | string | undefined, accountDisabled: boolean, passwordNeverExpires: boolean): number {
+function flagsToUac(current: number | string | undefined, accountDisabled: boolean, passwordNeverExpires: boolean) {
     const base = Number(current) || 512;
-    return (base & ~(UAC_DISABLED | UAC_DONT_EXPIRE_PASSWD)) | (accountDisabled ? UAC_DISABLED : 0) | (passwordNeverExpires ? UAC_DONT_EXPIRE_PASSWD : 0);
+    return String((base & ~(UAC_DISABLED | UAC_DONT_EXPIRE_PASSWD)) | (accountDisabled ? UAC_DISABLED : 0) | (passwordNeverExpires ? UAC_DONT_EXPIRE_PASSWD : 0));
 }
 
 function cnFromDn(dn: string): string {
@@ -92,7 +92,7 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
     const router = useRouter();
     const { session } = useAuth();
 
-    // Local state for user to reflect updates without full page reload if desired, 
+    // Local state for user to reflect updates without full page reload if desired,
     // though Server Actions usually revalidatePath. We'll update local state for immediate feedback.
     const [user, setUser] = useState<any>(initialUser);
     const [form, setForm] = useState<Record<string, string | boolean>>(() => buildFormFromUser(initialUser, editConfig.edit));
@@ -108,9 +108,9 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
     const [moveOuTarget, setMoveOuTarget] = useState("");
     const [ousForMove, setOusForMove] = useState<{ dn: string; ou?: string; name?: string }[]>([]);
 
-    const id = user?.sAMAccountName; // Assuming ID is sAMAccountName or we should pass ID prop? 
-    // Wait, the API uses sAMAccountName as ID usually but let's check. 
-    // Yes, routes use [id]. 
+    const id = user?.sAMAccountName; // Assuming ID is sAMAccountName or we should pass ID prop?
+    // Wait, the API uses sAMAccountName as ID usually but let's check.
+    // Yes, routes use [id].
     // Actually, let's use the prop passed from page if needed, but user object usually has the ID.
     // In the original code: const id = typeof params.id === "string" ? params.id : "";
     // We'll trust initialUser has the necessary ID field (sAMAccountName).
@@ -190,21 +190,21 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
             toast.success("Usuário movido para a nova OU.");
             setMoveOuDialogOpen(false);
             // We need to refresh the user data.
-            // Since we updated the OU, the user's DN changed. 
+            // Since we updated the OU, the user's DN changed.
             // The ID (sAMAccountName) remains the same.
             // We can rely on revalidation or manual update.
             // For now, let's manual update or trigger router refresh.
             router.refresh();
             // But we also need to update local state if we want immediate feedback without reload
             // Ideally we fetch the new user data.
-            // Let's assume router.refresh() handles it if this was a server component page, 
+            // Let's assume router.refresh() handles it if this was a server component page,
             // but here we might want to fetch fresh data?
             // Actually, since we are in a client component, we can use a server action to get fresh user data.
             // But we don't have a direct 'get' import here conveniently except implementing one or passing it.
             // We'll rely on router.refresh() to re-render the Server Component parent which passes new props.
             // However, router.refresh() is async and doesn't return a promise we can await easily to set state.
             // Hmmm. Let's try to update local state optimistically or just wait.
-            // For this migration, let's just show success. 
+            // For this migration, let's just show success.
             // Actually, let's trigger a full page reload or navigate to same page to ensure sync.
             // Or better, just trust router.refresh().
 
