@@ -21,6 +21,7 @@ import {
   ActiveDirectoryUserSchema,
   AdUserListSchema,
   CreateUserFormSchema,
+  ldapResponseSchema,
   PasswordSchema,
   type UpdateUserInput,
   UpdateUserSchema,
@@ -144,7 +145,13 @@ export class LdapService implements ILdapService {
       const userEntry = result.searchEntries[0]
       const userDn = userEntry.dn
 
-      const parseUser = ActiveDirectoryUserSchema.safeParse(userEntry)
+      const parsedResponse = ldapResponseSchema.safeParse(userEntry)
+
+      if (!parsedResponse.success) {
+        throw new Error('Invalid response from ldap server')
+      }
+
+      const parseUser = ActiveDirectoryUserSchema.safeParse(parsedResponse.data)
 
       if (!parseUser.success) {
         logDebug(`LDAP Debug - User ${username} has invalid shaped. ${parseUser.error.format()}`)
@@ -187,7 +194,7 @@ export class LdapService implements ILdapService {
       try {
         userClient?.unbind()
         adminClient?.unbind()
-      } catch { }
+      } catch {}
     }
   }
 
