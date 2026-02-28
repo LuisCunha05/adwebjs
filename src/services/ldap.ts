@@ -1,11 +1,14 @@
 import {
+  AndFilter,
   Attribute,
   Change,
   Client,
   EqualityFilter,
-  Filter,
+  type Filter,
   OrFilter,
+  PresenceFilter,
   ResultCodeError,
+  SubstringFilter,
 } from 'ldapts'
 import {
   LDAP_BASE_DN as BASE_DN,
@@ -17,11 +20,23 @@ import {
   LDAP_URL,
 } from '../constants/config'
 import {
+  ADMIN_SEARCH_USER_ATTRIBUTES,
+  DN_ONLY_ATTRIBUTE,
+  GROUP_SEARCH_ATTRIBUTES,
+  MEMBER_RESOLVE_ATTRIBUTES,
+  OU_SEARCH_ATTRIBUTES,
+  SEARCH_USERS_ATTRIBUTES,
+  USER_OBJECT_CLASSES,
+} from '../constants/ldap'
+import {
   type ActiveDirectoryUser,
   ActiveDirectoryUserSchema,
   AdUserListSchema,
   CreateUserFormSchema,
+  GroupSchema,
   ldapResponseSchema,
+  MemberResolveSchema,
+  OuSchema,
   PasswordSchema,
   type UpdateUserInput,
   UpdateUserSchema,
@@ -47,15 +62,6 @@ const logError = (msg: string, err: unknown) => {
 }
 
 // Helper helpers
-function escapeLdapFilter(val: string): string {
-  return val
-    .replace(/\\/g, '\\5c')
-    .replace(/\*/g, '\\2a')
-    .replace(/\(/g, '\\28')
-    .replace(/\)/g, '\\29')
-    .replace(/\x00/g, '\\00')
-}
-
 function encodeUnicodePwd(password: string): Buffer {
   return Buffer.from(`"${password.replace(/"/g, '')}"`, 'utf16le')
 }
@@ -76,20 +82,6 @@ function escapeRdn(val: string): string {
 
 const UAC_ACCOUNTDISABLE = 2
 const UAC_NORMAL = 512
-
-function getSingleValue(
-  val: string | string[] | Buffer | Buffer[] | undefined,
-): string | undefined {
-  if (val === undefined || val === null) return undefined
-  if (Array.isArray(val)) {
-    if (val.length === 0) return undefined
-    const first = val[0]
-    if (Buffer.isBuffer(first)) return first.toString()
-    return String(first)
-  }
-  if (Buffer.isBuffer(val)) return val.toString()
-  return String(val)
-}
 
 export class LdapService implements ILdapService {
   private createClient(): Client {
@@ -126,16 +118,7 @@ export class LdapService implements ILdapService {
       const result = await adminClient.search(BASE_DN, {
         filter,
         scope: 'sub',
-        attributes: [
-          'dn',
-          'sAMAccountName',
-          'userPrincipalName',
-          'memberOf',
-          'displayName',
-          'cn',
-          'mail',
-          'objectClass',
-        ],
+        attributes: ADMIN_SEARCH_USER_ATTRIBUTES as unknown as string[],
       })
 
       if (result.searchEntries.length === 0) {
@@ -206,35 +189,42 @@ export class LdapService implements ILdapService {
     const client = await this.getAdminClient()
     try {
       logDebug(`LDAP Debug - Searching users. Query: ${query}, By: ${searchBy}`)
-      const parts: string[] = ['(objectClass=user)', '(objectCategory=person)']
+      const filters: Filter[] = [
+        new EqualityFilter({ attribute: 'objectClass', value: 'user' }),
+        new EqualityFilter({ attribute: 'objectCategory', value: 'person' }),
+      ]
+
       if (query.trim()) {
-        parts.push(`(${searchBy}=*${escapeLdapFilter(query.trim())}*)`)
+        filters.push(
+          new SubstringFilter({
+            attribute: searchBy,
+            initial: '',
+            any: [query.trim()],
+            final: '',
+          }),
+        )
       } else {
-        parts.push(`(${searchBy}=*)`)
+        filters.push(new PresenceFilter({ attribute: searchBy }))
       }
+
       if (options?.memberOf?.trim()) {
-        parts.push(`(memberOf=${options.memberOf.trim()})`)
+        filters.push(new EqualityFilter({ attribute: 'memberOf', value: options.memberOf.trim() }))
       }
       if (options?.disabledOnly) {
-        parts.push('(userAccountControl:1.2.840.113556.1.4.803:=2)')
+        filters.push(
+          new EqualityFilter({
+            attribute: 'userAccountControl:1.2.840.113556.1.4.803:',
+            value: '2',
+          }),
+        )
       }
-      const searchFilter = `(&${parts.join('')})`
+      const searchFilter = new AndFilter({ filters })
       const baseDn = options?.ou?.trim() || BASE_DN
 
       const result = await client.search(baseDn, {
         filter: searchFilter,
         scope: 'sub',
-        attributes: [
-          'dn',
-          'sAMAccountName',
-          'userPrincipalName',
-          'cn',
-          'mail',
-          'memberOf',
-          'userAccountControl',
-          'pwdLastSet',
-          'objectClass',
-        ],
+        attributes: SEARCH_USERS_ATTRIBUTES as unknown as string[],
         paged: true, // Fetch all results to handle pagination in memory or handle large result sets
       })
 
@@ -319,7 +309,7 @@ export class LdapService implements ILdapService {
     const attrs: Array<{ type: string; values: (string | Buffer)[] }> = [
       {
         type: 'objectClass',
-        values: ['top', 'person', 'organizationalPerson', 'user'],
+        values: [...USER_OBJECT_CLASSES],
       },
       { type: 'sAMAccountName', values: [sAMAccountName] },
       { type: 'userPrincipalName', values: [upn] },
@@ -353,7 +343,7 @@ export class LdapService implements ILdapService {
 
   async deleteUser(id: string): Promise<void> {
     const user = await this.getUser(id)
-    const dn = getSingleValue(user.dn)
+    const dn = user.dn
     if (!dn) throw new Error('User has no DN')
 
     const client = await this.getAdminClient()
@@ -375,7 +365,7 @@ export class LdapService implements ILdapService {
     if (!newPassword || newPassword.length < 1) throw new Error('Nova senha é obrigatória')
 
     const user = await this.getUser(id)
-    const dn = getSingleValue(user.dn)
+    const dn = user.dn
     if (!dn) throw new Error('User has no DN')
 
     const client = await this.getAdminClient()
@@ -479,16 +469,22 @@ export class LdapService implements ILdapService {
     }
   }
 
-  async searchGroups(query: string): Promise<Record<string, unknown>[]> {
+  async searchGroups(query: string) {
     const client = await this.getAdminClient()
     try {
       logDebug(`LDAP Debug - Searching groups: ${query}`)
-      const result = await client.search(BASE_DN, {
-        filter: `(&(cn=*${query}*)(objectClass=group))`,
-        scope: 'sub',
-        attributes: ['dn', 'cn', 'description', 'member'],
+      const filter = new AndFilter({
+        filters: [
+          new SubstringFilter({ attribute: 'cn', initial: '', any: [query], final: '' }),
+          new EqualityFilter({ attribute: 'objectClass', value: 'group' }),
+        ],
       })
-      return result.searchEntries
+      const result = await client.search(BASE_DN, {
+        filter,
+        scope: 'sub',
+        attributes: GROUP_SEARCH_ATTRIBUTES as unknown as string[],
+      })
+      return result.searchEntries.map((entry) => GroupSchema.parse(entry))
     } catch (err) {
       logError('LDAP Group Search Error', err)
       throw err
@@ -497,17 +493,23 @@ export class LdapService implements ILdapService {
     }
   }
 
-  async getGroup(id: string): Promise<any> {
+  async getGroup(id: string) {
     const client = await this.getAdminClient()
     try {
       logDebug(`LDAP Debug - Getting group details: ${id}`)
+      const filter = new AndFilter({
+        filters: [
+          new EqualityFilter({ attribute: 'cn', value: id }),
+          new EqualityFilter({ attribute: 'objectClass', value: 'group' }),
+        ],
+      })
       const result = await client.search(BASE_DN, {
-        filter: `(&(cn=${id})(objectClass=group))`,
+        filter,
         scope: 'sub',
-        attributes: ['dn', 'cn', 'description', 'member'],
+        attributes: GROUP_SEARCH_ATTRIBUTES as unknown as string[],
       })
       if (result.searchEntries.length === 0) throw new Error('Group not found')
-      return result.searchEntries[0]
+      return GroupSchema.parse(result.searchEntries[0])
     } catch (err) {
       logError('LDAP GetGroup Error', err)
       throw err
@@ -530,7 +532,7 @@ export class LdapService implements ILdapService {
         if (key === 'dn' || key === 'cn') continue
 
         const newValue = value
-        const currentValue = group[key]
+        const currentValue = group[key as keyof typeof group]
 
         let values: string[] = []
         let op: 'add' | 'delete' | 'replace' = 'replace'
@@ -585,7 +587,7 @@ export class LdapService implements ILdapService {
 
   async moveUserToOu(id: string, targetOuDn: string): Promise<void> {
     const user = await this.getUser(id)
-    const rawDn = getSingleValue(user.dn)
+    const rawDn = user.dn
     const dn = (rawDn || '').trim()
     if (!dn) throw new Error('User has no DN')
 
@@ -623,7 +625,7 @@ export class LdapService implements ILdapService {
 
   async unlockUser(id: string): Promise<void> {
     const user = await this.getUser(id)
-    const dn = getSingleValue(user.dn)
+    const dn = user.dn
     if (!dn) throw new Error('User has no DN')
 
     const client = await this.getAdminClient()
@@ -640,16 +642,17 @@ export class LdapService implements ILdapService {
     }
   }
 
-  async listOUs(): Promise<any[]> {
+  async listOUs() {
     try {
       const client = await this.getAdminClient()
       try {
+        const filter = new EqualityFilter({ attribute: 'objectClass', value: 'organizationalUnit' })
         const result = await client.search(BASE_DN, {
-          filter: '(objectClass=organizationalUnit)',
+          filter,
           scope: 'sub',
-          attributes: ['dn', 'ou', 'name', 'description'],
+          attributes: OU_SEARCH_ATTRIBUTES as unknown as string[],
         })
-        return result.searchEntries || []
+        return (result.searchEntries || []).map((entry) => OuSchema.parse(entry))
       } finally {
         client.unbind()
       }
@@ -716,16 +719,21 @@ export class LdapService implements ILdapService {
         try {
           const res = await client.search(dn, {
             scope: 'base',
-            attributes: ['dn', 'cn', 'sAMAccountName', 'displayName'],
+            attributes: MEMBER_RESOLVE_ATTRIBUTES as unknown as string[],
           })
           if (res.searchEntries.length > 0) {
             const e = res.searchEntries[0]
-            out.push({
-              dn: e.dn || dn,
-              displayName: getSingleValue(e.displayName) ?? getSingleValue(e.cn),
-              cn: getSingleValue(e.cn),
-              sAMAccountName: getSingleValue(e.sAMAccountName),
-            })
+            const parsed = MemberResolveSchema.safeParse(e)
+            if (parsed.success) {
+              out.push({
+                dn: parsed.data.dn || dn,
+                displayName: parsed.data.displayName ?? parsed.data.cn,
+                cn: parsed.data.cn,
+                sAMAccountName: parsed.data.sAMAccountName,
+              })
+            } else {
+              out.push({ dn })
+            }
           } else {
             out.push({ dn })
           }
@@ -751,10 +759,16 @@ export class LdapService implements ILdapService {
       const client = await this.getAdminClient()
       try {
         try {
+          const filter = new AndFilter({
+            filters: [
+              new EqualityFilter({ attribute: 'objectClass', value: 'user' }),
+              new EqualityFilter({ attribute: 'objectCategory', value: 'person' }),
+            ],
+          })
           const usersRes = await client.search(BASE_DN, {
-            filter: '(&(objectClass=user)(objectCategory=person))',
+            filter,
             scope: 'sub',
-            attributes: ['dn'],
+            attributes: DN_ONLY_ATTRIBUTE as unknown as string[],
             sizeLimit: 10000,
           })
           usersCount = (usersRes.searchEntries || []).length
@@ -762,11 +776,20 @@ export class LdapService implements ILdapService {
           logError('LDAP GetStats users', e)
         }
         try {
+          const filter = new AndFilter({
+            filters: [
+              new EqualityFilter({ attribute: 'objectClass', value: 'user' }),
+              new EqualityFilter({ attribute: 'objectCategory', value: 'person' }),
+              new EqualityFilter({
+                attribute: 'userAccountControl:1.2.840.113556.1.4.803:',
+                value: '2',
+              }),
+            ],
+          })
           const disabledRes = await client.search(BASE_DN, {
-            filter:
-              '(&(objectClass=user)(objectCategory=person)(userAccountControl:1.2.840.113556.1.4.803:=2))',
+            filter,
             scope: 'sub',
-            attributes: ['dn'],
+            attributes: DN_ONLY_ATTRIBUTE as unknown as string[],
             sizeLimit: 10000,
           })
           disabledCount = (disabledRes.searchEntries || []).length
@@ -774,10 +797,11 @@ export class LdapService implements ILdapService {
           logError('LDAP GetStats disabled', e)
         }
         try {
+          const filter = new EqualityFilter({ attribute: 'objectClass', value: 'group' })
           const groupsRes = await client.search(BASE_DN, {
-            filter: '(objectClass=group)',
+            filter,
             scope: 'sub',
-            attributes: ['dn'],
+            attributes: DN_ONLY_ATTRIBUTE as unknown as string[],
             sizeLimit: 10000,
           })
           groupsCount = (groupsRes.searchEntries || []).length

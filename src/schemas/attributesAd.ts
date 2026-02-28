@@ -9,9 +9,42 @@ const ldapMultiValue = z
     return val
   })
 
+export const ldapSingleValue = z.any().transform((val) => {
+  if (val === undefined || val === null) return undefined
+  if (Array.isArray(val)) {
+    if (val.length === 0) return undefined
+    const first = val[0]
+    if (Buffer.isBuffer(first)) return first.toString()
+    return String(first)
+  }
+  if (Buffer.isBuffer(val)) return val.toString()
+  return String(val)
+})
+
 export const ldapResponseSchema = z.record(z.string(), z.string().or(z.string().array()).optional())
 
 export type LdapResponse = z.infer<typeof ldapResponseSchema>
+
+export const GroupSchema = z.object({
+  dn: z.string(),
+  cn: ldapSingleValue,
+  description: ldapSingleValue,
+  member: ldapMultiValue.optional(),
+})
+
+export const OuSchema = z.object({
+  dn: z.string(),
+  ou: ldapSingleValue,
+  name: ldapSingleValue,
+  description: ldapSingleValue,
+})
+
+export const MemberResolveSchema = z.object({
+  dn: z.string(),
+  displayName: ldapSingleValue,
+  cn: ldapSingleValue,
+  sAMAccountName: ldapSingleValue,
+})
 
 export const ActiveDirectoryUserSchema = z.object({
   // -----------------------------------------------------------------------
@@ -163,7 +196,7 @@ export const ActiveDirectoryUserSchema = z.object({
    * Mail (mail)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  mail: z.string().email().optional(),
+  mail: ldapMultiValue.optional(),
 
   /**
    * Proxy-Addresses (proxyAddresses)

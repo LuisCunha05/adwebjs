@@ -57,3 +57,36 @@ export const DEFAULT_EDIT: EditAttribute[] = [
   { name: 'ipPhone', label: 'Telefone IP', section: 'Outros' },
   { name: 'wWWHomePage', label: 'Página inicial (URL)', section: 'Outros' },
 ]
+
+export const ADMIN_SEARCH_USER_ATTRIBUTES = [
+  'dn',
+  'sAMAccountName',
+  'userPrincipalName',
+  'memberOf',
+  'displayName',
+  'cn',
+  'mail',
+  'objectClass',
+] as const
+
+export const SEARCH_USERS_ATTRIBUTES = [
+  'dn',
+  'sAMAccountName',
+  'userPrincipalName',
+  'cn',
+  'mail',
+  'memberOf',
+  'userAccountControl',
+  'pwdLastSet',
+  'objectClass',
+] as const
+
+export const USER_OBJECT_CLASSES = ['top', 'person', 'organizationalPerson', 'user'] as const
+
+export const GROUP_SEARCH_ATTRIBUTES = ['dn', 'cn', 'description', 'member'] as const
+
+export const OU_SEARCH_ATTRIBUTES = ['dn', 'ou', 'name', 'description'] as const
+
+export const MEMBER_RESOLVE_ATTRIBUTES = ['dn', 'cn', 'sAMAccountName', 'displayName'] as const
+
+export const DN_ONLY_ATTRIBUTE = ['dn'] as const
