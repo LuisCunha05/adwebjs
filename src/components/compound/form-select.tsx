@@ -39,11 +39,11 @@ export function FormSelect<
 }: FormSelectProps<TFieldValues, TName>) {
     return (
         <FormField name={name} control={control} label={label} description={description} className={className}>
-            {(fieldProps, field) => (
+            {(fieldProps) => (
                 <Select
                     {...props}
-                    value={field.value}
-                    onValueChange={field.onChange}
+                    value={fieldProps.value}
+                    onValueChange={fieldProps.onChange}
                 >
                     <SelectTrigger
                         id={fieldProps.id}

@@ -3,7 +3,6 @@ import {
     type Control,
     type FieldValues,
     type Path,
-    type UseFormRegisterReturn,
     useController,
     type ControllerRenderProps,
 } from 'react-hook-form'
@@ -26,12 +25,11 @@ export interface FormFieldProps<
     children:
     | React.ReactElement
     | ((
-        props: UseFormRegisterReturn<TName> & {
+        fieldProps: ControllerRenderProps<TFieldValues, TName> & {
             id: string
             'aria-invalid': boolean
             'aria-describedby'?: string
-        },
-        field: ControllerRenderProps<TFieldValues, TName>
+        }
     ) => React.ReactNode)
     className?: string
 }
@@ -40,13 +38,11 @@ export function FormField<
     TFieldValues extends FieldValues = FieldValues,
     TName extends Path<TFieldValues> = Path<TFieldValues>,
 >({ name, label, description, control, children, className }: FormFieldProps<TFieldValues, TName>) {
-    const register = control.register
     const { field, fieldState } = useController({
         name,
         control,
     })
 
-    const registerProps = register(name)
     const isInvalid = !!fieldState.error
     const descriptionId = description ? `${name}-description` : undefined
     const errorId = isInvalid ? `${name}-error` : undefined
@@ -55,7 +51,7 @@ export function FormField<
     const ariaDescribedBy = [descriptionId, errorId].filter(Boolean).join(' ') || undefined
 
     const fieldProps = {
-        ...registerProps,
+        ...field,
         id: name,
         'aria-invalid': isInvalid,
         'aria-describedby': ariaDescribedBy,
@@ -66,7 +62,7 @@ export function FormField<
             {label && <FieldLabel htmlFor={name}>{label}</FieldLabel>}
             <FieldContent>
                 {typeof children === 'function'
-                    ? children(fieldProps, field)
+                    ? children(fieldProps)
                     : React.cloneElement(children as React.ReactElement, fieldProps)}
                 {description && <FieldDescription id={descriptionId}>{description}</FieldDescription>}
                 <FieldError id={errorId} errors={[fieldState.error]} />

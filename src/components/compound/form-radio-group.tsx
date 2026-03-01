@@ -30,7 +30,7 @@ export function FormRadioGroup<
 }: FormRadioGroupProps<TFieldValues, TName>) {
     return (
         <FormField name={name} control={control} label={label} description={description} className={className}>
-            {(fieldProps, field) => (
+            {(fieldProps) => (
                 <div
                     className={cn(
                         'flex gap-x-4 gap-y-2',
@@ -48,9 +48,9 @@ export function FormRadioGroup<
                                     type="radio"
                                     id={radioId}
                                     value={option.value}
-                                    checked={field.value === option.value}
-                                    onChange={() => field.onChange(option.value)}
-                                    onBlur={field.onBlur}
+                                    checked={fieldProps.value === option.value}
+                                    onChange={() => fieldProps.onChange(option.value)}
+                                    onBlur={fieldProps.onBlur}
                                     className="size-4 text-primary focus:ring-ring border-input bg-transparent shadow-sm dark:bg-input/30"
                                 />
                                 <label
