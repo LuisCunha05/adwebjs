@@ -1,26 +1,19 @@
-"use client";
+'use client'
 
-import { useActionState } from "react";
-import { loginAction } from "@/actions/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { LayoutDashboard } from "lucide-react";
+import { useActionState } from 'react'
+import { loginAction } from '@/actions/auth'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { LayoutDashboard } from 'lucide-react'
 
 const DEFAULT_STATE = {
   username: '',
-  error: undefined
+  error: undefined,
 }
 
 export function LoginForm() {
-
   const [state, action, isPending] = useActionState(loginAction, DEFAULT_STATE)
 
   return (
@@ -72,7 +65,7 @@ export function LoginForm() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? "Entrando…" : "Entrar"}
+                {isPending ? 'Entrando…' : 'Entrar'}
               </Button>
             </form>
             <p className="text-muted-foreground mt-4 text-center text-xs">
@@ -82,5 +75,5 @@ export function LoginForm() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

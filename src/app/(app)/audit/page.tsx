@@ -1,5 +1,5 @@
-import { listAuditLogs } from "@/actions/audit";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { listAuditLogs } from '@/actions/audit'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -7,28 +7,30 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { AuditFilters, ACTION_LABELS } from "./audit-filters";
-import { verifySession } from "@/utils/manage-jwt";
+} from '@/components/ui/table'
+import { AuditFilters, ACTION_LABELS } from './audit-filters'
+import { verifySession } from '@/utils/manage-jwt'
 
 function actionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action;
+  return ACTION_LABELS[action] ?? action
 }
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleString("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "medium",
-    });
+    return new Date(iso).toLocaleString('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'medium',
+    })
   } catch {
-    return iso;
+    return iso
   }
 }
 
-export default async function AuditPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
-  await verifySession();
-  const searchParams = await props.searchParams;
+export default async function AuditPage(props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>
+}) {
+  await verifySession()
+  const searchParams = await props.searchParams
   const filters = {
     action: searchParams.action,
     actor: searchParams.actor,
@@ -36,10 +38,10 @@ export default async function AuditPage(props: { searchParams: Promise<{ [key: s
     since: searchParams.since,
     until: searchParams.until,
     limit: 200, // Fixed limit for now
-  };
+  }
 
-  const res = await listAuditLogs(filters);
-  const entries = res.ok && res.data ? res.data : [];
+  const res = await listAuditLogs(filters)
+  const entries = res.ok && res.data ? res.data : []
 
   return (
     <div className="space-y-6">
@@ -55,11 +57,15 @@ export default async function AuditPage(props: { searchParams: Promise<{ [key: s
       <Card>
         <CardHeader>
           <CardTitle>Registros</CardTitle>
-          <CardDescription>{entries.length} evento(s). Ordenado do mais recente ao mais antigo.</CardDescription>
+          <CardDescription>
+            {entries.length} evento(s). Ordenado do mais recente ao mais antigo.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {entries.length === 0 ? (
-            <p className="text-muted-foreground py-8 text-center text-sm">Nenhum registro de auditoria encontrado.</p>
+            <p className="text-muted-foreground py-8 text-center text-sm">
+              Nenhum registro de auditoria encontrado.
+            </p>
           ) : (
             <div className="overflow-x-auto -mx-2">
               <Table>
@@ -82,25 +88,29 @@ export default async function AuditPage(props: { searchParams: Promise<{ [key: s
                       </TableCell>
                       <TableCell className="font-medium">{actionLabel(e.action)}</TableCell>
                       <TableCell>
-                        <span className={e.actor === "system" ? "text-muted-foreground italic" : ""}>
+                        <span
+                          className={e.actor === 'system' ? 'text-muted-foreground italic' : ''}
+                        >
                           {e.actor}
                         </span>
                       </TableCell>
-                      <TableCell className="font-mono text-sm truncate max-w-[120px]" title={e.target}>
-                        {e.target ?? "—"}
+                      <TableCell
+                        className="font-mono text-sm truncate max-w-[120px]"
+                        title={e.target}
+                      >
+                        {e.target ?? '—'}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={JSON.stringify(e.details)}>
-                        {e.details ? (
-                          typeof e.details === "object" ? (
-                            Object.entries(e.details)
-                              .map(([k, v]) => `${k}=${String(v).slice(0, 30)}`)
-                              .join(", ")
-                          ) : (
-                            String(e.details)
-                          )
-                        ) : (
-                          "—"
-                        )}
+                      <TableCell
+                        className="text-xs text-muted-foreground max-w-[200px] truncate"
+                        title={JSON.stringify(e.details)}
+                      >
+                        {e.details
+                          ? typeof e.details === 'object'
+                            ? Object.entries(e.details)
+                                .map(([k, v]) => `${k}=${String(v).slice(0, 30)}`)
+                                .join(', ')
+                            : String(e.details)
+                          : '—'}
                       </TableCell>
                       <TableCell>
                         {e.success ? (
@@ -109,8 +119,11 @@ export default async function AuditPage(props: { searchParams: Promise<{ [key: s
                           <span className="text-destructive">Não</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-destructive text-xs max-w-[180px] truncate" title={e.error}>
-                        {e.error ?? "—"}
+                      <TableCell
+                        className="text-destructive text-xs max-w-[180px] truncate"
+                        title={e.error}
+                      >
+                        {e.error ?? '—'}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -121,5 +134,5 @@ export default async function AuditPage(props: { searchParams: Promise<{ [key: s
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

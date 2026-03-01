@@ -1,45 +1,50 @@
-import Link from "next/link";
-import { Users, FolderTree, FolderOpen, UserX, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { getStats } from "@/actions/stats";
-import { listAuditLogs } from "@/actions/audit";
-import { verifySession } from "@/utils/manage-jwt";
+import Link from 'next/link'
+import { Users, FolderTree, FolderOpen, UserX, AlertTriangle } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { getStats } from '@/actions/stats'
+import { listAuditLogs } from '@/actions/audit'
+import { verifySession } from '@/utils/manage-jwt'
 
-const RECENT_DISABLES_THRESHOLD = 5;
-const RECENT_HOURS = 24;
+const RECENT_DISABLES_THRESHOLD = 5
+const RECENT_HOURS = 24
 
 export default async function DashboardPage() {
-  await verifySession();
+  await verifySession()
   // eslint-disable-next-line react-hooks/purity
-  const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000).toISOString()
 
   // Parallel fetch
   const [statsRes, auditRes] = await Promise.all([
     getStats(),
-    listAuditLogs({ action: "user.disable", since, limit: 200 }),
-  ]);
+    listAuditLogs({ action: 'user.disable', since, limit: 200 }),
+  ])
 
-  const stats = statsRes.ok && statsRes.data ? statsRes.data : { usersCount: 0, disabledCount: 0, groupsCount: 0 };
-  const statsError = statsRes.ok ? null : statsRes.error;
-  const recentDisables = auditRes.ok && auditRes.data ? auditRes.data.length : 0;
+  const stats =
+    statsRes.ok && statsRes.data
+      ? statsRes.data
+      : { usersCount: 0, disabledCount: 0, groupsCount: 0 }
+  const statsError = statsRes.ok ? null : statsRes.error
+  const recentDisables = auditRes.ok && auditRes.data ? auditRes.data.length : 0
 
-  const alerts: { id: string; title: string; message: string; href?: string }[] = [];
+  const alerts: { id: string; title: string; message: string; href?: string }[] = []
   if (recentDisables >= RECENT_DISABLES_THRESHOLD) {
     alerts.push({
-      id: "recent-disables",
-      title: "Vários usuários desativados recentemente",
+      id: 'recent-disables',
+      title: 'Vários usuários desativados recentemente',
       message: `${recentDisables} conta(s) foram desativadas nas últimas ${RECENT_HOURS}h. Verifique se é intencional.`,
-      href: "/audit",
-    });
+      href: '/audit',
+    })
   }
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Active Directory Web Manager</h1>
-        <p className="text-muted-foreground mt-1">Gerencie usuários, grupos e OUs do AD de forma centralizada.</p>
+        <p className="text-muted-foreground mt-1">
+          Gerencie usuários, grupos e OUs do AD de forma centralizada.
+        </p>
       </div>
 
       {statsError && (
@@ -140,7 +145,9 @@ export default async function DashboardPage() {
               <Users className="size-6" />
             </div>
             <CardTitle className="mt-3">Usuários</CardTitle>
-            <CardDescription>Pesquisar, editar, ativar/desativar e desbloquear contas.</CardDescription>
+            <CardDescription>
+              Pesquisar, editar, ativar/desativar e desbloquear contas.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="secondary" className="w-full" asChild>
@@ -178,5 +185,5 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

@@ -1,8 +1,8 @@
-import { Pagination } from "@/components/pagination";
-import { PaginatedResult } from "@/types/ldap";
-import { listUsers } from "@/actions/users";
-import { listOUs } from "@/actions/ous";
-import { Button } from "@/components/ui/button";
+import { Pagination } from '@/components/pagination'
+import { PaginatedResult } from '@/types/ldap'
+import { listUsers } from '@/actions/users'
+import { listOUs } from '@/actions/ous'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -10,57 +10,67 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Pencil, UserPlus, Download } from "lucide-react";
-import Link from "next/link";
-import { UsersSearch } from "./users-search";
-import { DownloadButton } from "./download-button";
-import { verifySession } from "@/utils/manage-jwt";
+} from '@/components/ui/table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Pencil, UserPlus, Download } from 'lucide-react'
+import Link from 'next/link'
+import { UsersSearch } from './users-search'
+import { DownloadButton } from './download-button'
+import { verifySession } from '@/utils/manage-jwt'
 
-const UAC_DISABLED = 2;
-const UAC_DONT_EXPIRE_PASSWD = 65536;
+const UAC_DISABLED = 2
+const UAC_DONT_EXPIRE_PASSWD = 65536
 
 function uacToLabel(value: string | number | undefined): string {
-  if (value == null) return "—";
-  const n = Number(value);
-  const disabled = (n & UAC_DISABLED) !== 0;
-  const pwdNeverExpires = (n & UAC_DONT_EXPIRE_PASSWD) !== 0;
-  const status = disabled ? "Desativada" : "Ativa";
-  if (pwdNeverExpires) return `${status}, senha não expira`;
-  return status;
+  if (value == null) return '—'
+  const n = Number(value)
+  const disabled = (n & UAC_DISABLED) !== 0
+  const pwdNeverExpires = (n & UAC_DONT_EXPIRE_PASSWD) !== 0
+  const status = disabled ? 'Desativada' : 'Ativa'
+  if (pwdNeverExpires) return `${status}, senha não expira`
+  return status
 }
 
 function uacVariant(
-  value: string | number | undefined
-): "default" | "secondary" | "destructive" | "outline" {
-  const n = Number(value) || 0;
-  if ((n & UAC_DISABLED) !== 0) return "destructive";
-  return "secondary";
+  value: string | number | undefined,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  const n = Number(value) || 0
+  if ((n & UAC_DISABLED) !== 0) return 'destructive'
+  return 'secondary'
 }
 
-export default async function UsersPage(props: { searchParams: Promise<{ q?: string; searchBy?: string; ou?: string; memberOf?: string; disabledOnly?: string; page?: string; pageSize?: string }> }) {
-  await verifySession();
-  const searchParams = await props.searchParams;
-  const q = searchParams.q || "";
-  const searchBy = searchParams.searchBy || "sAMAccountName";
-  const ou = searchParams.ou || "";
-  const memberOf = searchParams.memberOf || "";
-  const disabledOnly = searchParams.disabledOnly === "true";
-  const page = Number(searchParams.page) || 1;
-  const pageSize = Number(searchParams.pageSize) || 10;
+export default async function UsersPage(props: {
+  searchParams: Promise<{
+    q?: string
+    searchBy?: string
+    ou?: string
+    memberOf?: string
+    disabledOnly?: string
+    page?: string
+    pageSize?: string
+  }>
+}) {
+  await verifySession()
+  const searchParams = await props.searchParams
+  const q = searchParams.q || ''
+  const searchBy = searchParams.searchBy || 'sAMAccountName'
+  const ou = searchParams.ou || ''
+  const memberOf = searchParams.memberOf || ''
+  const disabledOnly = searchParams.disabledOnly === 'true'
+  const page = Number(searchParams.page) || 1
+  const pageSize = Number(searchParams.pageSize) || 10
 
   // Parallel fetch: OUs always needed for search filter
-  const ousPromise = listOUs();
+  const ousPromise = listOUs()
 
-  let list: any[] = [];
-  let total = 0;
-  let totalPages = 0;
-  let error: string | undefined;
+  let list: any[] = []
+  let total = 0
+  let totalPages = 0
+  let error: string | undefined
 
   // Only fetch users if there's a query or filters, as per original logic "Informe um termo... ou use os filtros"
-  const hasFilters = !!(ou || memberOf || disabledOnly);
+  const hasFilters = !!(ou || memberOf || disabledOnly)
 
   if (q.trim() || hasFilters) {
     const res = await listUsers(q, searchBy, {
@@ -69,28 +79,28 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
       disabledOnly: disabledOnly || undefined,
       page,
       pageSize,
-    });
+    })
     if (res.ok && res.data) {
       if ('data' in res.data && Array.isArray(res.data.data)) {
         // It's a PaginatedResult
-        list = res.data.data;
-        total = res.data.total;
-        totalPages = res.data.totalPages;
+        list = res.data.data
+        total = res.data.total
+        totalPages = res.data.totalPages
       } else if (Array.isArray(res.data)) {
         // Fallback if returns array (shouldn't happen with current service logic but for safety)
-        list = res.data;
-        total = list.length;
-        totalPages = 1;
+        list = res.data
+        total = list.length
+        totalPages = 1
       }
     } else {
-      error = res.error;
+      error = res.error
     }
   }
 
-  const ousRes = await ousPromise;
-  const ous = ousRes.ok && ousRes.data ? ousRes.data : [];
+  const ousRes = await ousPromise
+  const ous = ousRes.ok && ousRes.data ? ousRes.data : []
 
-  const hasSearched = q.trim() || hasFilters;
+  const hasSearched = q.trim() || hasFilters
 
   return (
     <div className="space-y-6">
@@ -117,15 +127,13 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
             <CardTitle className="text-base">Resultados</CardTitle>
             <CardDescription>
               {!hasSearched
-                ? "Use a pesquisa acima para listar usuários."
+                ? 'Use a pesquisa acima para listar usuários.'
                 : list.length === 0
-                  ? "Nenhum resultado."
+                  ? 'Nenhum resultado.'
                   : `${total} usuário(s) encontrado(s).`}
             </CardDescription>
           </div>
-          {list.length > 0 && (
-            <DownloadButton users={list} />
-          )}
+          {list.length > 0 && <DownloadButton users={list} />}
         </CardHeader>
         <CardContent>
           {!hasSearched ? (
@@ -134,7 +142,11 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
             </div>
           ) : list.length === 0 ? (
             <div className="text-muted-foreground py-12 text-center text-sm">
-              {error ? <span className="text-destructive">{error}</span> : "Nenhum usuário encontrado."}
+              {error ? (
+                <span className="text-destructive">{error}</span>
+              ) : (
+                'Nenhum usuário encontrado.'
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -152,10 +164,12 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
                 <TableBody>
                   {list.map((u) => (
                     <TableRow key={u.sAMAccountName ?? u.dn}>
-                      <TableCell className="font-medium">{u.sAMAccountName ?? "—"}</TableCell>
-                      <TableCell>{u.name ?? u.cn ?? "—"}</TableCell>
-                      <TableCell>{u.mail ?? u.userPrincipalName ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{u.pwdLastSet ?? "—"}</TableCell>
+                      <TableCell className="font-medium">{u.sAMAccountName ?? '—'}</TableCell>
+                      <TableCell>{u.name ?? u.cn ?? '—'}</TableCell>
+                      <TableCell>{u.mail ?? u.userPrincipalName ?? '—'}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {u.pwdLastSet ?? '—'}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={uacVariant(u.userAccountControl)}>
                           {uacToLabel(u.userAccountControl)}
@@ -174,17 +188,12 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
                 </TableBody>
               </Table>
               {totalPages > 1 && (
-                <Pagination
-                  total={total}
-                  page={page}
-                  pageSize={pageSize}
-                  totalPages={totalPages}
-                />
+                <Pagination total={total} page={page} pageSize={pageSize} totalPages={totalPages} />
               )}
             </div>
           )}
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

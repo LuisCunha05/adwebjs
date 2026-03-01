@@ -1,9 +1,9 @@
 'use server'
 
 import { LDAP_GROUP_DELETE } from '@/constants/config'
-import { ActiveDirectoryUser, UpdateUserInput } from '@/schemas/attributesAd'
+import type { ActiveDirectoryUser, UpdateUserInput } from '@/schemas/attributesAd'
 import { auditService, ldapService } from '@/services/container'
-import { PaginatedResult } from '@/types/ldap'
+import type { PaginatedResult } from '@/types/ldap'
 
 import { verifySession } from '@/utils/manage-jwt'
 
@@ -202,8 +202,7 @@ export async function listUsers(
   },
 ): Promise<ActionResult<PaginatedResult<ActiveDirectoryUser> | ActiveDirectoryUser[]>> {
   await verifySession()
-  if (!q && !opts?.ou && !opts?.memberOf && !opts?.disabledOnly)
-    return { ok: true, data: [] }
+  if (!q && !opts?.ou && !opts?.memberOf && !opts?.disabledOnly) return { ok: true, data: [] }
   try {
     const result = await ldapService.searchUsers(q, searchBy, opts)
     return { ok: true, data: result }

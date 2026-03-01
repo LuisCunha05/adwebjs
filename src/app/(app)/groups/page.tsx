@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { listGroups } from "@/actions/groups";
-import { Button } from "@/components/ui/button";
+import Link from 'next/link'
+import { listGroups } from '@/actions/groups'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -8,26 +8,26 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pencil } from "lucide-react";
-import { GroupsSearch } from "./groups-search";
-import { verifySession } from "@/utils/manage-jwt";
+} from '@/components/ui/table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Pencil } from 'lucide-react'
+import { GroupsSearch } from './groups-search'
+import { verifySession } from '@/utils/manage-jwt'
 
 export default async function GroupsPage(props: { searchParams: Promise<{ q?: string }> }) {
-  await verifySession();
-  const searchParams = await props.searchParams;
-  const q = searchParams.q || "";
+  await verifySession()
+  const searchParams = await props.searchParams
+  const q = searchParams.q || ''
 
-  let list: any[] = [];
-  let error: string | undefined;
+  let list: any[] = []
+  let error: string | undefined
 
   if (q) {
-    const res = await listGroups(q);
+    const res = await listGroups(q)
     if (res.ok && res.data) {
-      list = res.data;
+      list = res.data
     } else {
-      error = res.error;
+      error = res.error
     }
   }
 
@@ -35,9 +35,7 @@ export default async function GroupsPage(props: { searchParams: Promise<{ q?: st
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Grupos</h1>
-        <p className="text-muted-foreground mt-1">
-          Pesquise e edite grupos do Active Directory.
-        </p>
+        <p className="text-muted-foreground mt-1">Pesquise e edite grupos do Active Directory.</p>
       </div>
 
       <GroupsSearch />
@@ -48,9 +46,9 @@ export default async function GroupsPage(props: { searchParams: Promise<{ q?: st
           <CardDescription>
             {q
               ? list.length === 0
-                ? "Nenhum resultado."
+                ? 'Nenhum resultado.'
                 : `${list.length} grupo(s) encontrado(s).`
-              : "Use a pesquisa acima para listar grupos."}
+              : 'Use a pesquisa acima para listar grupos.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -60,7 +58,11 @@ export default async function GroupsPage(props: { searchParams: Promise<{ q?: st
             </div>
           ) : list.length === 0 ? (
             <div className="text-muted-foreground py-12 text-center text-sm">
-              {error ? <span className="text-destructive">{error}</span> : `Nenhum grupo encontrado para "${q}".`}
+              {error ? (
+                <span className="text-destructive">{error}</span>
+              ) : (
+                `Nenhum grupo encontrado para "${q}".`
+              )}
             </div>
           ) : (
             <Table>
@@ -75,8 +77,8 @@ export default async function GroupsPage(props: { searchParams: Promise<{ q?: st
               <TableBody>
                 {list.map((g) => (
                   <TableRow key={g.cn ?? g.dn}>
-                    <TableCell className="font-medium">{g.cn ?? "—"}</TableCell>
-                    <TableCell>{g.name ?? g.cn ?? "—"}</TableCell>
+                    <TableCell className="font-medium">{g.cn ?? '—'}</TableCell>
+                    <TableCell>{g.name ?? g.cn ?? '—'}</TableCell>
                     <TableCell>
                       {Array.isArray(g.member) ? g.member.length : g.member ? 1 : 0}
                     </TableCell>
@@ -96,5 +98,5 @@ export default async function GroupsPage(props: { searchParams: Promise<{ q?: st
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

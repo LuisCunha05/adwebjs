@@ -1,5 +1,5 @@
-import { listOUs } from "@/actions/ous";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { listOUs } from '@/actions/ous'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -7,15 +7,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { FolderOpen } from "lucide-react";
-import { verifySession } from "@/utils/manage-jwt";
+} from '@/components/ui/table'
+import { FolderOpen } from 'lucide-react'
+import { verifySession } from '@/utils/manage-jwt'
 
 export default async function OUsPage() {
-  await verifySession();
-  const res = await listOUs();
-  const list = res.ok && res.data ? res.data : [];
-  const error = res.ok ? null : res.error;
+  await verifySession()
+  const res = await listOUs()
+  const list = res.ok && res.data ? res.data : []
+  const error = res.ok ? null : res.error
 
   return (
     <div className="space-y-6">
@@ -57,10 +57,13 @@ export default async function OUsPage() {
               <TableBody>
                 {list.map((ou: any) => (
                   <TableRow key={ou.dn}>
-                    <TableCell className="font-medium">{ou.ou ?? ou.name ?? "—"}</TableCell>
-                    <TableCell>{ou.name ?? ou.ou ?? "—"}</TableCell>
-                    <TableCell className="max-w-[300px] truncate font-mono text-xs text-muted-foreground" title={ou.dn}>
-                      {ou.dn ?? "—"}
+                    <TableCell className="font-medium">{ou.ou ?? ou.name ?? '—'}</TableCell>
+                    <TableCell>{ou.name ?? ou.ou ?? '—'}</TableCell>
+                    <TableCell
+                      className="max-w-[300px] truncate font-mono text-xs text-muted-foreground"
+                      title={ou.dn}
+                    >
+                      {ou.dn ?? '—'}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -70,5 +73,5 @@ export default async function OUsPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

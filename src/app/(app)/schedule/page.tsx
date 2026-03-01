@@ -1,12 +1,12 @@
-import { listSchedule } from "@/actions/schedule";
-import { ScheduleForm } from "./schedule-form";
-import { VacationList } from "./vacation-list";
-import { verifySession } from "@/utils/manage-jwt";
+import { listSchedule } from '@/actions/schedule'
+import { ScheduleForm } from './schedule-form'
+import { VacationList } from './vacation-list'
+import { verifySession } from '@/utils/manage-jwt'
 
 export default async function SchedulePage() {
-  await verifySession();
-  const res = await listSchedule();
-  const actions = res.ok && res.data ? res.data : [];
+  await verifySession()
+  const res = await listSchedule()
+  const actions = res.ok && res.data ? res.data : []
 
   return (
     <div className="space-y-8">
@@ -20,5 +20,5 @@ export default async function SchedulePage() {
       <ScheduleForm />
       <VacationList actions={actions} />
     </div>
-  );
+  )
 }
