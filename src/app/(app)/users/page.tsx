@@ -2,7 +2,7 @@ import { Pagination } from '@/components/pagination'
 import { PaginatedResult } from '@/types/ldap'
 import { listUsers } from '@/actions/users'
 import { listOUs } from '@/actions/ous'
-import { Button } from '@/components/ui/button'
+import { Button } from '@compound/button'
 import {
   Table,
   TableBody,

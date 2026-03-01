@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/components/auth-provider'
-import { Button } from '@/components/ui/button'
+import { Button } from '@compound/button'
 import {
   DropdownMenu,
   DropdownMenuContent,

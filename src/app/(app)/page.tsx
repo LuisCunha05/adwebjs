@@ -1,10 +1,11 @@
+import { Button } from '@compound/button'
+import { IconManager } from '@compound/icon-manager'
+import { AlertTriangle, FolderOpen, FolderTree, UserX } from 'lucide-react'
 import Link from 'next/link'
-import { Users, FolderTree, FolderOpen, UserX, AlertTriangle } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { getStats } from '@/actions/stats'
 import { listAuditLogs } from '@/actions/audit'
+import { getStats } from '@/actions/stats'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { verifySession } from '@/utils/manage-jwt'
 
 const RECENT_DISABLES_THRESHOLD = 5
@@ -91,7 +92,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Usuários</CardTitle>
-            <Users className="size-4 text-muted-foreground" />
+            <IconManager name="users" className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {statsRes.ok ? (
@@ -142,7 +143,7 @@ export default async function DashboardPage() {
         <Card className="overflow-hidden transition-all hover:shadow-md">
           <CardHeader className="pb-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Users className="size-6" />
+              <IconManager name="users" className="size-6" />
             </div>
             <CardTitle className="mt-3">Usuários</CardTitle>
             <CardDescription>

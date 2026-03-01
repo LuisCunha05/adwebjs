@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import { Button } from '@compound/button'
 import { Download } from 'lucide-react'
 
 export function DownloadButton({ users }: { users: any[] }) {

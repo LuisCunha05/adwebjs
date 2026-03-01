@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
+import { Button } from '@compound/button'
 import { Input } from '@/components/ui/input'
 import {
   Select,

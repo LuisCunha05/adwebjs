@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { listGroups } from '@/actions/groups'
-import { Button } from '@/components/ui/button'
+import { Button } from '@compound/button'
 import {
   Table,
   TableBody,

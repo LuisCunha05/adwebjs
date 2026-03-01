@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { type EditAttribute } from '@/types/ldap'
 import { useAuth } from '@/components/auth-provider'
-import { Button } from '@/components/ui/button'
+import { Button } from '@compound/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
