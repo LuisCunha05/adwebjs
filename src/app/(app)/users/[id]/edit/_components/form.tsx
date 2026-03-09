@@ -2,20 +2,6 @@
 
 import { Button } from '@compound/button'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useActionState, useMemo, useState, useTransition } from 'react'
-import { toast } from 'sonner'
-import { removeMemberFromGroup } from '@/actions/groups'
-import {
-  deleteUser,
-  disableUser,
-  enableUser,
-  moveUser,
-  resetPassword,
-  unlockUser,
-  updateUser,
-} from '@/actions/users'
-import { useAuth } from '@/components/auth-provider'
 import { Badge } from '@/components/ui/badge'
 import type { EditAttribute } from '@/types/ldap'
 
@@ -27,36 +13,7 @@ import { DisableUserModal } from './disable-user-modal'
 import { MoveOuModal } from './move-ou-modal'
 import { ResetPasswordModal } from './reset-password-modal'
 import { DeleteUserModal } from './delete-user-modal'
-
-const UAC_DISABLED = 2
-const UAC_DONT_EXPIRE_PASSWD = 65536
-
-function flagsToUac(
-  current: number | string | undefined,
-  accountDisabled: boolean,
-  passwordNeverExpires: boolean,
-) {
-  const base = Number(current) || 512
-  return String(
-    (base & ~(UAC_DISABLED | UAC_DONT_EXPIRE_PASSWD)) |
-      (accountDisabled ? UAC_DISABLED : 0) |
-      (passwordNeverExpires ? UAC_DONT_EXPIRE_PASSWD : 0),
-  )
-}
-
-function cnFromDn(dn: string): string {
-  const m = dn.match(/^CN=([^,]+)/i)
-  return m ? m[1] : dn
-}
-
-function parentOuFromDn(dn: string): string {
-  const idx = dn.indexOf(',')
-  return idx >= 0 ? dn.slice(idx + 1).trim() : ''
-}
-
-function dnMatch(a: string, b: string): boolean {
-  return (a || '').toLowerCase().trim() === (b || '').toLowerCase().trim()
-}
+import { useUserModel } from '../model'
 
 interface UserEditFormProps {
   initialUser: any
@@ -65,234 +22,7 @@ interface UserEditFormProps {
 }
 
 export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps) {
-  const router = useRouter()
-  const { session } = useAuth()
-
-  const id = initialUser?.sAMAccountName
-
-  const [updateState, submitAction, isSaving] = useActionState(
-    async (prevState: any, formData: FormData) => {
-      if (!id || !editConfig) return prevState
-      try {
-        const isAccountDisabled = formData.get('accountDisabled') === 'desativada'
-        const isPasswordNeverExpires = formData.get('passwordNeverExpires') === 'sim'
-        const uac = flagsToUac(
-          prevState?.userAccountControl ?? initialUser.userAccountControl,
-          isAccountDisabled,
-          isPasswordNeverExpires,
-        )
-        const body: Record<string, unknown> = { userAccountControl: uac }
-        for (const a of editConfig.edit) {
-          const v = formData.get(a.name)
-          if (typeof v === 'string' && v.trim() !== '') body[a.name] = v.trim()
-          else if (v !== null && v !== '') body[a.name] = v
-        }
-
-        const res = await updateUser(id, body)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Usuário atualizado.')
-        return res.data
-      } catch (err: any) {
-        toast.error(err.message || 'Erro ao salvar.')
-        return prevState
-      }
-    },
-    initialUser,
-  )
-
-  const user = updateState || initialUser
-
-  const [isPendingDisable, startDisable] = useTransition()
-  const [isPendingEnable, startEnable] = useTransition()
-  const [isPendingUnlock, startUnlock] = useTransition()
-  const [isPendingReset, startReset] = useTransition()
-  const [isPendingDelete, startDelete] = useTransition()
-  const [isPendingMove, startMove] = useTransition()
-  const [isPendingGroupRemove, startGroupRemove] = useTransition()
-
-  const [removingGroupId, setRemovingGroupId] = useState<string | null>(null)
-
-  const [disableDialogOpen, setDisableDialogOpen] = useState(false)
-  const [disableTargetOu, setDisableTargetOu] = useState('')
-  const [resetPwdOpen, setResetPwdOpen] = useState(false)
-  const [resetPwdValue, setResetPwdValue] = useState('')
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [moveOuDialogOpen, setMoveOuDialogOpen] = useState(false)
-  const [moveOuTarget, setMoveOuTarget] = useState('')
-  const [ousForMove, setOusForMove] = useState<{ dn: string; ou?: string; name?: string }[]>([])
-
-  const sections = useMemo(() => {
-    if (!editConfig?.edit.length) return []
-    const bySection = new Map<string, EditAttribute[]>()
-    for (const e of editConfig.edit) {
-      if (!bySection.has(e.section)) bySection.set(e.section, [])
-      bySection.get(e.section)!.push(e)
-    }
-    const order = [...new Set(editConfig.edit.map((x) => x.section))]
-    return order.map((name) => ({ name, attrs: bySection.get(name) ?? [] }))
-  }, [editConfig?.edit])
-
-  function openDisableDialog() {
-    setDisableTargetOu('')
-    setDisableDialogOpen(true)
-  }
-
-  function openMoveOuDialog() {
-    const current = user?.dn ? parentOuFromDn(user.dn) : ''
-    setMoveOuTarget(current)
-    setMoveOuDialogOpen(true)
-
-    const list = ous ?? []
-    const hasCurrent = current && list.some((o) => dnMatch(o.dn, current))
-    if (current && !hasCurrent) {
-      setOusForMove([{ dn: current, ou: current, name: current }, ...list])
-    } else {
-      setOusForMove(list)
-    }
-  }
-
-  function handleMoveOu() {
-    startMove(async () => {
-      if (!id || !moveOuTarget.trim()) return
-      const current = user?.dn ? parentOuFromDn(user.dn) : ''
-      if (dnMatch(moveOuTarget, current)) {
-        toast.info('O usuário já está nesta OU.')
-        return
-      }
-      try {
-        const res = await moveUser(id, moveOuTarget.trim())
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Usuário movido para a nova OU.')
-        setMoveOuDialogOpen(false)
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao mover usuário.')
-      }
-    })
-  }
-
-  function handleDisablePermanent() {
-    startDisable(async () => {
-      if (!id) return
-      try {
-        const res = await disableUser(
-          id,
-          disableTargetOu ? { targetOu: disableTargetOu } : undefined,
-        )
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success(
-          disableTargetOu
-            ? 'Conta desativada e usuário movido para a OU informada.'
-            : 'Conta desativada.',
-        )
-        setDisableDialogOpen(false)
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao desativar.')
-      }
-    })
-  }
-
-  function handleEnable() {
-    startEnable(async () => {
-      if (!id) return
-      try {
-        const res = await enableUser(id)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Conta ativada.')
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao ativar.')
-      }
-    })
-  }
-
-  function handleUnlock() {
-    startUnlock(async () => {
-      if (!id) return
-      try {
-        const res = await unlockUser(id)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Conta desbloqueada.')
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao desbloquear.')
-      }
-    })
-  }
-
-  function handleRemoveFromGroup(groupDn: string) {
-    const groupCn = cnFromDn(groupDn)
-    setRemovingGroupId(groupCn)
-    startGroupRemove(async () => {
-      if (!id || !user?.dn) {
-        setRemovingGroupId(null)
-        return
-      }
-      try {
-        const res = await removeMemberFromGroup(groupCn, user.dn)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success(`Removido do grupo ${groupCn}.`)
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao remover do grupo.')
-      } finally {
-        setRemovingGroupId(null)
-      }
-    })
-  }
-
-  function handleResetPassword() {
-    startReset(async () => {
-      if (!id || !resetPwdValue.trim() || resetPwdValue.length < 8) return
-      try {
-        const res = await resetPassword(id, resetPwdValue)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Senha redefinida.')
-        setResetPwdOpen(false)
-        setResetPwdValue('')
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao redefinir senha.')
-      }
-    })
-  }
-
-  function handleDelete() {
-    startDelete(async () => {
-      if (!id) return
-      try {
-        const res = await deleteUser(id)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Usuário excluído.')
-        setDeleteDialogOpen(false)
-        router.replace('/users')
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao excluir.')
-      }
-    })
-  }
-
-  const isDisabled = Boolean((Number(user.userAccountControl) || 0) & UAC_DISABLED)
-  const isPwdNeverExpires = Boolean((Number(user.userAccountControl) || 0) & UAC_DONT_EXPIRE_PASSWD)
-
-  const memberOfList = Array.isArray(user.memberOf)
-    ? user.memberOf
-    : user.memberOf
-      ? [user.memberOf]
-      : []
-  const currentOuDn = parentOuFromDn(user.dn || '')
-  const currentOuDisplay = ous.length
-    ? ous.find((o) => dnMatch(o.dn, currentOuDn))?.ou ||
-      ous.find((o) => dnMatch(o.dn, currentOuDn))?.name ||
-      currentOuDn
-    : currentOuDn
+  const model = useUserModel({ initialUser, editConfig, ous })
 
   return (
     <div className="space-y-6">
@@ -304,8 +34,8 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         </Button>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            {user.sAMAccountName}
-            {isDisabled ? (
+            {model.user.sAMAccountName}
+            {model.isDisabled ? (
               <Badge variant="destructive">Desativada</Badge>
             ) : (
               <Badge variant="secondary">Ativa</Badge>
@@ -318,83 +48,83 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
       </div>
 
       <QuickActionsCard
-        isDisabled={isDisabled}
-        isPendingEnable={isPendingEnable}
-        isPendingDisable={isPendingDisable}
-        isPendingUnlock={isPendingUnlock}
-        isPendingReset={isPendingReset}
-        isPendingDelete={isPendingDelete}
-        handleEnable={handleEnable}
-        openDisableDialog={openDisableDialog}
-        handleUnlock={handleUnlock}
+        isDisabled={model.isDisabled}
+        isPendingEnable={model.isPendingEnable}
+        isPendingDisable={model.isPendingDisable}
+        isPendingUnlock={model.isPendingUnlock}
+        isPendingReset={model.isPendingReset}
+        isPendingDelete={model.isPendingDelete}
+        handleEnable={model.handleEnable}
+        openDisableDialog={model.openDisableDialog}
+        handleUnlock={model.handleUnlock}
         openResetPassword={() => {
-          setResetPwdValue('')
-          setResetPwdOpen(true)
+          model.setResetPwdValue('')
+          model.setResetPwdOpen(true)
         }}
-        openDeleteDialog={() => setDeleteDialogOpen(true)}
-        canDelete={!!session?.canDelete}
+        openDeleteDialog={() => model.setDeleteDialogOpen(true)}
+        canDelete={model.canDelete}
       />
 
       <OuCard
-        currentOuDn={currentOuDn}
-        currentOuDisplay={currentOuDisplay}
-        openMoveOuDialog={openMoveOuDialog}
-        isPendingMove={isPendingMove}
+        currentOuDn={model.currentOuDn}
+        currentOuDisplay={model.currentOuDisplay}
+        openMoveOuDialog={model.openMoveOuDialog}
+        isPendingMove={model.isPendingMove}
       />
 
       <AttributesCard
-        user={user}
-        sections={sections}
-        submitAction={submitAction}
-        isSaving={isSaving}
-        isDisabled={isDisabled}
-        isPwdNeverExpires={isPwdNeverExpires}
+        user={model.user}
+        sections={model.sections}
+        submitAction={model.submitAction}
+        isSaving={model.isSaving}
+        isDisabled={model.isDisabled}
+        isPwdNeverExpires={model.isPwdNeverExpires}
       />
 
       <GroupsCard
-        memberOfList={memberOfList}
-        handleRemoveFromGroup={handleRemoveFromGroup}
-        isPendingGroupRemove={isPendingGroupRemove}
-        removingGroupId={removingGroupId}
+        memberOfList={model.memberOfList}
+        handleRemoveFromGroup={model.handleRemoveFromGroup}
+        isPendingGroupRemove={model.isPendingGroupRemove}
+        removingGroupId={model.removingGroupId}
       />
 
       <DisableUserModal
-        open={disableDialogOpen}
-        onOpenChange={setDisableDialogOpen}
+        open={model.disableDialogOpen}
+        onOpenChange={model.setDisableDialogOpen}
         ous={ous}
-        disableTargetOu={disableTargetOu}
-        setDisableTargetOu={setDisableTargetOu}
-        handleConfirm={handleDisablePermanent}
-        isPendingDisable={isPendingDisable}
+        disableTargetOu={model.disableTargetOu}
+        setDisableTargetOu={model.setDisableTargetOu}
+        handleConfirm={model.handleDisablePermanent}
+        isPendingDisable={model.isPendingDisable}
       />
 
       <MoveOuModal
-        open={moveOuDialogOpen}
-        onOpenChange={setMoveOuDialogOpen}
-        currentOuDn={currentOuDn}
-        currentOuDisplay={currentOuDisplay}
-        moveOuTarget={moveOuTarget}
-        setMoveOuTarget={setMoveOuTarget}
-        ousForMove={ousForMove}
-        handleConfirm={handleMoveOu}
-        isPendingMove={isPendingMove}
+        open={model.moveOuDialogOpen}
+        onOpenChange={model.setMoveOuDialogOpen}
+        currentOuDn={model.currentOuDn}
+        currentOuDisplay={model.currentOuDisplay}
+        moveOuTarget={model.moveOuTarget}
+        setMoveOuTarget={model.setMoveOuTarget}
+        ousForMove={model.ousForMove}
+        handleConfirm={model.handleMoveOu}
+        isPendingMove={model.isPendingMove}
       />
 
       <ResetPasswordModal
-        open={resetPwdOpen}
-        onOpenChange={setResetPwdOpen}
-        resetPwdValue={resetPwdValue}
-        setResetPwdValue={setResetPwdValue}
-        handleConfirm={handleResetPassword}
-        isPendingReset={isPendingReset}
+        open={model.resetPwdOpen}
+        onOpenChange={model.setResetPwdOpen}
+        resetPwdValue={model.resetPwdValue}
+        setResetPwdValue={model.setResetPwdValue}
+        handleConfirm={model.handleResetPassword}
+        isPendingReset={model.isPendingReset}
       />
 
       <DeleteUserModal
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        userAccountName={user?.sAMAccountName}
-        handleConfirm={handleDelete}
-        isPendingDelete={isPendingDelete}
+        open={model.deleteDialogOpen}
+        onOpenChange={model.setDeleteDialogOpen}
+        userAccountName={model.user?.sAMAccountName}
+        handleConfirm={model.handleDelete}
+        isPendingDelete={model.isPendingDelete}
       />
     </div>
   )
