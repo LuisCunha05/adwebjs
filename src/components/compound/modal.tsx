@@ -44,22 +44,26 @@ export function Modal({
           </DialogHeader>
         )}
         {children}
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button
-              variant="outline"
-              {...cancelButtonProps}
-              text={cancelButtonProps?.text ?? 'Cancelar'}
-            />
-          </DialogClose>
-          {handleConfirm && (
-            <Button
-              onClick={handleConfirm}
-              {...confirmButtonProps}
-              text={cancelButtonProps?.text ?? 'Confirmar'}
-            />
-          )}
-        </DialogFooter>
+        {footer ? (
+          footer
+        ) : (
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                variant="outline"
+                {...cancelButtonProps}
+                text={cancelButtonProps?.text ?? 'Cancelar'}
+              />
+            </DialogClose>
+            {handleConfirm && (
+              <Button
+                onClick={handleConfirm}
+                {...confirmButtonProps}
+                text={confirmButtonProps?.text ?? 'Confirmar'}
+              />
+            )}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   )

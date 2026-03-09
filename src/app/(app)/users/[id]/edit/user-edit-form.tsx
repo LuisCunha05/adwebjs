@@ -16,14 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Modal } from '@/components/compound/modal'
 import { Badge } from '@/components/ui/badge'
 import {
   ArrowLeft,
@@ -620,175 +613,131 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         </Card>
       )}
 
-      <Dialog open={disableDialogOpen} onOpenChange={setDisableDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Desativação permanente</DialogTitle>
-            <DialogDescription>
-              Opcionalmente mova o usuário para outra OU após desativar (ex.: OU de desativados) ou
-              mantenha no mesmo lugar.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label>Destino após desativar</Label>
+      <Modal
+        open={disableDialogOpen}
+        onOpenChange={setDisableDialogOpen}
+        title="Desativação permanente"
+        description="Opcionalmente mova o usuário para outra OU após desativar (ex.: OU de desativados) ou mantenha no mesmo lugar."
+        handleConfirm={handleDisablePermanent}
+        confirmButtonProps={{
+          variant: 'destructive',
+          disabled: actionLoading === 'disable',
+          loading: actionLoading === 'disable',
+          loadingText: 'Desativando…',
+          text: 'Desativar',
+        }}
+      >
+        <div className="space-y-2 py-2">
+          <Label>Destino após desativar</Label>
+          <Select
+            value={disableTargetOu || 'keep'}
+            onValueChange={(v) => setDisableTargetOu(v === 'keep' ? '' : v)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Manter no mesmo lugar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="keep">Manter no mesmo lugar</SelectItem>
+              {ous.map((ou) => (
+                <SelectItem key={ou.dn} value={ou.dn}>
+                  {ou.ou ?? ou.name ?? ou.dn}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </Modal>
+
+      <Modal
+        open={moveOuDialogOpen}
+        onOpenChange={setMoveOuDialogOpen}
+        className="sm:max-w-md"
+        title={
+          <span className="flex items-center gap-2">
+            <ArrowRightLeft className="size-4" />
+            Mover usuário para outra OU
+          </span>
+        }
+        description="Escolha a unidade organizacional de destino. O usuário permanecerá ativo; apenas a localização no AD será alterada."
+        handleConfirm={handleMoveOu}
+        confirmButtonProps={{
+          disabled: !moveOuTarget.trim() || actionLoading === 'move' || dnMatch(moveOuTarget, currentOuDn),
+          loading: actionLoading === 'move',
+          loadingText: 'Movendo…',
+          text: 'Mover',
+          leftIcon: actionLoading === 'move' ? undefined : <ArrowRightLeft className="size-4" />
+        }}
+      >
+        <div className="space-y-4 py-2">
+          <div className="rounded-md border bg-muted/50 px-3 py-2">
+            <p className="text-xs text-muted-foreground">OU atual</p>
+            <p className="font-medium text-sm truncate" title={currentOuDn}>
+              {currentOuDisplay || currentOuDn || '—'}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Nova OU de destino</Label>
             <Select
-              value={disableTargetOu || 'keep'}
-              onValueChange={(v) => setDisableTargetOu(v === 'keep' ? '' : v)}
+              value={moveOuTarget || '__none__'}
+              onValueChange={(v) => setMoveOuTarget(v === '__none__' ? '' : v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Manter no mesmo lugar" />
+                <SelectValue placeholder="Selecione a OU" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="keep">Manter no mesmo lugar</SelectItem>
-                {ous.map((ou) => (
-                  <SelectItem key={ou.dn} value={ou.dn}>
+                {ousForMove.map((ou) => (
+                  <SelectItem key={ou.dn} value={ou.dn} title={ou.dn}>
                     {ou.ou ?? ou.name ?? ou.dn}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              A conta não será desativada. Para desativar e mover ao mesmo tempo, use
+              &quot;Desativar conta&quot; nas ações rápidas.
+            </p>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDisableDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDisablePermanent}
-              disabled={actionLoading === 'disable'}
-            >
-              {actionLoading === 'disable' ? <Loader2 className="size-4 animate-spin" /> : null}
-              {actionLoading === 'disable' ? 'Desativando…' : 'Desativar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </Modal>
 
-      <Dialog open={moveOuDialogOpen} onOpenChange={setMoveOuDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ArrowRightLeft className="size-4" />
-              Mover usuário para outra OU
-            </DialogTitle>
-            <DialogDescription>
-              Escolha a unidade organizacional de destino. O usuário permanecerá ativo; apenas a
-              localização no AD será alterada.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="rounded-md border bg-muted/50 px-3 py-2">
-              <p className="text-xs text-muted-foreground">OU atual</p>
-              <p className="font-medium text-sm truncate" title={currentOuDn}>
-                {currentOuDisplay || currentOuDn || '—'}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label>Nova OU de destino</Label>
-              <Select
-                value={moveOuTarget || '__none__'}
-                onValueChange={(v) => setMoveOuTarget(v === '__none__' ? '' : v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a OU" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ousForMove.map((ou) => (
-                    <SelectItem key={ou.dn} value={ou.dn} title={ou.dn}>
-                      {ou.ou ?? ou.name ?? ou.dn}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                A conta não será desativada. Para desativar e mover ao mesmo tempo, use
-                &quot;Desativar conta&quot; nas ações rápidas.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMoveOuDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleMoveOu}
-              disabled={
-                !moveOuTarget.trim() ||
-                actionLoading === 'move' ||
-                dnMatch(moveOuTarget, currentOuDn)
-              }
-            >
-              {actionLoading === 'move' ? (
-                <Loader2 className="size-4 animate-spin mr-2" />
-              ) : (
-                <ArrowRightLeft className="size-4 mr-2" />
-              )}
-              {actionLoading === 'move' ? 'Movendo…' : 'Mover'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Modal
+        open={resetPwdOpen}
+        onOpenChange={setResetPwdOpen}
+        title="Redefinir senha"
+        description="Defina uma nova senha para este usuário. Ele precisará usá-la no próximo login."
+        handleConfirm={handleResetPassword}
+        confirmButtonProps={{
+          disabled: !resetPwdValue.trim() || resetPwdValue.length < 8 || actionLoading === 'reset',
+          loading: actionLoading === 'reset',
+          text: 'Redefinir',
+        }}
+      >
+        <div className="space-y-2 py-2">
+          <Label htmlFor="newPassword">Nova senha</Label>
+          <Input
+            id="newPassword"
+            type="password"
+            value={resetPwdValue}
+            onChange={(e) => setResetPwdValue(e.target.value)}
+            placeholder="Mín. 8 caracteres"
+            minLength={8}
+          />
+        </div>
+      </Modal>
 
-      <Dialog open={resetPwdOpen} onOpenChange={setResetPwdOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Redefinir senha</DialogTitle>
-            <DialogDescription>
-              Defina uma nova senha para este usuário. Ele precisará usá-la no próximo login.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label htmlFor="newPassword">Nova senha</Label>
-            <Input
-              id="newPassword"
-              type="password"
-              value={resetPwdValue}
-              onChange={(e) => setResetPwdValue(e.target.value)}
-              placeholder="Mín. 8 caracteres"
-              minLength={8}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setResetPwdOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleResetPassword}
-              disabled={
-                !resetPwdValue.trim() || resetPwdValue.length < 8 || actionLoading === 'reset'
-              }
-            >
-              {actionLoading === 'reset' ? <Loader2 className="size-4 animate-spin" /> : null}
-              Redefinir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Excluir usuário</DialogTitle>
-            <DialogDescription>
-              Esta ação não pode ser desfeita. O usuário &quot;{user?.sAMAccountName}&quot; será
-              removido permanentemente do Active Directory.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={actionLoading === 'delete'}
-            >
-              {actionLoading === 'delete' ? <Loader2 className="size-4 animate-spin" /> : null}
-              Excluir permanentemente
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Modal
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Excluir usuário"
+        description={`Esta ação não pode ser desfeita. O usuário "${user?.sAMAccountName}" será removido permanentemente do Active Directory.`}
+        handleConfirm={handleDelete}
+        confirmButtonProps={{
+          variant: 'destructive',
+          disabled: actionLoading === 'delete',
+          loading: actionLoading === 'delete',
+          text: 'Excluir permanentemente',
+        }}
+      />
     </div>
   )
 }
