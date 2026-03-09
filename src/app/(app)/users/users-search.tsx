@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@compound/button'
+import { Search } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState, useTransition } from 'react'
+import { listGroups } from '@/actions/groups'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -11,9 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Search } from 'lucide-react'
-import { listGroups } from '@/actions/groups'
 
 const searchByOptions = [
   { value: 'sAMAccountName', label: 'Usuário' },

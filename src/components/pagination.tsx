@@ -1,6 +1,8 @@
 'use client'
 
 import { Button } from '@compound/button'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   Select,
   SelectContent,
@@ -8,8 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 interface PaginationProps {
   total: number

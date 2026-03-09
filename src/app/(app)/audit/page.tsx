@@ -8,8 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { AuditFilters, ACTION_LABELS } from './audit-filters'
 import { verifySession } from '@/utils/manage-jwt'
+import { ACTION_LABELS, AuditFilters } from './audit-filters'
 
 function actionLabel(action: string): string {
   return ACTION_LABELS[action] ?? action

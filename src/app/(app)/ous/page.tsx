@@ -1,3 +1,4 @@
+import { FolderOpen } from 'lucide-react'
 import { listOUs } from '@/actions/ous'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -8,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { FolderOpen } from 'lucide-react'
 import { verifySession } from '@/utils/manage-jwt'
 
 export default async function OUsPage() {

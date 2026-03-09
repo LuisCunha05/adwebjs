@@ -1,8 +1,11 @@
-import { Pagination } from '@/components/pagination'
-import { PaginatedResult } from '@/types/ldap'
-import { listUsers } from '@/actions/users'
-import { listOUs } from '@/actions/ous'
 import { Button } from '@compound/button'
+import { Download, Pencil, UserPlus } from 'lucide-react'
+import Link from 'next/link'
+import { listOUs } from '@/actions/ous'
+import { listUsers } from '@/actions/users'
+import { Pagination } from '@/components/pagination'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -11,13 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Pencil, UserPlus, Download } from 'lucide-react'
-import Link from 'next/link'
-import { UsersSearch } from './users-search'
-import { DownloadButton } from './download-button'
+import { PaginatedResult } from '@/types/ldap'
 import { verifySession } from '@/utils/manage-jwt'
+import { DownloadButton } from './download-button'
+import { UsersSearch } from './users-search'
 
 const UAC_DISABLED = 2
 const UAC_DONT_EXPIRE_PASSWD = 65536

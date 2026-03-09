@@ -1,6 +1,8 @@
+import { Button } from '@compound/button'
+import { Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { listGroups } from '@/actions/groups'
-import { Button } from '@compound/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -9,10 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Pencil } from 'lucide-react'
-import { GroupsSearch } from './groups-search'
 import { verifySession } from '@/utils/manage-jwt'
+import { GroupsSearch } from './groups-search'
 
 export default async function GroupsPage(props: { searchParams: Promise<{ q?: string }> }) {
   await verifySession()

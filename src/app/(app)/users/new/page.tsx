@@ -1,6 +1,6 @@
 import { listOUs } from '@/actions/ous'
-import { NewUserForm } from './new-user-form'
 import { verifySession } from '@/utils/manage-jwt'
+import { NewUserForm } from './new-user-form'
 
 export default async function NewUserPage() {
   await verifySession()

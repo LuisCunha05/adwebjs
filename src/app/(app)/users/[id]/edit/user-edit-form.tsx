@@ -1,11 +1,25 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { type EditAttribute } from '@/types/ldap'
-import { useAuth } from '@/components/auth-provider'
 import { Button } from '@compound/button'
+import { FolderTree } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useActionState, useMemo, useState, useTransition } from 'react'
+import { toast } from 'sonner'
+import { removeMemberFromGroup } from '@/actions/groups'
+import {
+  deleteUser,
+  disableUser,
+  enableUser,
+  moveUser,
+  resetPassword,
+  unlockUser,
+  updateUser,
+} from '@/actions/users'
+import { useAuth } from '@/components/auth-provider'
+import { Modal } from '@/components/compound/modal'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -15,42 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Modal } from '@/components/compound/modal'
-import { Badge } from '@/components/ui/badge'
-import {
-  ArrowLeft,
-  UserCheck,
-  UserX,
-  Unlock,
-  Loader2,
-  KeyRound,
-  Trash2,
-  FolderTree,
-  ArrowRightLeft,
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { removeMemberFromGroup } from '@/actions/groups'
-import {
-  updateUser,
-  disableUser,
-  enableUser,
-  unlockUser,
-  resetPassword,
-  deleteUser,
-  moveUser,
-} from '@/actions/users'
+import type { EditAttribute } from '@/types/ldap'
 
 const UAC_DISABLED = 2
 const UAC_DONT_EXPIRE_PASSWD = 65536
-
-function uacToFlags(value: number | string | undefined) {
-  const n = Number(value) || 0
-  return {
-    accountDisabled: (n & UAC_DISABLED) !== 0,
-    passwordNeverExpires: (n & UAC_DONT_EXPIRE_PASSWD) !== 0,
-  }
-}
 
 function flagsToUac(
   current: number | string | undefined,
@@ -85,22 +67,6 @@ function toFormValue(value: unknown): string {
   return String(value)
 }
 
-function buildFormFromUser(user: any, editList: EditAttribute[]): Record<string, string | boolean> {
-  const flags = uacToFlags(user?.userAccountControl)
-  const f: Record<string, string | boolean> = {
-    accountDisabled: flags.accountDisabled,
-    passwordNeverExpires: flags.passwordNeverExpires,
-  }
-  for (const a of editList) {
-    if (user && a.name in user) {
-      f[a.name] = toFormValue(user[a.name])
-    } else {
-      f[a.name] = ''
-    }
-  }
-  return f
-}
-
 interface UserEditFormProps {
   initialUser: any
   editConfig: { fetch: string[]; edit: EditAttribute[] }
@@ -111,15 +77,51 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
   const router = useRouter()
   const { session } = useAuth()
 
-  // Local state for user to reflect updates without full page reload if desired,
-  // though Server Actions usually revalidatePath. We'll update local state for immediate feedback.
-  const [user, setUser] = useState<any>(initialUser)
-  const [form, setForm] = useState<Record<string, string | boolean>>(() =>
-    buildFormFromUser(initialUser, editConfig.edit),
+  const id = initialUser?.sAMAccountName
+
+  const [updateState, submitAction, isSaving] = useActionState(
+    async (prevState: any, formData: FormData) => {
+      if (!id || !editConfig) return prevState
+      try {
+        const isAccountDisabled = formData.get('accountDisabled') === 'desativada'
+        const isPasswordNeverExpires = formData.get('passwordNeverExpires') === 'sim'
+        const uac = flagsToUac(
+          prevState?.userAccountControl ?? initialUser.userAccountControl,
+          isAccountDisabled,
+          isPasswordNeverExpires,
+        )
+        const body: Record<string, unknown> = { userAccountControl: uac }
+        for (const a of editConfig.edit) {
+          const v = formData.get(a.name)
+          if (typeof v === 'string' && v.trim() !== '') body[a.name] = v.trim()
+          else if (v !== null && v !== '') body[a.name] = v
+        }
+
+        const res = await updateUser(id, body)
+        if (!res.ok) throw new Error(res.error)
+
+        toast.success('Usuário atualizado.')
+        return res.data
+      } catch (err: any) {
+        toast.error(err.message || 'Erro ao salvar.')
+        return prevState
+      }
+    },
+    initialUser,
   )
 
-  const [saving, setSaving] = useState(false)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const user = updateState || initialUser
+
+  const [isPendingDisable, startDisable] = useTransition()
+  const [isPendingEnable, startEnable] = useTransition()
+  const [isPendingUnlock, startUnlock] = useTransition()
+  const [isPendingReset, startReset] = useTransition()
+  const [isPendingDelete, startDelete] = useTransition()
+  const [isPendingMove, startMove] = useTransition()
+  const [isPendingGroupRemove, startGroupRemove] = useTransition()
+
+  const [removingGroupId, setRemovingGroupId] = useState<string | null>(null)
+
   const [disableDialogOpen, setDisableDialogOpen] = useState(false)
   const [disableTargetOu, setDisableTargetOu] = useState('')
   const [resetPwdOpen, setResetPwdOpen] = useState(false)
@@ -128,13 +130,6 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
   const [moveOuDialogOpen, setMoveOuDialogOpen] = useState(false)
   const [moveOuTarget, setMoveOuTarget] = useState('')
   const [ousForMove, setOusForMove] = useState<{ dn: string; ou?: string; name?: string }[]>([])
-
-  const id = user?.sAMAccountName // Assuming ID is sAMAccountName or we should pass ID prop?
-  // Wait, the API uses sAMAccountName as ID usually but let's check.
-  // Yes, routes use [id].
-  // Actually, let's use the prop passed from page if needed, but user object usually has the ID.
-  // In the original code: const id = typeof params.id === "string" ? params.id : "";
-  // We'll trust initialUser has the necessary ID field (sAMAccountName).
 
   const sections = useMemo(() => {
     if (!editConfig?.edit.length) return []
@@ -146,36 +141,6 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
     const order = [...new Set(editConfig.edit.map((x) => x.section))]
     return order.map((name) => ({ name, attrs: bySection.get(name) ?? [] }))
   }, [editConfig?.edit])
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!id || !editConfig || saving) return
-    setSaving(true)
-    try {
-      const uac = flagsToUac(
-        user?.userAccountControl,
-        Boolean(form.accountDisabled),
-        Boolean(form.passwordNeverExpires),
-      )
-      const body: Record<string, unknown> = { userAccountControl: uac }
-      for (const a of editConfig.edit) {
-        const v = form[a.name]
-        if (typeof v === 'string' && v.trim() !== '') body[a.name] = v.trim()
-        else if (v !== undefined && v !== '') body[a.name] = v
-      }
-
-      const res = await updateUser(id, body)
-      if (!res.ok) throw new Error(res.error)
-
-      toast.success('Usuário atualizado.')
-      setUser(res.data)
-      if (editConfig) setForm(buildFormFromUser(res.data, editConfig.edit))
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar.')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   function openDisableDialog() {
     setDisableTargetOu('')
@@ -196,149 +161,136 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
     }
   }
 
-  async function handleMoveOu() {
-    if (!id || !moveOuTarget.trim() || actionLoading) return
-    const current = user?.dn ? parentOuFromDn(user.dn) : ''
-    if (dnMatch(moveOuTarget, current)) {
-      toast.info('O usuário já está nesta OU.')
-      return
-    }
-    setActionLoading('move')
-    try {
-      const res = await moveUser(id, moveOuTarget.trim())
-      if (!res.ok) throw new Error(res.error)
+  function handleMoveOu() {
+    startMove(async () => {
+      if (!id || !moveOuTarget.trim()) return
+      const current = user?.dn ? parentOuFromDn(user.dn) : ''
+      if (dnMatch(moveOuTarget, current)) {
+        toast.info('O usuário já está nesta OU.')
+        return
+      }
+      try {
+        const res = await moveUser(id, moveOuTarget.trim())
+        if (!res.ok) throw new Error(res.error)
 
-      toast.success('Usuário movido para a nova OU.')
-      setMoveOuDialogOpen(false)
-      // We need to refresh the user data.
-      // Since we updated the OU, the user's DN changed.
-      // The ID (sAMAccountName) remains the same.
-      // We can rely on revalidation or manual update.
-      // For now, let's manual update or trigger router refresh.
-      router.refresh()
-      // But we also need to update local state if we want immediate feedback without reload
-      // Ideally we fetch the new user data.
-      // Let's assume router.refresh() handles it if this was a server component page,
-      // but here we might want to fetch fresh data?
-      // Actually, since we are in a client component, we can use a server action to get fresh user data.
-      // But we don't have a direct 'get' import here conveniently except implementing one or passing it.
-      // We'll rely on router.refresh() to re-render the Server Component parent which passes new props.
-      // However, router.refresh() is async and doesn't return a promise we can await easily to set state.
-      // Hmmm. Let's try to update local state optimistically or just wait.
-      // For this migration, let's just show success.
-      // Actually, let's trigger a full page reload or navigate to same page to ensure sync.
-      // Or better, just trust router.refresh().
-    } catch (err: any) {
-      toast.error(err.message || 'Falha ao mover usuário.')
-    } finally {
-      setActionLoading(null)
-    }
+        toast.success('Usuário movido para a nova OU.')
+        setMoveOuDialogOpen(false)
+        router.refresh()
+      } catch (err: any) {
+        toast.error(err.message || 'Falha ao mover usuário.')
+      }
+    })
   }
 
-  async function handleDisablePermanent() {
-    if (!id || actionLoading) return
-    setActionLoading('disable')
-    try {
-      const res = await disableUser(id, disableTargetOu ? { targetOu: disableTargetOu } : undefined)
-      if (!res.ok) throw new Error(res.error)
+  function handleDisablePermanent() {
+    startDisable(async () => {
+      if (!id) return
+      try {
+        const res = await disableUser(
+          id,
+          disableTargetOu ? { targetOu: disableTargetOu } : undefined,
+        )
+        if (!res.ok) throw new Error(res.error)
 
-      toast.success(
-        disableTargetOu
-          ? 'Conta desativada e usuário movido para a OU informada.'
-          : 'Conta desativada.',
-      )
-      setDisableDialogOpen(false)
-      router.refresh()
-    } catch (err: any) {
-      toast.error(err.message || 'Falha ao desativar.')
-    } finally {
-      setActionLoading(null)
-    }
+        toast.success(
+          disableTargetOu
+            ? 'Conta desativada e usuário movido para a OU informada.'
+            : 'Conta desativada.',
+        )
+        setDisableDialogOpen(false)
+        router.refresh()
+      } catch (err: any) {
+        toast.error(err.message || 'Falha ao desativar.')
+      }
+    })
   }
 
-  async function handleEnable() {
-    if (!id || actionLoading) return
-    setActionLoading('enable')
-    try {
-      const res = await enableUser(id)
-      if (!res.ok) throw new Error(res.error)
+  function handleEnable() {
+    startEnable(async () => {
+      if (!id) return
+      try {
+        const res = await enableUser(id)
+        if (!res.ok) throw new Error(res.error)
 
-      toast.success('Conta ativada.')
-      router.refresh()
-    } catch (err: any) {
-      toast.error(err.message || 'Falha ao ativar.')
-    } finally {
-      setActionLoading(null)
-    }
+        toast.success('Conta ativada.')
+        router.refresh()
+      } catch (err: any) {
+        toast.error(err.message || 'Falha ao ativar.')
+      }
+    })
   }
 
-  async function handleUnlock() {
-    if (!id || actionLoading) return
-    setActionLoading('unlock')
-    try {
-      const res = await unlockUser(id)
-      if (!res.ok) throw new Error(res.error)
+  function handleUnlock() {
+    startUnlock(async () => {
+      if (!id) return
+      try {
+        const res = await unlockUser(id)
+        if (!res.ok) throw new Error(res.error)
 
-      toast.success('Conta desbloqueada.')
-    } catch (err: any) {
-      toast.error(err.message || 'Falha ao desbloquear.')
-    } finally {
-      setActionLoading(null)
-    }
+        toast.success('Conta desbloqueada.')
+      } catch (err: any) {
+        toast.error(err.message || 'Falha ao desbloquear.')
+      }
+    })
   }
 
-  async function handleRemoveFromGroup(groupDn: string) {
-    if (!id || !user?.dn || actionLoading) return
+  function handleRemoveFromGroup(groupDn: string) {
     const groupCn = cnFromDn(groupDn)
-    setActionLoading(`rm-${groupCn}`)
-    try {
-      const res = await removeMemberFromGroup(groupCn, user.dn)
-      if (!res.ok) throw new Error(res.error)
+    setRemovingGroupId(groupCn)
+    startGroupRemove(async () => {
+      if (!id || !user?.dn) {
+        setRemovingGroupId(null)
+        return
+      }
+      try {
+        const res = await removeMemberFromGroup(groupCn, user.dn)
+        if (!res.ok) throw new Error(res.error)
 
-      toast.success(`Removido do grupo ${groupCn}.`)
-      router.refresh()
-    } catch (err: any) {
-      toast.error(err.message || 'Falha ao remover do grupo.')
-    } finally {
-      setActionLoading(null)
-    }
+        toast.success(`Removido do grupo ${groupCn}.`)
+        router.refresh()
+      } catch (err: any) {
+        toast.error(err.message || 'Falha ao remover do grupo.')
+      } finally {
+        setRemovingGroupId(null)
+      }
+    })
   }
 
-  async function handleResetPassword() {
-    if (!id || !resetPwdValue.trim() || actionLoading) return
-    setActionLoading('reset')
-    try {
-      const res = await resetPassword(id, resetPwdValue)
-      if (!res.ok) throw new Error(res.error)
+  function handleResetPassword() {
+    startReset(async () => {
+      if (!id || !resetPwdValue.trim() || resetPwdValue.length < 8) return
+      try {
+        const res = await resetPassword(id, resetPwdValue)
+        if (!res.ok) throw new Error(res.error)
 
-      toast.success('Senha redefinida.')
-      setResetPwdOpen(false)
-      setResetPwdValue('')
-    } catch (err: any) {
-      toast.error(err.message || 'Falha ao redefinir senha.')
-    } finally {
-      setActionLoading(null)
-    }
+        toast.success('Senha redefinida.')
+        setResetPwdOpen(false)
+        setResetPwdValue('')
+      } catch (err: any) {
+        toast.error(err.message || 'Falha ao redefinir senha.')
+      }
+    })
   }
 
-  async function handleDelete() {
-    if (!id || actionLoading) return
-    setActionLoading('delete')
-    try {
-      const res = await deleteUser(id)
-      if (!res.ok) throw new Error(res.error)
+  function handleDelete() {
+    startDelete(async () => {
+      if (!id) return
+      try {
+        const res = await deleteUser(id)
+        if (!res.ok) throw new Error(res.error)
 
-      toast.success('Usuário excluído.')
-      setDeleteDialogOpen(false)
-      router.replace('/users')
-    } catch (err: any) {
-      toast.error(err.message || 'Falha ao excluir.')
-    } finally {
-      setActionLoading(null)
-    }
+        toast.success('Usuário excluído.')
+        setDeleteDialogOpen(false)
+        router.replace('/users')
+      } catch (err: any) {
+        toast.error(err.message || 'Falha ao excluir.')
+      }
+    })
   }
 
   const isDisabled = (Number(user.userAccountControl) || 0) & UAC_DISABLED
+  const isPwdNeverExpires = (Number(user.userAccountControl) || 0) & UAC_DONT_EXPIRE_PASSWD
+
   const memberOfList = Array.isArray(user.memberOf)
     ? user.memberOf
     : user.memberOf
@@ -354,9 +306,9 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" leftIcon="arrow-left" asChild>
           <Link href="/users">
-            <ArrowLeft className="size-4" />
+            <span className="sr-only">Voltar</span>
           </Link>
         </Button>
         <div>
@@ -381,33 +333,34 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {isDisabled ? (
-            <Button variant="default" size="sm" onClick={handleEnable} disabled={!!actionLoading}>
-              {actionLoading === 'enable' ? (
-                <Loader2 className="size-4 animate-spin mr-2" />
-              ) : (
-                <UserCheck className="size-4 mr-2" />
-              )}
-              Ativar conta
-            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleEnable}
+              disabled={isPendingEnable}
+              loading={isPendingEnable}
+              leftIcon="user-check"
+              text="Ativar conta"
+            />
           ) : (
             <Button
               variant="destructive"
               size="sm"
               onClick={openDisableDialog}
-              disabled={!!actionLoading}
-            >
-              <UserX className="size-4 mr-2" />
-              Desativar conta
-            </Button>
+              disabled={isPendingDisable}
+              leftIcon="user-x"
+              text="Desativar conta"
+            />
           )}
-          <Button variant="outline" size="sm" onClick={handleUnlock} disabled={!!actionLoading}>
-            {actionLoading === 'unlock' ? (
-              <Loader2 className="size-4 animate-spin mr-2" />
-            ) : (
-              <Unlock className="size-4 mr-2" />
-            )}
-            Desbloquear conta
-          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleUnlock}
+            disabled={isPendingUnlock}
+            loading={isPendingUnlock}
+            leftIcon="unlock"
+            text="Desbloquear conta"
+          />
           <Button
             variant="outline"
             size="sm"
@@ -415,29 +368,21 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
               setResetPwdValue('')
               setResetPwdOpen(true)
             }}
-            disabled={!!actionLoading}
-          >
-            {actionLoading === 'reset' ? (
-              <Loader2 className="size-4 animate-spin mr-2" />
-            ) : (
-              <KeyRound className="size-4 mr-2" />
-            )}
-            Redefinir senha
-          </Button>
+            disabled={isPendingReset}
+            loading={isPendingReset}
+            leftIcon="key-round"
+            text="Redefinir senha"
+          />
           {session?.canDelete && (
             <Button
               variant="destructive"
               size="sm"
               onClick={() => setDeleteDialogOpen(true)}
-              disabled={!!actionLoading}
-            >
-              {actionLoading === 'delete' ? (
-                <Loader2 className="size-4 animate-spin mr-2" />
-              ) : (
-                <Trash2 className="size-4 mr-2" />
-              )}
-              Excluir usuário
-            </Button>
+              disabled={isPendingDelete}
+              loading={isPendingDelete}
+              leftIcon="trash-2"
+              text="Excluir usuário"
+            />
           )}
         </CardContent>
       </Card>
@@ -471,11 +416,10 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
               variant="outline"
               size="sm"
               onClick={openMoveOuDialog}
-              disabled={!!actionLoading}
-            >
-              <ArrowRightLeft className="size-4 mr-2" />
-              Mover para outra OU
-            </Button>
+              loading={isPendingMove}
+              leftIcon="arrow-right-left"
+              text="Mover para outra OU"
+            />
           </div>
         </CardContent>
       </Card>
@@ -488,7 +432,7 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form action={submitAction} className="space-y-6">
             {sections.map(({ name: sectionName, attrs }) => (
               <div key={sectionName} className="space-y-4">
                 <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
@@ -500,11 +444,11 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
                       <Label htmlFor={a.name}>{a.label}</Label>
                       <Input
                         id={a.name}
+                        name={a.name}
                         type={
                           a.name === 'mail' ? 'email' : a.name === 'wWWHomePage' ? 'url' : 'text'
                         }
-                        value={String(form[a.name] ?? '')}
-                        onChange={(e) => setForm((f) => ({ ...f, [a.name]: e.target.value }))}
+                        defaultValue={toFormValue(user[a.name] ?? '')}
                       />
                     </div>
                   ))}
@@ -525,12 +469,7 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
             <div className="grid gap-4 sm:grid-cols-2 pt-2">
               <div className="space-y-2">
                 <Label>Status da conta</Label>
-                <Select
-                  value={form.accountDisabled ? 'desativada' : 'ativa'}
-                  onValueChange={(v) =>
-                    setForm((f) => ({ ...f, accountDisabled: v === 'desativada' }))
-                  }
-                >
+                <Select name="accountDisabled" defaultValue={isDisabled ? 'desativada' : 'ativa'}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -546,10 +485,8 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
               <div className="space-y-2">
                 <Label>Senha nunca expira</Label>
                 <Select
-                  value={form.passwordNeverExpires ? 'sim' : 'nao'}
-                  onValueChange={(v) =>
-                    setForm((f) => ({ ...f, passwordNeverExpires: v === 'sim' }))
-                  }
+                  name="passwordNeverExpires"
+                  defaultValue={isPwdNeverExpires ? 'sim' : 'nao'}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -566,9 +503,7 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" disabled={saving}>
-                {saving ? 'Salvando…' : 'Salvar'}
-              </Button>
+              <Button type="submit" disabled={isSaving} loading={isSaving} text="Salvar" />
               <Button type="button" variant="outline" asChild>
                 <Link href="/users">Cancelar</Link>
               </Button>
@@ -590,7 +525,7 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
             <ul className="space-y-2">
               {memberOfList.map((dn: string) => {
                 const cn = cnFromDn(dn)
-                const loadingRm = actionLoading === `rm-${cn}`
+                const loadingRm = isPendingGroupRemove && removingGroupId === cn
                 return (
                   <li key={dn} className="flex items-center justify-between rounded-lg border p-3">
                     <span className="font-mono text-sm truncate flex-1" title={dn}>
@@ -601,10 +536,10 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
                       size="sm"
                       className="shrink-0 text-destructive hover:text-destructive"
                       onClick={() => handleRemoveFromGroup(dn)}
-                      disabled={!!actionLoading}
-                    >
-                      {loadingRm ? <Loader2 className="size-4 animate-spin" /> : 'Remover do grupo'}
-                    </Button>
+                      disabled={isPendingGroupRemove}
+                      loading={loadingRm}
+                      text="Remover do grupo"
+                    />
                   </li>
                 )
               })}
@@ -621,8 +556,8 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         handleConfirm={handleDisablePermanent}
         confirmButtonProps={{
           variant: 'destructive',
-          disabled: actionLoading === 'disable',
-          loading: actionLoading === 'disable',
+          disabled: isPendingDisable,
+          loading: isPendingDisable,
           loadingText: 'Desativando…',
           text: 'Desativar',
         }}
@@ -654,18 +589,18 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         className="sm:max-w-md"
         title={
           <span className="flex items-center gap-2">
-            <ArrowRightLeft className="size-4" />
+            <FolderTree className="size-4" />
             Mover usuário para outra OU
           </span>
         }
         description="Escolha a unidade organizacional de destino. O usuário permanecerá ativo; apenas a localização no AD será alterada."
         handleConfirm={handleMoveOu}
         confirmButtonProps={{
-          disabled: !moveOuTarget.trim() || actionLoading === 'move' || dnMatch(moveOuTarget, currentOuDn),
-          loading: actionLoading === 'move',
+          disabled: !moveOuTarget.trim() || isPendingMove || dnMatch(moveOuTarget, currentOuDn),
+          loading: isPendingMove,
           loadingText: 'Movendo…',
           text: 'Mover',
-          leftIcon: actionLoading === 'move' ? undefined : <ArrowRightLeft className="size-4" />
+          leftIcon: isPendingMove ? undefined : 'arrow-right-left',
         }}
       >
         <div className="space-y-4 py-2">
@@ -707,8 +642,8 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         description="Defina uma nova senha para este usuário. Ele precisará usá-la no próximo login."
         handleConfirm={handleResetPassword}
         confirmButtonProps={{
-          disabled: !resetPwdValue.trim() || resetPwdValue.length < 8 || actionLoading === 'reset',
-          loading: actionLoading === 'reset',
+          disabled: !resetPwdValue.trim() || resetPwdValue.length < 8 || isPendingReset,
+          loading: isPendingReset,
           text: 'Redefinir',
         }}
       >
@@ -733,8 +668,8 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         handleConfirm={handleDelete}
         confirmButtonProps={{
           variant: 'destructive',
-          disabled: actionLoading === 'delete',
-          loading: actionLoading === 'delete',
+          disabled: isPendingDelete,
+          loading: isPendingDelete,
           text: 'Excluir permanentemente',
         }}
       />

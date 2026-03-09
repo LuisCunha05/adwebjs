@@ -1,7 +1,7 @@
 import { listSchedule } from '@/actions/schedule'
+import { verifySession } from '@/utils/manage-jwt'
 import { ScheduleForm } from './schedule-form'
 import { VacationList } from './vacation-list'
-import { verifySession } from '@/utils/manage-jwt'
 
 export default async function SchedulePage() {
   await verifySession()

@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { cancelTask } from '@/actions/schedule'
 import { Button } from '@compound/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Trash2, Download } from 'lucide-react'
+import { Download, Loader2, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { toast } from 'sonner'
-import { type ScheduledTask, ScheduleStatus } from '@/types/schedule'
+import { cancelTask } from '@/actions/schedule'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type { ScheduledTask, ScheduleStatus } from '@/types/schedule'
 
 type VacationGroup = {
   vacationId: number | string

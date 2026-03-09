@@ -1,16 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { Button } from '@compound/button'
+import { CalendarClock, Loader2, UserSearch } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { createVacation } from '@/actions/schedule'
 import { listUsers } from '@/actions/users'
-import { Button } from '@compound/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CalendarClock, Loader2, UserSearch } from 'lucide-react'
-import { toast } from 'sonner'
-import { ActiveDirectoryUser } from '@/schemas/attributesAd'
+import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
 import { PaginatedResult } from '@/types/ldap'
 
 export function ScheduleForm() {

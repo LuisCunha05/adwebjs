@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getGroup, getGroupMembersResolved } from '@/actions/groups'
-import { GroupEditForm } from './group-edit-form'
 import { verifySession } from '@/utils/manage-jwt'
+import { GroupEditForm } from './group-edit-form'
 
 export default async function GroupEditPage(props: { params: Promise<{ id: string }> }) {
   await verifySession()

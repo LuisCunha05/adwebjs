@@ -1,30 +1,30 @@
 'use client'
 
+import { Button } from '@compound/button'
+import {
+  CalendarClock,
+  ChevronRight,
+  FolderOpen,
+  FolderTree,
+  LayoutDashboard,
+  LogOut,
+  Monitor,
+  Moon,
+  ScrollText,
+  Sun,
+  Users,
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  LayoutDashboard,
-  Users,
-  FolderTree,
-  FolderOpen,
-  CalendarClock,
-  ScrollText,
-  LogOut,
-  ChevronRight,
-  Sun,
-  Moon,
-  Monitor,
-} from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/components/auth-provider'
-import { Button } from '@compound/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
 const navItems = (isAdmin: boolean) => [

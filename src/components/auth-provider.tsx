@@ -1,8 +1,9 @@
 'use client'
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import type React from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { logout as logoutAction } from '@/actions/auth'
-import { type Session } from '@/types/session'
+import type { Session } from '@/types/session'
 
 type AuthState = {
   session: Session | null

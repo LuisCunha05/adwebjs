@@ -1,12 +1,12 @@
 'use client'
 
+import { Button } from '@compound/button'
+import { LayoutDashboard } from 'lucide-react'
 import { useActionState } from 'react'
 import { loginAction } from '@/actions/auth'
-import { Button } from '@compound/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { LayoutDashboard } from 'lucide-react'
 
 const DEFAULT_STATE = {
   username: '',
