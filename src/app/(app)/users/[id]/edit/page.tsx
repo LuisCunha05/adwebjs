@@ -3,7 +3,7 @@ import { getUserAttributesConfig } from '@/actions/config'
 import { listOUs } from '@/actions/ous'
 import { getUser } from '@/actions/users'
 import { verifySession } from '@/utils/manage-jwt'
-import { UserEditForm } from './user-edit-form'
+import { UserEditForm } from './_components/form'
 
 export default async function UserEditPage(props: { params: Promise<{ id: string }> }) {
   await verifySession()
