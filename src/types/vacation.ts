@@ -8,7 +8,7 @@ export interface Vacation {
 }
 
 export interface IVacationRepository {
-  add(vacation: Omit<Vacation, 'id' | 'createdAt'>): number
-  get(id: number): Vacation | undefined
-  remove(id: number): void
+  add(vacation: Omit<Vacation, 'id' | 'createdAt'>): Promise<number>
+  get(id: number): Promise<Vacation | undefined>
+  remove(id: number): Promise<void>
 }

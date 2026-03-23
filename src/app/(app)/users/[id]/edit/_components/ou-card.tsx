@@ -9,7 +9,12 @@ interface OuCardProps {
   isPendingMove: boolean
 }
 
-export function OuCard({ currentOuDn, currentOuDisplay, openMoveOuDialog, isPendingMove }: OuCardProps) {
+export function OuCard({
+  currentOuDn,
+  currentOuDisplay,
+  openMoveOuDialog,
+  isPendingMove,
+}: OuCardProps) {
   return (
     <Card className="max-w-2xl">
       <CardHeader>

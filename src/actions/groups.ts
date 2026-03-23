@@ -38,7 +38,7 @@ export async function updateGroup(
   await verifySession()
   try {
     const updated = await ldapService.updateGroup(id, changes)
-    auditService.log({
+    await auditService.log({
       action: 'group.update',
       actor: 'server-action',
       target: id,
@@ -48,7 +48,7 @@ export async function updateGroup(
     return { ok: true, data: JSON.parse(JSON.stringify(updated)) }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Update failed'
-    auditService.log({
+    await auditService.log({
       action: 'group.update',
       actor: 'server-action',
       target: id,
@@ -64,7 +64,7 @@ export async function addMemberToGroup(id: string, dn: string): Promise<ActionRe
   if (!dn) return { ok: false, error: 'dn required' }
   try {
     await ldapService.addMemberToGroup(id, dn.trim())
-    auditService.log({
+    await auditService.log({
       action: 'group.member_add',
       actor: 'server-action',
       target: id,
@@ -74,7 +74,7 @@ export async function addMemberToGroup(id: string, dn: string): Promise<ActionRe
     return { ok: true }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Add member failed'
-    auditService.log({
+    await auditService.log({
       action: 'group.member_add',
       actor: 'server-action',
       target: id,
@@ -91,7 +91,7 @@ export async function removeMemberFromGroup(id: string, dn: string): Promise<Act
   if (!dn) return { ok: false, error: 'dn required' }
   try {
     await ldapService.removeMemberFromGroup(id, dn.trim())
-    auditService.log({
+    await auditService.log({
       action: 'group.member_remove',
       actor: 'server-action',
       target: id,
@@ -101,7 +101,7 @@ export async function removeMemberFromGroup(id: string, dn: string): Promise<Act
     return { ok: true }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Remove member failed'
-    auditService.log({
+    await auditService.log({
       action: 'group.member_remove',
       actor: 'server-action',
       target: id,

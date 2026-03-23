@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Vacation {
+  id          Int      @id @default(autoincrement())
+  userId      String   @map("user_id")
+  startDate   String   @map("start_date")
+  endDate     String   @map("end_date")
+  description String?
+  createdAt   String   @map("created_at")
+
+  @@map("vacations")
+}
+
+model ScheduledTask {
+  id           Int      @id @default(autoincrement())
+  type         String   @db.VarChar(50)
+  status       String   @default("PENDING") @db.VarChar(20)
+  runAt        String   @map("run_at")
+  relatedId    Int      @map("related_id")
+  relatedTable String   @map("related_table") @db.VarChar(50)
+  createdAt    String   @map("created_at")
+  executedAt   String?  @map("executed_at")
+  error        String?
+
+  @@map("scheduled_tasks")
+}
+
+model AuditLog {
+  id      Int     @id @default(autoincrement())
+  at      String
+  action  String
+  actor   String
+  target  String?
+  details String?
+  success Int
+  error   String?
+
+  @@map("audit_logs")
+}

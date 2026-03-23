@@ -1,44 +1,38 @@
-import type { IDatabase } from '../types/database'
+import type { DatabaseClient } from '../types/database'
 import type { IVacationRepository, Vacation } from '../types/vacation'
 
 export class VacationRepository implements IVacationRepository {
-  constructor(private db: IDatabase) {}
+  constructor(private db: DatabaseClient) {}
 
-  add(vacation: Omit<Vacation, 'id' | 'createdAt'>): number {
+  async add(vacation: Omit<Vacation, 'id' | 'createdAt'>): Promise<number> {
     const createdAt = new Date().toISOString()
-    const stmt = this.db.prepare(`
-            INSERT INTO vacations (user_id, start_date, end_date, description, created_at)
-            VALUES (?, ?, ?, ?, ?)
-            RETURNING id
-        `)
-    const result = stmt.all(
-      vacation.userId,
-      vacation.startDate,
-      vacation.endDate,
-      vacation.description || null,
-      createdAt,
-    ) as { id: number | bigint }[]
-
-    if (result.length === 0) throw new Error('Failed to insert vacation')
-    return Number(result[0].id)
+    const result = await this.db.vacation.create({
+      data: {
+        userId: vacation.userId,
+        startDate: vacation.startDate,
+        endDate: vacation.endDate,
+        description: vacation.description || null,
+        createdAt: createdAt,
+      },
+      select: { id: true },
+    })
+    return result.id
   }
 
-  get(id: number): Vacation | undefined {
-    const stmt = this.db.prepare('SELECT * FROM vacations WHERE id = ?')
-    const row = stmt.get(id) as any
+  async get(id: number): Promise<Vacation | undefined> {
+    const row = await this.db.vacation.findUnique({ where: { id } })
     if (!row) return undefined
     return {
       id: row.id,
-      userId: row.user_id,
-      startDate: row.start_date,
-      endDate: row.end_date,
+      userId: row.userId,
+      startDate: row.startDate,
+      endDate: row.endDate,
       description: row.description || undefined,
-      createdAt: row.created_at,
+      createdAt: row.createdAt,
     }
   }
 
-  remove(id: number): void {
-    const stmt = this.db.prepare('DELETE FROM vacations WHERE id = ?')
-    stmt.run(id)
+  async remove(id: number): Promise<void> {
+    await this.db.vacation.delete({ where: { id } })
   }
 }

@@ -3,11 +3,11 @@ import type { IScheduleRepository, ScheduledTask } from '../types/schedule'
 export class ScheduleService {
   constructor(private scheduleRepo: IScheduleRepository) {}
 
-  list(): ScheduledTask[] {
-    return this.scheduleRepo.listAll()
+  async list(): Promise<ScheduledTask[]> {
+    return await this.scheduleRepo.listAll()
   }
 
-  remove(id: number): boolean {
-    return this.scheduleRepo.remove(id)
+  async remove(id: number): Promise<boolean> {
+    return await this.scheduleRepo.remove(id)
   }
 }

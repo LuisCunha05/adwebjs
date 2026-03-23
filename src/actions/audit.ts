@@ -22,7 +22,7 @@ export async function listAuditLogs(filters?: {
   await verifySession()
   try {
     const limit = filters?.limit ? Math.min(Number(filters.limit), 2000) : 500
-    const entries = auditService.list({ ...filters, limit } as any)
+    const entries = await auditService.list({ ...filters, limit } as any)
     return { ok: true, data: JSON.parse(JSON.stringify(entries)) }
   } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : 'Audit list failed' }

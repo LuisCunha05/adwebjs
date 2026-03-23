@@ -39,9 +39,7 @@ export function AttributesCard({
     <Card className="max-w-2xl">
       <CardHeader>
         <CardTitle>Atributos</CardTitle>
-        <CardDescription>
-          Dados configurados para o AD. Edite o que for necessário.
-        </CardDescription>
+        <CardDescription>Dados configurados para o AD. Edite o que for necessário.</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={submitAction} className="space-y-6">
@@ -57,9 +55,7 @@ export function AttributesCard({
                     <Input
                       id={a.name}
                       name={a.name}
-                      type={
-                        a.name === 'mail' ? 'email' : a.name === 'wWWHomePage' ? 'url' : 'text'
-                      }
+                      type={a.name === 'mail' ? 'email' : a.name === 'wWWHomePage' ? 'url' : 'text'}
                       defaultValue={toFormValue(user[a.name] ?? '')}
                     />
                   </div>
@@ -96,10 +92,7 @@ export function AttributesCard({
             </div>
             <div className="space-y-2">
               <Label>Senha nunca expira</Label>
-              <Select
-                name="passwordNeverExpires"
-                defaultValue={isPwdNeverExpires ? 'sim' : 'nao'}
-              >
+              <Select name="passwordNeverExpires" defaultValue={isPwdNeverExpires ? 'sim' : 'nao'}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

@@ -1,19 +1,26 @@
+import { executeTx } from '../../infrastructure/database'
+import { ScheduleRepository } from '../../repositories/schedule-repository'
+import { VacationRepository } from '../../repositories/vacation-repository'
 import type { IVacationScheduler } from '../../types/contracts/vacation-scheduler'
-import type { IDatabase } from '../../types/database'
+import type { DatabaseClient } from '../../types/database'
 import { type IScheduleRepository, ScheduleStatus } from '../../types/schedule'
 import type { IVacationRepository } from '../../types/vacation'
 
 export class VacationScheduleService implements IVacationScheduler {
   constructor(
-    private db: IDatabase,
+    private db: DatabaseClient,
     private vacationRepo: IVacationRepository,
     private scheduleRepo: IScheduleRepository,
   ) {}
 
-  schedule(userId: string, startDate: string, endDate: string): number {
-    return this.db.transaction(() => {
+  async schedule(userId: string, startDate: string, endDate: string): Promise<number> {
+    return await executeTx(this.db, async (tx) => {
+      // Use transaction-scoped repositories
+      const txVacationRepo = new VacationRepository(tx)
+      const txScheduleRepo = new ScheduleRepository(tx)
+
       // 1. Create Vacation
-      const vacationId = this.vacationRepo.add({
+      const vacationId = await txVacationRepo.add({
         userId,
         startDate,
         endDate,
@@ -21,7 +28,7 @@ export class VacationScheduleService implements IVacationScheduler {
       })
 
       // 2. Schedule Start Task
-      this.scheduleRepo.add({
+      await txScheduleRepo.add({
         type: 'VACATION_START',
         status: ScheduleStatus.PENDING,
         runAt: startDate,
@@ -30,7 +37,7 @@ export class VacationScheduleService implements IVacationScheduler {
       })
 
       // 3. Schedule End Task
-      this.scheduleRepo.add({
+      await txScheduleRepo.add({
         type: 'VACATION_END',
         status: ScheduleStatus.PENDING,
         runAt: endDate,
@@ -43,10 +50,13 @@ export class VacationScheduleService implements IVacationScheduler {
   }
 
   // Handles the deletion of a vacation and its associated tasks
-  cancel(vacationId: number): number {
-    return this.db.transaction(() => {
-      const tasksRemoved = this.scheduleRepo.removeByRelatedId(vacationId, 'vacations')
-      this.vacationRepo.remove(vacationId)
+  async cancel(vacationId: number): Promise<number> {
+    return await executeTx(this.db, async (tx) => {
+      const txVacationRepo = new VacationRepository(tx)
+      const txScheduleRepo = new ScheduleRepository(tx)
+
+      const tasksRemoved = await txScheduleRepo.removeByRelatedId(vacationId, 'vacations')
+      await txVacationRepo.remove(vacationId)
       return tasksRemoved
     })
   }

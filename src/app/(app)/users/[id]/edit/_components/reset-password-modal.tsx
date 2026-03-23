@@ -1,6 +1,6 @@
 import { Modal } from '@/components/compound/modal'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface ResetPasswordModalProps {
   open: boolean

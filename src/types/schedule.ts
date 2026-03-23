@@ -19,14 +19,14 @@ export interface ScheduledTask {
 }
 
 export interface IScheduleRepository {
-  add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): number
-  listPending(maxDate?: Date): ScheduledTask[]
-  listAll(): ScheduledTask[]
+  add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): Promise<number>
+  listPending(maxDate?: Date): Promise<ScheduledTask[]>
+  listAll(): Promise<ScheduledTask[]>
   updateStatus(
     id: number,
     status: ScheduleStatus,
     details?: { error?: string; executedAt?: string },
-  ): void
-  remove(id: number): boolean
-  removeByRelatedId(relatedId: number, relatedTable: string): number
+  ): Promise<void>
+  remove(id: number): Promise<boolean>
+  removeByRelatedId(relatedId: number, relatedTable: string): Promise<number>
 }

@@ -1,4 +1,4 @@
-import { SqliteDatabase } from '../infrastructure/database'
+import { db } from '../infrastructure/database'
 import { AuditRepository } from '../repositories/audit-repository'
 import { ScheduleRepository } from '../repositories/schedule-repository'
 import { VacationRepository } from '../repositories/vacation-repository'
@@ -12,8 +12,7 @@ import { VacationService } from './vacation'
 // Singleton instance
 const ldapService: ILdapService = new LdapService()
 
-const db = new SqliteDatabase()
-// db.init() is now lazy
+// db is exported globally now
 
 const scheduleRepository = new ScheduleRepository(db)
 const vacationRepository = new VacationRepository(db)

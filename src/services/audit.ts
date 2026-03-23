@@ -4,14 +4,14 @@ import type { AuditAction, AuditEntry, AuditListFilters } from '../types/audit'
 export class AuditService {
   constructor(private repository: AuditRepository) {}
 
-  log(params: {
+  async log(params: {
     action: AuditAction
     actor: string
     target?: string
     details?: Record<string, unknown>
     success: boolean
     error?: string
-  }): void {
+  }): Promise<void> {
     const entry: Omit<AuditEntry, 'id'> = {
       at: new Date().toISOString(),
       action: params.action,
@@ -21,10 +21,10 @@ export class AuditService {
       success: params.success,
       error: params.error,
     }
-    this.repository.create(entry)
+    await this.repository.create(entry)
   }
 
-  list(filters: AuditListFilters = {}): AuditEntry[] {
-    return this.repository.list(filters)
+  async list(filters: AuditListFilters = {}): Promise<AuditEntry[]> {
+    return await this.repository.list(filters)
   }
 }

@@ -18,7 +18,7 @@ export async function moveUser(id: string, targetOuDn: string): Promise<ActionRe
   if (!targetOuDn) return { ok: false, error: 'targetOuDn é obrigatório' }
   try {
     await ldapService.moveUserToOu(id, targetOuDn)
-    auditService.log({
+    await auditService.log({
       action: 'user.move',
       actor: 'server-action',
       target: id,
@@ -27,7 +27,7 @@ export async function moveUser(id: string, targetOuDn: string): Promise<ActionRe
     })
     return { ok: true }
   } catch (err: any) {
-    auditService.log({
+    await auditService.log({
       action: 'user.move',
       actor: 'server-action',
       target: id,
@@ -57,7 +57,7 @@ export async function updateUser(
   await verifySession()
   try {
     const updated = await ldapService.updateUser(id, data)
-    auditService.log({
+    await auditService.log({
       action: 'user.update',
       actor: 'server-action',
       target: id,
@@ -66,7 +66,7 @@ export async function updateUser(
     })
     return { ok: true, data: JSON.parse(JSON.stringify(updated)) }
   } catch (err: any) {
-    auditService.log({
+    await auditService.log({
       action: 'user.update',
       actor: 'server-action',
       target: id,
@@ -81,7 +81,7 @@ export async function disableUser(id: string, opts?: { targetOu?: string }): Pro
   await verifySession()
   try {
     await ldapService.disableUser(id, opts)
-    auditService.log({
+    await auditService.log({
       action: 'user.disable',
       actor: 'server-action',
       target: id,
@@ -90,7 +90,7 @@ export async function disableUser(id: string, opts?: { targetOu?: string }): Pro
     })
     return { ok: true }
   } catch (err: any) {
-    auditService.log({
+    await auditService.log({
       action: 'user.disable',
       actor: 'server-action',
       target: id,
@@ -105,10 +105,15 @@ export async function enableUser(id: string): Promise<ActionResult> {
   await verifySession()
   try {
     await ldapService.enableUser(id)
-    auditService.log({ action: 'user.enable', actor: 'server-action', target: id, success: true })
+    await auditService.log({
+      action: 'user.enable',
+      actor: 'server-action',
+      target: id,
+      success: true,
+    })
     return { ok: true }
   } catch (err: any) {
-    auditService.log({
+    await auditService.log({
       action: 'user.enable',
       actor: 'server-action',
       target: id,
@@ -123,10 +128,15 @@ export async function unlockUser(id: string): Promise<ActionResult> {
   await verifySession()
   try {
     await ldapService.unlockUser(id)
-    auditService.log({ action: 'user.unlock', actor: 'server-action', target: id, success: true })
+    await auditService.log({
+      action: 'user.unlock',
+      actor: 'server-action',
+      target: id,
+      success: true,
+    })
     return { ok: true }
   } catch (err: any) {
-    auditService.log({
+    await auditService.log({
       action: 'user.unlock',
       actor: 'server-action',
       target: id,
@@ -142,7 +152,7 @@ export async function resetPassword(id: string, newPassword: string): Promise<Ac
   if (!newPassword) return { ok: false, error: 'Password required' }
   try {
     await ldapService.setPassword(id, newPassword)
-    auditService.log({
+    await auditService.log({
       action: 'user.reset_password',
       actor: 'server-action',
       target: id,
@@ -150,7 +160,7 @@ export async function resetPassword(id: string, newPassword: string): Promise<Ac
     })
     return { ok: true }
   } catch (err: any) {
-    auditService.log({
+    await auditService.log({
       action: 'user.reset_password',
       actor: 'server-action',
       target: id,
@@ -171,7 +181,7 @@ export async function deleteUser(id: string): Promise<ActionResult> {
       return { ok: false, error: 'Ação não permitida' }
 
     await ldapService.deleteUser(id)
-    auditService.log({
+    await auditService.log({
       action: 'user.delete',
       actor: session.user.sAMAccountName,
       target: id,
@@ -179,7 +189,7 @@ export async function deleteUser(id: string): Promise<ActionResult> {
     })
     return { ok: true }
   } catch (err: any) {
-    auditService.log({
+    await auditService.log({
       action: 'user.delete',
       actor: session.user.sAMAccountName,
       target: id,
@@ -215,7 +225,7 @@ export async function createUser(body: any): Promise<ActionResult<any>> {
   await verifySession()
   try {
     const user = await ldapService.createUser(body)
-    auditService.log({
+    await auditService.log({
       action: 'user.create',
       actor: 'server-action',
       target: body.sAMAccountName,
@@ -224,7 +234,7 @@ export async function createUser(body: any): Promise<ActionResult<any>> {
     })
     return { ok: true, data: user }
   } catch (err: any) {
-    auditService.log({
+    await auditService.log({
       action: 'user.create',
       actor: 'server-action',
       target: String(body.sAMAccountName),

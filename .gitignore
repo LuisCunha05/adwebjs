@@ -119,3 +119,5 @@ dist
 .idea/
 .vscode/
 .zed/
+
+src/infrastructure/generated

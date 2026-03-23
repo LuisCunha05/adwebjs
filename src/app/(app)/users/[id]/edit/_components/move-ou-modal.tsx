@@ -82,8 +82,8 @@ export function MoveOuModal({
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            A conta não será desativada. Para desativar e mover ao mesmo tempo, use
-            &quot;Desativar conta&quot; nas ações rápidas.
+            A conta não será desativada. Para desativar e mover ao mesmo tempo, use &quot;Desativar
+            conta&quot; nas ações rápidas.
           </p>
         </div>
       </div>

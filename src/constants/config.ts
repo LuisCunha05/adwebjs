@@ -28,6 +28,13 @@ const configSchema = z.object({
 
   // Extra Attributes
   AD_EXTRA_ATTRIBUTES: z.string().trim().default(''),
+
+  // Database Connection
+  DB_USER: z.string().trim().min(1, 'DB_USER is required'),
+  DB_PASSWORD: z.string().trim().min(1, 'DB_PASSWORD is required'),
+  DB_HOST: z.string().trim().min(1, 'DB_HOST is required'),
+  DB_PORT: z.coerce.number().default(5432),
+  DB_NAME: z.string().trim().min(1, 'DB_NAME is required'),
 })
 
 // Parse and validate environment variables
@@ -65,3 +72,11 @@ export const SCHEDULE_DATA_DIR = env.SCHEDULE_DATA_DIR
     ? env.SCHEDULE_DATA_DIR
     : path.join(process.cwd(), env.SCHEDULE_DATA_DIR)
   : path.join(process.cwd(), 'data')
+
+export const DB_USER = env.DB_USER
+export const DB_PASSWORD = env.DB_PASSWORD
+export const DB_HOST = env.DB_HOST
+export const DB_PORT = env.DB_PORT
+export const DB_NAME = env.DB_NAME
+
+export const DATABASE_URL = `postgresql://${DB_USER}:${encodeURIComponent(DB_PASSWORD)}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=public`

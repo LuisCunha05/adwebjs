@@ -14,7 +14,7 @@ interface ActionResult<T = void> {
 export async function listSchedule(): Promise<ActionResult<ScheduledTask[]>> {
   await verifySession()
   try {
-    const actions = scheduleService.list()
+    const actions = await scheduleService.list()
     return { ok: true, data: JSON.parse(JSON.stringify(actions)) }
   } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : 'Schedule list failed' }
@@ -36,8 +36,8 @@ export async function createVacation(
   }
 
   try {
-    const vacationId = vacationScheduleService.schedule(String(userId), startDate, endDate)
-    auditService.log({
+    const vacationId = await vacationScheduleService.schedule(String(userId), startDate, endDate)
+    await auditService.log({
       action: 'vacation.schedule',
       actor: 'server-action',
       target: String(userId),
@@ -46,7 +46,7 @@ export async function createVacation(
     })
     return { ok: true, data: { vacationId } }
   } catch (err: unknown) {
-    auditService.log({
+    await auditService.log({
       action: 'vacation.schedule',
       actor: 'server-action',
       target: String(userId),
@@ -62,7 +62,7 @@ export async function cancelTask(id: number): Promise<ActionResult> {
   await verifySession()
   if (Number.isNaN(id)) return { ok: false, error: 'Invalid ID' }
   try {
-    const removed = scheduleService.remove(id)
+    const removed = await scheduleService.remove(id)
     if (!removed) return { ok: false, error: 'Scheduled action not found' }
     return { ok: true }
   } catch (err: unknown) {

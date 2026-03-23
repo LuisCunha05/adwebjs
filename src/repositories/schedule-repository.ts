@@ -1,79 +1,72 @@
-import type { IDatabase } from '../types/database'
+import type { DatabaseClient } from '../types/database'
 import { type IScheduleRepository, type ScheduledTask, ScheduleStatus } from '../types/schedule'
 
 export class ScheduleRepository implements IScheduleRepository {
-  constructor(private db: IDatabase) {}
+  constructor(private db: DatabaseClient) {}
 
-  add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): number {
+  async add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): Promise<number> {
     const createdAt = new Date().toISOString()
-    const stmt = this.db.prepare(`
-            INSERT INTO scheduled_tasks (type, status, run_at, related_id, related_table, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            RETURNING id
-        `)
-    const result = stmt.all(
-      task.type,
-      task.status,
-      task.runAt,
-      task.relatedId,
-      task.relatedTable,
-      createdAt,
-    ) as {
-      id: number | bigint
-    }[]
-
-    if (result.length === 0) throw new Error('Failed to insert task')
-    return Number(result[0].id)
+    const result = await this.db.scheduledTask.create({
+      data: {
+        type: task.type,
+        status: task.status,
+        runAt: task.runAt,
+        relatedId: task.relatedId,
+        relatedTable: task.relatedTable,
+        createdAt: createdAt,
+      },
+      select: { id: true },
+    })
+    return result.id
   }
 
-  listPending(maxDate: Date = new Date()): ScheduledTask[] {
-    const stmt = this.db.prepare(`
-            SELECT * FROM scheduled_tasks
-            WHERE status = ? AND run_at <= ?
-            ORDER BY run_at ASC
-        `)
-    const rows = stmt.all(ScheduleStatus.PENDING, maxDate.toISOString()) as any[]
-    return rows.map(this.mapRowToTask)
+  async listPending(maxDate: Date = new Date()): Promise<ScheduledTask[]> {
+    const rows = await this.db.scheduledTask.findMany({
+      where: {
+        status: ScheduleStatus.PENDING,
+        runAt: { lte: maxDate.toISOString() },
+      },
+      orderBy: { runAt: 'asc' },
+    })
+    return rows.map((row: any) => this.mapRowToTask(row))
   }
 
-  listAll(): ScheduledTask[] {
-    const stmt = this.db.prepare(`
-            SELECT * FROM scheduled_tasks
-            ORDER BY run_at ASC
-        `)
-    const rows = stmt.all() as any[]
-    return rows.map(this.mapRowToTask)
+  async listAll(): Promise<ScheduledTask[]> {
+    const rows = await this.db.scheduledTask.findMany({
+      orderBy: { runAt: 'asc' },
+    })
+    return rows.map((row: any) => this.mapRowToTask(row))
   }
 
-  updateStatus(
+  async updateStatus(
     id: number,
     status: ScheduleStatus,
     details?: { error?: string; executedAt?: string },
-  ): void {
-    const stmt = this.db.prepare(`
-            UPDATE scheduled_tasks
-            SET status = ?, error = ?, executed_at = ?
-            WHERE id = ?
-        `)
-
-    const errorVal = details?.error || null
-    const executedAtVal = details?.executedAt || null
-
-    stmt.run(status, errorVal, executedAtVal, id)
+  ): Promise<void> {
+    await this.db.scheduledTask.update({
+      where: { id },
+      data: {
+        status,
+        error: details?.error || null,
+        executedAt: details?.executedAt || null,
+      },
+    })
   }
 
-  remove(id: number): boolean {
-    const stmt = this.db.prepare('DELETE FROM scheduled_tasks WHERE id = ?')
-    const result = stmt.run(id)
-    return Number(result.changes) > 0
+  async remove(id: number): Promise<boolean> {
+    try {
+      await this.db.scheduledTask.delete({ where: { id } })
+      return true
+    } catch (e) {
+      return false
+    }
   }
 
-  removeByRelatedId(relatedId: number, relatedTable: string): number {
-    const stmt = this.db.prepare(
-      'DELETE FROM scheduled_tasks WHERE related_id = ? AND related_table = ?',
-    )
-    const result = stmt.run(relatedId, relatedTable)
-    return Number(result.changes)
+  async removeByRelatedId(relatedId: number, relatedTable: string): Promise<number> {
+    const result = await this.db.scheduledTask.deleteMany({
+      where: { relatedId, relatedTable },
+    })
+    return result.count
   }
 
   private mapRowToTask(row: any): ScheduledTask {
@@ -81,11 +74,11 @@ export class ScheduleRepository implements IScheduleRepository {
       id: row.id,
       type: row.type,
       status: row.status as ScheduleStatus,
-      runAt: row.run_at,
-      relatedId: row.related_id,
-      relatedTable: row.related_table,
-      createdAt: row.created_at,
-      executedAt: row.executed_at || undefined,
+      runAt: row.runAt,
+      relatedId: row.relatedId,
+      relatedTable: row.relatedTable,
+      createdAt: row.createdAt,
+      executedAt: row.executedAt || undefined,
       error: row.error || undefined,
     }
   }
