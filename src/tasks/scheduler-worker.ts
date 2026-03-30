@@ -1,4 +1,3 @@
-import type { TaskFn } from 'node-cron'
 import {
   auditService,
   ldapService,
@@ -7,21 +6,15 @@ import {
 } from '../services/container'
 import { ScheduleStatus } from '../types/schedule'
 
-export const task: TaskFn = async (context) => {
-  // DB Init is handled in container
+export const scheduleVacation = async () => {
+  const now = new Date()
 
-  // Debug log to verify execution
-  console.log(`[Worker] Task started at ${context.dateLocalIso}`)
+  console.log(`[Worker] Task started at ${now.toISOString()}`)
 
-  const now = context.date
-  // console.log(`[Worker] Checking for due actions at ${now.toISOString()}`); // Reduce noise
-
-  // Check for due actions
   // listPending typically returns actions where runAt <= now AND status == PENDING
   const toRun = await scheduleRepository.listPending(now)
 
   if (toRun.length === 0) {
-    // console.log('[Worker] No actions to run.');
     return
   }
 
@@ -30,13 +23,11 @@ export const task: TaskFn = async (context) => {
   for (const a of toRun) {
     try {
       let userId: string | undefined
-      // let meta: any = {};
 
       if (a.relatedTable === 'vacations') {
         const vacation = await vacationRepository.get(a.relatedId)
         if (vacation) {
           userId = vacation.userId
-          // meta = { vacationId: vacation.id, ...vacation };
         } else {
           console.error(`[Worker] Vacation Not Found for task ${a.id} (relatedId=${a.relatedId})`)
           await scheduleRepository.updateStatus(a.id, ScheduleStatus.FAILED, {
