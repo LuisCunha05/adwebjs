@@ -4,11 +4,6 @@ import { toast } from 'sonner'
 
 import { removeMemberFromGroup } from '@/actions/groups'
 import {
-  deleteUser,
-  disableUser,
-  enableUser,
-  resetPassword,
-  unlockUser,
   updateUser,
 } from '@/actions/users'
 import { useAuth, useSession } from '@/components/auth-provider'
@@ -88,20 +83,9 @@ export function useUserModel({ initialUser, editConfig }: UseUserModelProps) {
 
   const user = updateState || initialUser
 
-  const [isPendingDisable, startDisable] = useTransition()
-  const [isPendingEnable, startEnable] = useTransition()
-  const [isPendingUnlock, startUnlock] = useTransition()
-  const [isPendingReset, startReset] = useTransition()
-  const [isPendingDelete, startDelete] = useTransition()
   const [isPendingGroupRemove, startGroupRemove] = useTransition()
 
   const [removingGroupId, setRemovingGroupId] = useState<string | null>(null)
-
-  const [disableDialogOpen, setDisableDialogOpen] = useState(false)
-  const [disableTargetOu, setDisableTargetOu] = useState('')
-  const [resetPwdOpen, setResetPwdOpen] = useState(false)
-  const [resetPwdValue, setResetPwdValue] = useState('')
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const sections = useMemo(() => {
     if (!editConfig?.edit.length) return []
@@ -113,67 +97,6 @@ export function useUserModel({ initialUser, editConfig }: UseUserModelProps) {
     const order = [...new Set(editConfig.edit.map((x) => x.section))]
     return order.map((name) => ({ name, attrs: bySection.get(name) ?? [] }))
   }, [editConfig?.edit])
-
-  function openDisableDialog() {
-    setDisableTargetOu('')
-    setDisableDialogOpen(true)
-  }
-
-
-
-
-
-  function handleDisablePermanent() {
-    startDisable(async () => {
-      if (!id) return
-      try {
-        const res = await disableUser(
-          id,
-          disableTargetOu ? { targetOu: disableTargetOu } : undefined,
-        )
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success(
-          disableTargetOu
-            ? 'Conta desativada e usuário movido para a OU informada.'
-            : 'Conta desativada.',
-        )
-        setDisableDialogOpen(false)
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao desativar.')
-      }
-    })
-  }
-
-  function handleEnable() {
-    startEnable(async () => {
-      if (!id) return
-      try {
-        const res = await enableUser(id)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Conta ativada.')
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao ativar.')
-      }
-    })
-  }
-
-  function handleUnlock() {
-    startUnlock(async () => {
-      if (!id) return
-      try {
-        const res = await unlockUser(id)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Conta desbloqueada.')
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao desbloquear.')
-      }
-    })
-  }
 
   function handleRemoveFromGroup(groupDn: string) {
     const groupCn = cnFromDn(groupDn)
@@ -197,38 +120,6 @@ export function useUserModel({ initialUser, editConfig }: UseUserModelProps) {
     })
   }
 
-  function handleResetPassword() {
-    startReset(async () => {
-      if (!id || !resetPwdValue.trim() || resetPwdValue.length < 8) return
-      try {
-        const res = await resetPassword(id, resetPwdValue)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Senha redefinida.')
-        setResetPwdOpen(false)
-        setResetPwdValue('')
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao redefinir senha.')
-      }
-    })
-  }
-
-  function handleDelete() {
-    startDelete(async () => {
-      if (!id) return
-      try {
-        const res = await deleteUser(id)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Usuário excluído.')
-        setDeleteDialogOpen(false)
-        router.replace('/users')
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao excluir.')
-      }
-    })
-  }
-
   const isDisabled = Boolean((Number(user.userAccountControl) || 0) & UAC_DISABLED)
   const isPwdNeverExpires = Boolean((Number(user.userAccountControl) || 0) & UAC_DONT_EXPIRE_PASSWD)
 
@@ -247,30 +138,9 @@ export function useUserModel({ initialUser, editConfig }: UseUserModelProps) {
     sections,
     submitAction,
     isSaving,
-    isPendingDisable,
-    isPendingEnable,
-    isPendingUnlock,
-    isPendingReset,
-    isPendingDelete,
     isPendingGroupRemove,
     removingGroupId,
-    disableDialogOpen,
-    setDisableDialogOpen,
-    disableTargetOu,
-    setDisableTargetOu,
-    resetPwdOpen,
-    setResetPwdOpen,
-    resetPwdValue,
-    setResetPwdValue,
-    deleteDialogOpen,
-    setDeleteDialogOpen,
-    openDisableDialog,
-    handleDisablePermanent,
-    handleEnable,
-    handleUnlock,
     handleRemoveFromGroup,
-    handleResetPassword,
-    handleDelete,
     canDelete: !!session?.canDelete,
   }
 }

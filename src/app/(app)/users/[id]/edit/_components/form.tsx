@@ -6,12 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import type { EditAttribute } from '@/types/ldap'
 import { useUserModel } from '../model'
 import { AttributesCard } from './attributes-card'
-import { DeleteUserModal } from './delete-user-modal'
-import { DisableUserModal } from './disable-user-modal'
 import { GroupsCard } from './groups-card'
 import { OuCard } from './ou-card'
 import { QuickActionsCard } from './quick-actions-card'
-import { ResetPasswordModal } from './reset-password-modal'
 import { Suspense } from 'react'
 
 interface UserEditFormProps {
@@ -48,21 +45,11 @@ export function UserEditForm({ initialUser, editConfig, ous, children }: UserEdi
       </div>
 
       <QuickActionsCard
+        id={model.user.sAMAccountName}
         isDisabled={model.isDisabled}
-        isPendingEnable={model.isPendingEnable}
-        isPendingDisable={model.isPendingDisable}
-        isPendingUnlock={model.isPendingUnlock}
-        isPendingReset={model.isPendingReset}
-        isPendingDelete={model.isPendingDelete}
-        handleEnable={model.handleEnable}
-        openDisableDialog={model.openDisableDialog}
-        handleUnlock={model.handleUnlock}
-        openResetPassword={() => {
-          model.setResetPwdValue('')
-          model.setResetPwdOpen(true)
-        }}
-        openDeleteDialog={() => model.setDeleteDialogOpen(true)}
         canDelete={model.canDelete}
+        ous={ous}
+        userAccountName={model.user.sAMAccountName}
       />
 
       <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-xl" />}>
@@ -83,35 +70,6 @@ export function UserEditForm({ initialUser, editConfig, ous, children }: UserEdi
         handleRemoveFromGroup={model.handleRemoveFromGroup}
         isPendingGroupRemove={model.isPendingGroupRemove}
         removingGroupId={model.removingGroupId}
-      />
-
-      <DisableUserModal
-        open={model.disableDialogOpen}
-        onOpenChange={model.setDisableDialogOpen}
-        ous={ous}
-        disableTargetOu={model.disableTargetOu}
-        setDisableTargetOu={model.setDisableTargetOu}
-        handleConfirm={model.handleDisablePermanent}
-        isPendingDisable={model.isPendingDisable}
-      />
-
-
-
-      <ResetPasswordModal
-        open={model.resetPwdOpen}
-        onOpenChange={model.setResetPwdOpen}
-        resetPwdValue={model.resetPwdValue}
-        setResetPwdValue={model.setResetPwdValue}
-        handleConfirm={model.handleResetPassword}
-        isPendingReset={model.isPendingReset}
-      />
-
-      <DeleteUserModal
-        open={model.deleteDialogOpen}
-        onOpenChange={model.setDeleteDialogOpen}
-        userAccountName={model.user?.sAMAccountName}
-        handleConfirm={model.handleDelete}
-        isPendingDelete={model.isPendingDelete}
       />
     </div>
   )

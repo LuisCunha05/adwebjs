@@ -1,34 +1,24 @@
-import { Button } from '@compound/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DeleteAction } from './quick-actions/delete-action'
+import { DisableAction } from './quick-actions/disable-action'
+import { EnableAction } from './quick-actions/enable-action'
+import { ResetPasswordAction } from './quick-actions/reset-password-action'
+import { UnlockAction } from './quick-actions/unlock-action'
 
 interface QuickActionsCardProps {
+  id: string | undefined
   isDisabled: boolean
-  isPendingEnable: boolean
-  isPendingDisable: boolean
-  isPendingUnlock: boolean
-  isPendingReset: boolean
-  isPendingDelete: boolean
-  handleEnable: () => void
-  openDisableDialog: () => void
-  handleUnlock: () => void
-  openResetPassword: () => void
-  openDeleteDialog: () => void
   canDelete: boolean
+  ous: { dn: string; ou?: string; name?: string }[]
+  userAccountName?: string
 }
 
 export function QuickActionsCard({
+  id,
   isDisabled,
-  isPendingEnable,
-  isPendingDisable,
-  isPendingUnlock,
-  isPendingReset,
-  isPendingDelete,
-  handleEnable,
-  openDisableDialog,
-  handleUnlock,
-  openResetPassword,
-  openDeleteDialog,
   canDelete,
+  ous,
+  userAccountName,
 }: QuickActionsCardProps) {
   return (
     <Card>
@@ -38,53 +28,14 @@ export function QuickActionsCard({
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
         {isDisabled ? (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleEnable}
-            disabled={isPendingEnable}
-            loading={isPendingEnable}
-            leftIcon="user-check"
-            text="Ativar conta"
-          />
+          <EnableAction id={id} />
         ) : (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={openDisableDialog}
-            disabled={isPendingDisable}
-            leftIcon="user-x"
-            text="Desativar conta"
-          />
+          <DisableAction id={id} ous={ous} />
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleUnlock}
-          disabled={isPendingUnlock}
-          loading={isPendingUnlock}
-          leftIcon="unlock"
-          text="Desbloquear conta"
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={openResetPassword}
-          disabled={isPendingReset}
-          loading={isPendingReset}
-          leftIcon="key-round"
-          text="Redefinir senha"
-        />
+        <UnlockAction id={id} />
+        <ResetPasswordAction id={id} />
         {canDelete && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={openDeleteDialog}
-            disabled={isPendingDelete}
-            loading={isPendingDelete}
-            leftIcon="trash-2"
-            text="Excluir usuário"
-          />
+          <DeleteAction id={id} canDelete={canDelete} userAccountName={userAccountName} />
         )}
       </CardContent>
     </Card>
