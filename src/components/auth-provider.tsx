@@ -1,12 +1,12 @@
 'use client'
 
 import type React from 'react'
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, use, useCallback, useContext, useEffect, useState } from 'react'
 import { logout as logoutAction } from '@/actions/auth'
 import type { Session } from '@/types/session'
 
 type AuthState = {
-  session: Session | null
+  session: Promise<Session>
   logout: () => Promise<void>
 }
 
@@ -14,17 +14,11 @@ const AuthContext = createContext<AuthState | null>(null)
 
 export function AuthProvider({
   children,
-  initialSession,
+  session,
 }: {
   children: React.ReactNode
-  initialSession: Session | null
+  session: Promise<Session>
 }) {
-  const [session, setSession] = useState<Session | null>(initialSession)
-
-  // Sync initialSession if it changes (e.g. revalidation)
-  useEffect(() => {
-    setSession(initialSession)
-  }, [initialSession])
 
   const logout = useCallback(async () => {
     try {
@@ -32,8 +26,6 @@ export function AuthProvider({
     } catch {
       /* ignore */
     }
-    setSession(null)
-    window.location.href = '/login'
   }, [])
 
   return <AuthContext.Provider value={{ session, logout }}>{children}</AuthContext.Provider>
@@ -43,4 +35,9 @@ export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used within AuthProvider')
   return ctx
+}
+
+export function useSession() {
+  const { session } = useAuth()
+  return use(session)
 }
