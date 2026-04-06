@@ -1,7 +1,6 @@
 import { Button } from '@compound/button'
 import { Download, Pencil, UserPlus } from 'lucide-react'
 import Link from 'next/link'
-import { listOUs } from '@/actions/ous'
 import { listUsers } from '@/actions/users'
 import { Pagination } from '@/components/pagination'
 import { Badge } from '@/components/ui/badge'
@@ -14,10 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { PaginatedResult } from '@/types/ldap'
 import { verifySession } from '@/utils/manage-jwt'
 import { DownloadButton } from './download-button'
 import { UsersSearch } from './users-search'
+import { ldapService } from '@/services/container'
 
 const UAC_DISABLED = 2
 const UAC_DONT_EXPIRE_PASSWD = 65536
@@ -62,7 +61,7 @@ export default async function UsersPage(props: {
   const pageSize = Number(searchParams.pageSize) || 10
 
   // Parallel fetch: OUs always needed for search filter
-  const ousPromise = listOUs()
+  const ousPromise = ldapService.listOUs()
 
   let list: any[] = []
   let total = 0

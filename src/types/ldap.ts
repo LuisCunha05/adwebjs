@@ -47,6 +47,15 @@ export interface DisableUserOptions {
   targetOu?: string
 }
 
+export type LdapResult<T> = {
+  ok: true
+  data: T
+} | {
+  ok: false
+  data: null
+  error: string
+}
+
 export interface ILdapService {
   authenticate(username: string, password: string): Promise<ActiveDirectoryUser>
   searchUsers(
@@ -66,7 +75,7 @@ export interface ILdapService {
   disableUser(id: string, options?: DisableUserOptions): Promise<void>
   enableUser(id: string): Promise<void>
   unlockUser(id: string): Promise<void>
-  listOUs(): Promise<any[]>
+  listOUs(): Promise<LdapResult<OU[]>>
   addMemberToGroup(groupCn: string, memberDn: string): Promise<void>
   removeMemberFromGroup(groupCn: string, memberDn: string): Promise<void>
   resolveMemberDns(
@@ -86,4 +95,11 @@ export interface EditAttribute {
   name: string
   label: string
   section: string
+}
+
+export interface OU {
+  dn: string
+  ou?: string
+  name?: string
+  description?: string
 }

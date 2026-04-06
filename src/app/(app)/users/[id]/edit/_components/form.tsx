@@ -9,19 +9,20 @@ import { AttributesCard } from './attributes-card'
 import { DeleteUserModal } from './delete-user-modal'
 import { DisableUserModal } from './disable-user-modal'
 import { GroupsCard } from './groups-card'
-import { MoveOuModal } from './move-ou-modal'
 import { OuCard } from './ou-card'
 import { QuickActionsCard } from './quick-actions-card'
 import { ResetPasswordModal } from './reset-password-modal'
+import { Suspense } from 'react'
 
 interface UserEditFormProps {
   initialUser: any
   editConfig: { fetch: string[]; edit: EditAttribute[] }
   ous: { dn: string; ou?: string; name?: string }[]
+  children?: React.ReactNode
 }
 
-export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps) {
-  const model = useUserModel({ initialUser, editConfig, ous })
+export function UserEditForm({ initialUser, editConfig, ous, children }: UserEditFormProps) {
+  const model = useUserModel({ initialUser, editConfig })
 
   return (
     <div className="space-y-6">
@@ -64,12 +65,9 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         canDelete={model.canDelete}
       />
 
-      <OuCard
-        currentOuDn={model.currentOuDn}
-        currentOuDisplay={model.currentOuDisplay}
-        openMoveOuDialog={model.openMoveOuDialog}
-        isPendingMove={model.isPendingMove}
-      />
+      <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-xl" />}>
+        {children}
+      </Suspense>
 
       <AttributesCard
         user={model.user}
@@ -97,17 +95,7 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         isPendingDisable={model.isPendingDisable}
       />
 
-      <MoveOuModal
-        open={model.moveOuDialogOpen}
-        onOpenChange={model.setMoveOuDialogOpen}
-        currentOuDn={model.currentOuDn}
-        currentOuDisplay={model.currentOuDisplay}
-        moveOuTarget={model.moveOuTarget}
-        setMoveOuTarget={model.setMoveOuTarget}
-        ousForMove={model.ousForMove}
-        handleConfirm={model.handleMoveOu}
-        isPendingMove={model.isPendingMove}
-      />
+
 
       <ResetPasswordModal
         open={model.resetPwdOpen}

@@ -7,12 +7,11 @@ import {
   deleteUser,
   disableUser,
   enableUser,
-  moveUser,
   resetPassword,
   unlockUser,
   updateUser,
 } from '@/actions/users'
-import { useAuth } from '@/components/auth-provider'
+import { useAuth, useSession } from '@/components/auth-provider'
 import type { EditAttribute } from '@/types/ldap'
 
 const UAC_DISABLED = 2
@@ -48,12 +47,11 @@ export function dnMatch(a: string, b: string): boolean {
 export interface UseUserModelProps {
   initialUser: any
   editConfig: { fetch: string[]; edit: EditAttribute[] }
-  ous: { dn: string; ou?: string; name?: string }[]
 }
 
-export function useUserModel({ initialUser, editConfig, ous }: UseUserModelProps) {
+export function useUserModel({ initialUser, editConfig }: UseUserModelProps) {
   const router = useRouter()
-  const { session } = useAuth()
+  const session = useSession()
 
   const id = initialUser?.sAMAccountName
 
@@ -95,7 +93,6 @@ export function useUserModel({ initialUser, editConfig, ous }: UseUserModelProps
   const [isPendingUnlock, startUnlock] = useTransition()
   const [isPendingReset, startReset] = useTransition()
   const [isPendingDelete, startDelete] = useTransition()
-  const [isPendingMove, startMove] = useTransition()
   const [isPendingGroupRemove, startGroupRemove] = useTransition()
 
   const [removingGroupId, setRemovingGroupId] = useState<string | null>(null)
@@ -105,9 +102,6 @@ export function useUserModel({ initialUser, editConfig, ous }: UseUserModelProps
   const [resetPwdOpen, setResetPwdOpen] = useState(false)
   const [resetPwdValue, setResetPwdValue] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [moveOuDialogOpen, setMoveOuDialogOpen] = useState(false)
-  const [moveOuTarget, setMoveOuTarget] = useState('')
-  const [ousForMove, setOusForMove] = useState<{ dn: string; ou?: string; name?: string }[]>([])
 
   const sections = useMemo(() => {
     if (!editConfig?.edit.length) return []
@@ -125,40 +119,9 @@ export function useUserModel({ initialUser, editConfig, ous }: UseUserModelProps
     setDisableDialogOpen(true)
   }
 
-  function openMoveOuDialog() {
-    const current = user?.dn ? parentOuFromDn(user.dn) : ''
-    setMoveOuTarget(current)
-    setMoveOuDialogOpen(true)
 
-    const list = ous ?? []
-    const hasCurrent = current && list.some((o) => dnMatch(o.dn, current))
-    if (current && !hasCurrent) {
-      setOusForMove([{ dn: current, ou: current, name: current }, ...list])
-    } else {
-      setOusForMove(list)
-    }
-  }
 
-  function handleMoveOu() {
-    startMove(async () => {
-      if (!id || !moveOuTarget.trim()) return
-      const current = user?.dn ? parentOuFromDn(user.dn) : ''
-      if (dnMatch(moveOuTarget, current)) {
-        toast.info('O usuário já está nesta OU.')
-        return
-      }
-      try {
-        const res = await moveUser(id, moveOuTarget.trim())
-        if (!res.ok) throw new Error(res.error)
 
-        toast.success('Usuário movido para a nova OU.')
-        setMoveOuDialogOpen(false)
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao mover usuário.')
-      }
-    })
-  }
 
   function handleDisablePermanent() {
     startDisable(async () => {
@@ -274,20 +237,13 @@ export function useUserModel({ initialUser, editConfig, ous }: UseUserModelProps
     : user.memberOf
       ? [user.memberOf]
       : []
-  const currentOuDn = parentOuFromDn(user.dn || '')
-  const currentOuDisplay = ous.length
-    ? ous.find((o) => dnMatch(o.dn, currentOuDn))?.ou ||
-      ous.find((o) => dnMatch(o.dn, currentOuDn))?.name ||
-      currentOuDn
-    : currentOuDn
+
 
   return {
     user,
     isDisabled,
     isPwdNeverExpires,
     memberOfList,
-    currentOuDn,
-    currentOuDisplay,
     sections,
     submitAction,
     isSaving,
@@ -296,7 +252,6 @@ export function useUserModel({ initialUser, editConfig, ous }: UseUserModelProps
     isPendingUnlock,
     isPendingReset,
     isPendingDelete,
-    isPendingMove,
     isPendingGroupRemove,
     removingGroupId,
     disableDialogOpen,
@@ -309,14 +264,7 @@ export function useUserModel({ initialUser, editConfig, ous }: UseUserModelProps
     setResetPwdValue,
     deleteDialogOpen,
     setDeleteDialogOpen,
-    moveOuDialogOpen,
-    setMoveOuDialogOpen,
-    moveOuTarget,
-    setMoveOuTarget,
-    ousForMove,
     openDisableDialog,
-    openMoveOuDialog,
-    handleMoveOu,
     handleDisablePermanent,
     handleEnable,
     handleUnlock,

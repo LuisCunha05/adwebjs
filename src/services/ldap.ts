@@ -177,7 +177,7 @@ export class LdapService implements ILdapService {
       try {
         userClient?.unbind()
         adminClient?.unbind()
-      } catch {}
+      } catch { }
     }
   }
 
@@ -652,13 +652,21 @@ export class LdapService implements ILdapService {
           scope: 'sub',
           attributes: OU_SEARCH_ATTRIBUTES as unknown as string[],
         })
-        return (result.searchEntries || []).map((entry) => OuSchema.parse(entry))
+
+        const parsedOus = OuSchema.array().safeParse(result.searchEntries)
+
+        if (!parsedOus.success) {
+          logError('Invalid shape for OUs', parsedOus.error.format())
+          return { ok: false as const, data: null, error: 'Invalid shape for OUs' }
+        }
+
+        return { ok: true as const, data: parsedOus.data }
       } finally {
         client.unbind()
       }
     } catch (err) {
       logError('LDAP List OUs Error', err)
-      return []
+      return { ok: false as const, data: null, error: 'LDAP List OUs Error' }
     }
   }
 

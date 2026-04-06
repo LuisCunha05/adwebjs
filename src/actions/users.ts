@@ -39,16 +39,6 @@ export async function moveUser(id: string, targetOuDn: string): Promise<ActionRe
   }
 }
 
-export async function getUser(id: string): Promise<ActionResult<any>> {
-  await verifySession()
-  try {
-    const user = await ldapService.getUser(id)
-    // Serialize pure object to avoid "Only plain objects can be passed to Client Components" issues with complex LDAP objects if any
-    return { ok: true, data: JSON.parse(JSON.stringify(user)) }
-  } catch (err: any) {
-    return { ok: false, error: err.message || 'User not found' }
-  }
-}
 
 export async function updateUser(
   id: string,

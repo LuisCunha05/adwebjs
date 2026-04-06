@@ -1,20 +1,43 @@
-import { Button } from '@compound/button'
 import { FolderTree } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { MoveOuModal } from './move-ou-modal'
+import { ldapService } from '@/services/container'
 
-interface OuCardProps {
-  currentOuDn: string
-  currentOuDisplay: string
-  openMoveOuDialog: () => void
-  isPendingMove: boolean
+export function parentOuFromDn(dn: string): string {
+  const idx = dn.indexOf(',')
+  return idx >= 0 ? dn.slice(idx + 1).trim() : ''
 }
 
-export function OuCard({
-  currentOuDn,
-  currentOuDisplay,
-  openMoveOuDialog,
-  isPendingMove,
-}: OuCardProps) {
+export function dnMatch(a: string, b: string): boolean {
+  return (a || '').toLowerCase().trim() === (b || '').toLowerCase().trim()
+}
+
+interface OuCardProps {
+  userId: string
+}
+
+export async function OuCard({ userId }: OuCardProps) {
+  const [userRes, ousRes] = await Promise.all([
+    ldapService.getUser(userId),
+    ldapService.listOUs()
+  ])
+
+  if (!userRes || !ousRes.ok) return null
+
+  console.log(ousRes.data)
+  const currentOuDn = parentOuFromDn(userRes?.dn || '')
+
+  const currentOuDisplay = ousRes.data.length
+    ? ousRes.data.find((o) => dnMatch(o.dn, currentOuDn))?.ou ||
+    ousRes.data.find((o) => dnMatch(o.dn, currentOuDn))?.name ||
+    currentOuDn
+    : currentOuDn
+
+  const hasCurrent = currentOuDn && ousRes.data.some((o) => dnMatch(o.dn, currentOuDn))
+  const ousForMove = currentOuDn && !hasCurrent
+    ? [{ dn: currentOuDn, ou: currentOuDn, name: currentOuDn }, ...ousRes.data]
+    : ousRes.data
+
   return (
     <Card className="max-w-2xl">
       <CardHeader>
@@ -40,14 +63,11 @@ export function OuCard({
               </p>
             )}
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={openMoveOuDialog}
-            loading={isPendingMove}
-            leftIcon="arrow-right-left"
-            text="Mover para outra OU"
+          <MoveOuModal
+            userId={userId}
+            currentOuDn={currentOuDn}
+            currentOuDisplay={currentOuDisplay}
+            ousForMove={ousForMove}
           />
         </div>
       </CardContent>
