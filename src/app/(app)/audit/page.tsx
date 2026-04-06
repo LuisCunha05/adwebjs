@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { verifySession } from '@/utils/manage-jwt'
 import { ACTION_LABELS, AuditFilters } from './audit-filters'
 
 function actionLabel(action: string): string {
@@ -29,7 +28,6 @@ function formatDate(iso: string): string {
 export default async function AuditPage(props: {
   searchParams: Promise<{ [key: string]: string | undefined }>
 }) {
-  await verifySession()
   const searchParams = await props.searchParams
   const filters = {
     action: searchParams.action,

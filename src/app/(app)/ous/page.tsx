@@ -8,11 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { verifySession } from '@/utils/manage-jwt'
 import { ldapService } from '@/services/container'
 
 export default async function OUsPage() {
-  await verifySession()
   const res = await ldapService.listOUs()
   const list = res.ok ? res.data : []
   const error = res.ok ? null : res.error

@@ -1,10 +1,8 @@
 import { listSchedule } from '@/actions/schedule'
-import { verifySession } from '@/utils/manage-jwt'
 import { ScheduleForm } from './schedule-form'
 import { VacationList } from './vacation-list'
 
 export default async function SchedulePage() {
-  await verifySession()
   const res = await listSchedule()
   const actions = res.ok && res.data ? res.data : []
 

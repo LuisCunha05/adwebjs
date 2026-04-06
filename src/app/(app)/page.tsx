@@ -6,13 +6,11 @@ import { listAuditLogs } from '@/actions/audit'
 import { getStats } from '@/actions/stats'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { verifySession } from '@/utils/manage-jwt'
 
 const RECENT_DISABLES_THRESHOLD = 5
 const RECENT_HOURS = 24
 
 export default async function DashboardPage() {
-  await verifySession()
   // eslint-disable-next-line react-hooks/purity
   const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000).toISOString()
 

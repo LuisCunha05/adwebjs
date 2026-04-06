@@ -11,11 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { verifySession } from '@/utils/manage-jwt'
 import { GroupsSearch } from './groups-search'
 
 export default async function GroupsPage(props: { searchParams: Promise<{ q?: string }> }) {
-  await verifySession()
   const searchParams = await props.searchParams
   const q = searchParams.q || ''
 

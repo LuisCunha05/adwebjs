@@ -13,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { verifySession } from '@/utils/manage-jwt'
 import { DownloadButton } from './download-button'
 import { UsersSearch } from './users-search'
 import { ldapService } from '@/services/container'
@@ -50,7 +49,6 @@ export default async function UsersPage(props: {
     pageSize?: string
   }>
 }) {
-  await verifySession()
   const searchParams = await props.searchParams
   const q = searchParams.q || ''
   const searchBy = searchParams.searchBy || 'sAMAccountName'
