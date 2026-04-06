@@ -10,7 +10,7 @@ services:
   #     - adwebapp-network
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:18-alpine
     container_name: adwebapp-postgres
     restart: unless-stopped
     environment:
@@ -18,12 +18,11 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: adwebapp
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
     networks:
       - adwebapp-network
     volumes:
       - postgres-data:/var/lib/postgresql/data
-
 
 networks:
   adwebapp-network:
