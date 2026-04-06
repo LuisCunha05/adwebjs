@@ -2,8 +2,8 @@
 
 import { Button } from '@compound/button'
 import { Loader2, ScrollText, Search } from 'lucide-react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { useState, useTransition, use } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,29 +33,31 @@ export const ACTION_LABELS: Record<string, string> = {
   'group.update': 'Editar grupo',
 }
 
-export function AuditFilters() {
+export function AuditFilters(props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>
+}) {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const params = use(props.searchParams)
   const [isPending, startTransition] = useTransition()
 
   const [filters, setFilters] = useState({
-    action: searchParams.get('action') || 'all',
-    actor: searchParams.get('actor') || '',
-    target: searchParams.get('target') || '',
-    since: searchParams.get('since') ? searchParams.get('since')!.slice(0, 10) : '',
-    until: searchParams.get('until') ? searchParams.get('until')!.slice(0, 10) : '',
+    action: params.action || 'all',
+    actor: params.actor || '',
+    target: params.target || '',
+    since: params.since ? params.since.slice(0, 10) : '',
+    until: params.until ? params.until.slice(0, 10) : '',
   })
 
   function applyFilters() {
     startTransition(() => {
-      const params = new URLSearchParams()
-      if (filters.action && filters.action !== 'all') params.set('action', filters.action)
-      if (filters.actor) params.set('actor', filters.actor)
-      if (filters.target) params.set('target', filters.target)
-      if (filters.since) params.set('since', filters.since + 'T00:00:00')
-      if (filters.until) params.set('until', filters.until + 'T23:59:59')
+      const urlParams = new URLSearchParams()
+      if (filters.action && filters.action !== 'all') urlParams.set('action', filters.action)
+      if (filters.actor) urlParams.set('actor', filters.actor)
+      if (filters.target) urlParams.set('target', filters.target)
+      if (filters.since) urlParams.set('since', filters.since + 'T00:00:00')
+      if (filters.until) urlParams.set('until', filters.until + 'T23:59:59')
 
-      router.replace(`?${params.toString()}`)
+      router.replace(`?${urlParams.toString()}`)
     })
   }
 
