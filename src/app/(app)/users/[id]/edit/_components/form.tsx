@@ -3,22 +3,21 @@
 import { Button } from '@compound/button'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import type { EditAttribute } from '@/types/ldap'
+import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
+import type { EditAttribute, OU } from '@/types/ldap'
 import { useUserModel } from '../model'
 import { AttributesCard } from './attributes-card'
 import { GroupsCard } from './groups-card'
 import { OuCard } from './ou-card'
 import { QuickActionsCard } from './quick-actions-card'
-import { Suspense } from 'react'
 
 interface UserEditFormProps {
-  initialUser: any
+  initialUser: ActiveDirectoryUser
   editConfig: { fetch: string[]; edit: EditAttribute[] }
-  ous: { dn: string; ou?: string; name?: string }[]
-  children?: React.ReactNode
+  ous: OU[]
 }
 
-export function UserEditForm({ initialUser, editConfig, ous, children }: UserEditFormProps) {
+export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps) {
   const model = useUserModel({ initialUser, editConfig })
 
   return (
@@ -52,9 +51,7 @@ export function UserEditForm({ initialUser, editConfig, ous, children }: UserEdi
         userAccountName={model.user.sAMAccountName}
       />
 
-      <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-xl" />}>
-        {children}
-      </Suspense>
+      <OuCard ous={ous} user={initialUser} />
 
       <AttributesCard
         user={model.user}

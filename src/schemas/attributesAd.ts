@@ -29,8 +29,10 @@ export const GroupSchema = z.object({
   dn: z.string(),
   cn: ldapSingleValue,
   description: ldapSingleValue,
-  member: ldapMultiValue.optional(),
+  member: ldapMultiValue,
 })
+
+export type Group = z.infer<typeof GroupSchema>
 
 export const OuSchema = z.object({
   dn: z.string(),

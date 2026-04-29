@@ -1,7 +1,8 @@
 import { FolderTree } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
+import type { OU } from '@/types/ldap'
 import { MoveOuModal } from './move-ou-modal'
-import { ldapService } from '@/services/container'
 
 export function parentOuFromDn(dn: string): string {
   const idx = dn.indexOf(',')
@@ -13,30 +14,26 @@ export function dnMatch(a: string, b: string): boolean {
 }
 
 interface OuCardProps {
-  userId: string
+  user: ActiveDirectoryUser
+  ous: OU[]
 }
 
-export async function OuCard({ userId }: OuCardProps) {
-  const [userRes, ousRes] = await Promise.all([
-    ldapService.getUser(userId),
-    ldapService.listOUs()
-  ])
+export function OuCard({ user: userRes, ous: ousRes }: OuCardProps) {
+  if (!userRes) return null
 
-  if (!userRes || !ousRes.ok) return null
-
-  console.log(ousRes.data)
   const currentOuDn = parentOuFromDn(userRes?.dn || '')
 
-  const currentOuDisplay = ousRes.data.length
-    ? ousRes.data.find((o) => dnMatch(o.dn, currentOuDn))?.ou ||
-    ousRes.data.find((o) => dnMatch(o.dn, currentOuDn))?.name ||
-    currentOuDn
+  const currentOuDisplay = ousRes.length
+    ? ousRes.find((o) => dnMatch(o.dn, currentOuDn))?.ou ||
+      ousRes.find((o) => dnMatch(o.dn, currentOuDn))?.name ||
+      currentOuDn
     : currentOuDn
 
-  const hasCurrent = currentOuDn && ousRes.data.some((o) => dnMatch(o.dn, currentOuDn))
-  const ousForMove = currentOuDn && !hasCurrent
-    ? [{ dn: currentOuDn, ou: currentOuDn, name: currentOuDn }, ...ousRes.data]
-    : ousRes.data
+  const hasCurrent = currentOuDn && ousRes.some((o) => dnMatch(o.dn, currentOuDn))
+  const ousForMove =
+    currentOuDn && !hasCurrent
+      ? [{ dn: currentOuDn, ou: currentOuDn, name: currentOuDn }, ...ousRes]
+      : ousRes
 
   return (
     <Card className="max-w-2xl">
@@ -64,7 +61,7 @@ export async function OuCard({ userId }: OuCardProps) {
             )}
           </div>
           <MoveOuModal
-            userId={userId}
+            userId={userRes.sAMAccountName}
             currentOuDn={currentOuDn}
             currentOuDisplay={currentOuDisplay}
             ousForMove={ousForMove}

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { Button } from '@compound/button'
 import { FolderTree } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-
-import { Button } from '@compound/button'
+import { moveUser } from '@/actions/users'
 import { Modal } from '@/components/compound/modal'
 import { Label } from '@/components/ui/label'
 import {
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { moveUser } from '@/actions/users'
+import type { OU } from '@/types/ldap'
 
 function dnMatch(a: string, b: string): boolean {
   return (a || '').toLowerCase().trim() === (b || '').toLowerCase().trim()
@@ -25,7 +25,7 @@ interface MoveOuModalProps {
   userId: string
   currentOuDn: string
   currentOuDisplay: string
-  ousForMove: { dn: string; ou?: string; name?: string }[]
+  ousForMove: OU[]
 }
 
 export function MoveOuModal({
@@ -122,8 +122,8 @@ export function MoveOuModal({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              A conta não será desativada. Para desativar e mover ao mesmo tempo, use &quot;Desativar
-              conta&quot; nas ações rápidas.
+              A conta não será desativada. Para desativar e mover ao mesmo tempo, use
+              &quot;Desativar conta&quot; nas ações rápidas.
             </p>
           </div>
         </div>

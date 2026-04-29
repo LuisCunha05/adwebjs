@@ -3,10 +3,9 @@ import { useActionState, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
 import { removeMemberFromGroup } from '@/actions/groups'
-import {
-  updateUser,
-} from '@/actions/users'
+import { updateUser } from '@/actions/users'
 import { useAuth, useSession } from '@/components/auth-provider'
+import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
 import type { EditAttribute } from '@/types/ldap'
 
 const UAC_DISABLED = 2
@@ -40,7 +39,7 @@ export function dnMatch(a: string, b: string): boolean {
 }
 
 export interface UseUserModelProps {
-  initialUser: any
+  initialUser: ActiveDirectoryUser
   editConfig: { fetch: string[]; edit: EditAttribute[] }
 }
 
@@ -128,7 +127,6 @@ export function useUserModel({ initialUser, editConfig }: UseUserModelProps) {
     : user.memberOf
       ? [user.memberOf]
       : []
-
 
   return {
     user,

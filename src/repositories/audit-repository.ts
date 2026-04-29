@@ -1,8 +1,11 @@
+import { BaseRepository } from '@/services/base'
 import type { AuditEntry, AuditListFilters } from '../types/audit'
 import type { DatabaseClient } from '../types/database'
 
-export class AuditRepository {
-  constructor(private db: DatabaseClient) {}
+export class AuditRepository extends BaseRepository {
+  constructor(protected db: DatabaseClient) {
+    super(db)
+  }
 
   async create(entry: Omit<AuditEntry, 'id'>): Promise<void> {
     await this.db.auditLog.create({

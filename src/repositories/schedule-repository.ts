@@ -1,8 +1,11 @@
+import { BaseRepository } from '@/services/base'
 import type { DatabaseClient } from '../types/database'
 import { type IScheduleRepository, type ScheduledTask, ScheduleStatus } from '../types/schedule'
 
-export class ScheduleRepository implements IScheduleRepository {
-  constructor(private db: DatabaseClient) {}
+export class ScheduleRepository extends BaseRepository implements IScheduleRepository {
+  constructor(protected db: DatabaseClient) {
+    super(db)
+  }
 
   async add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): Promise<number> {
     const createdAt = new Date().toISOString()

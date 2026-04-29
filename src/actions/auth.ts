@@ -3,7 +3,8 @@
 import { redirect } from 'next/navigation'
 import { LDAP_GROUP_DELETE } from '@/constants/config'
 import { loginSchema } from '@/schemas/login'
-import { ldapService } from '@/services/container'
+import { authService } from '@/services/container'
+import { logger } from '@/services/logger'
 import type { Session } from '@/types/session'
 import { createSession, deleteSession } from '@/utils/manage-jwt'
 
@@ -32,8 +33,18 @@ export async function loginAction(state: LoginState, formData: FormData): Promis
       }
     }
 
-    const user = await ldapService.authenticate(parsedData.data.username, parsedData.data.password)
+    const userRes = await authService.authenticate(
+      parsedData.data.username,
+      parsedData.data.password,
+    )
 
+    if (!userRes.ok)
+      return {
+        username: formData.get('username')?.toString() ?? '',
+        error: 'Credenciais inválidas',
+      }
+
+    const user = userRes.value
     const canDelete =
       Array.isArray(user.memberOf) &&
       !!LDAP_GROUP_DELETE &&
@@ -41,19 +52,19 @@ export async function loginAction(state: LoginState, formData: FormData): Promis
 
     const session: Session = {
       user: {
-        sAMAccountName: getVal(user.sAMAccountName) || parsedData.data.username,
-        cn: getVal(user.cn),
+        sAMAccountName: user.sAMAccountName,
+        cn: user.cn,
         mail: getVal(user.mail),
         userPrincipalName: getVal(user.userPrincipalName),
-        displayName: getVal(user.displayName),
+        displayName: user.displayName,
       },
-      isAdmin: true, // Authenticated users via ldap.authenticate are considered admins in this app context
+      isAdmin: true,
       canDelete,
     }
 
     await createSession(session)
   } catch (err: unknown) {
-    console.log('err', err)
+    logger.error('Error while creating seassion', err)
     return {
       username: formData.get('username')?.toString() ?? '',
       error: 'Credenciais inválidas ou erro de conexão',

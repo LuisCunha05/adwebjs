@@ -1,17 +1,16 @@
 import { notFound } from 'next/navigation'
 import { getUserAttributesConfig } from '@/actions/config'
+import { listOusCached, showUserCached } from '@/queries/ldap'
 import { UserEditForm } from './_components/form'
-import { OuCard } from './_components/ou-card'
-import { ldapService } from '@/services/container'
 
 export default async function UserEditPage(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params
 
   // Parallel fetch for data
   const [user, configRes, ous] = await Promise.all([
-    ldapService.getUser(id),
+    showUserCached(id),
     getUserAttributesConfig(),
-    ldapService.listOUs()
+    listOusCached(),
   ])
 
   if (!user || !configRes || !ous.ok) {
@@ -21,9 +20,5 @@ export default async function UserEditPage(props: { params: Promise<{ id: string
   // Use empty defaults if config/ous fail
   const editConfig = configRes.ok && configRes.data ? configRes.data : { fetch: [], edit: [] }
 
-  return (
-    <UserEditForm initialUser={user} editConfig={editConfig} ous={ous.data}>
-      <OuCard userId={id} />
-    </UserEditForm>
-  )
+  return <UserEditForm initialUser={user} editConfig={editConfig} ous={ous.data} />
 }

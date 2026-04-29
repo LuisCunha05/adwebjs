@@ -12,12 +12,12 @@ const RECENT_HOURS = 24
 
 export default async function DashboardPage() {
   // eslint-disable-next-line react-hooks/purity
-  const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000).toISOString()
+  // const since = new Date(Date. - RECENT_HOURS * 60 * 60 * 1000).toISOString()
 
   // Parallel fetch
-  const [statsRes, auditRes] = await Promise.all([
+  const [statsRes] = await Promise.all([
     getStats(),
-    listAuditLogs({ action: 'user.disable', since, limit: 200 }),
+    // listAuditLogs({ action: 'user.disable', since, limit: 200 }),
   ])
 
   const stats =
@@ -25,17 +25,17 @@ export default async function DashboardPage() {
       ? statsRes.data
       : { usersCount: 0, disabledCount: 0, groupsCount: 0 }
   const statsError = statsRes.ok ? null : statsRes.error
-  const recentDisables = auditRes.ok && auditRes.data ? auditRes.data.length : 0
+  // const recentDisables = auditRes.ok && auditRes.data ? auditRes.data.length : 0
 
-  const alerts: { id: string; title: string; message: string; href?: string }[] = []
-  if (recentDisables >= RECENT_DISABLES_THRESHOLD) {
-    alerts.push({
-      id: 'recent-disables',
-      title: 'Vários usuários desativados recentemente',
-      message: `${recentDisables} conta(s) foram desativadas nas últimas ${RECENT_HOURS}h. Verifique se é intencional.`,
-      href: '/audit',
-    })
-  }
+  // const alerts: { id: string; title: string; message: string; href?: string }[] = []
+  // if (recentDisables >= RECENT_DISABLES_THRESHOLD) {
+  //   alerts.push({
+  //     id: 'recent-disables',
+  //     title: 'Vários usuários desativados recentemente',
+  //     message: `${recentDisables} conta(s) foram desativadas nas últimas ${RECENT_HOURS}h. Verifique se é intencional.`,
+  //     href: '/audit',
+  //   })
+  // }
 
   return (
     <div className="space-y-8">
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {alerts.length > 0 && (
+      {/*{alerts.length > 0 && (
         <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2 text-amber-800 dark:text-amber-200">
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
             ))}
           </CardContent>
         </Card>
-      )}
+      )}*/}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>

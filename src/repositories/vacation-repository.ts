@@ -1,8 +1,11 @@
+import { BaseRepository } from '@/services/base'
 import type { DatabaseClient } from '../types/database'
 import type { IVacationRepository, Vacation } from '../types/vacation'
 
-export class VacationRepository implements IVacationRepository {
-  constructor(private db: DatabaseClient) {}
+export class VacationRepository extends BaseRepository implements IVacationRepository {
+  constructor(protected db: DatabaseClient) {
+    super(db)
+  }
 
   async add(vacation: Omit<Vacation, 'id' | 'createdAt'>): Promise<number> {
     const createdAt = new Date().toISOString()
