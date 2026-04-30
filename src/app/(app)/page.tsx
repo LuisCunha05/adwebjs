@@ -1,11 +1,10 @@
 import { Button } from '@compound/button'
 import { IconManager } from '@compound/icon-manager'
-import { AlertTriangle, FolderOpen, FolderTree, UserX } from 'lucide-react'
+import { FolderOpen, FolderTree, UserX } from 'lucide-react'
 import Link from 'next/link'
-import { listAuditLogs } from '@/actions/audit'
-import { getStats } from '@/actions/stats'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { dashboardService } from '@/services/container'
 
 const RECENT_DISABLES_THRESHOLD = 5
 const RECENT_HOURS = 24
@@ -16,15 +15,15 @@ export default async function DashboardPage() {
 
   // Parallel fetch
   const [statsRes] = await Promise.all([
-    getStats(),
+    dashboardService.get(),
     // listAuditLogs({ action: 'user.disable', since, limit: 200 }),
   ])
 
   const stats =
-    statsRes.ok && statsRes.data
-      ? statsRes.data
+    statsRes.ok && statsRes.value
+      ? statsRes.value
       : { usersCount: 0, disabledCount: 0, groupsCount: 0 }
-  const statsError = statsRes.ok ? null : statsRes.error
+  const statsError = statsRes.ok ? null : statsRes.error.message
   // const recentDisables = auditRes.ok && auditRes.data ? auditRes.data.length : 0
 
   // const alerts: { id: string; title: string; message: string; href?: string }[] = []

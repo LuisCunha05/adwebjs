@@ -1,6 +1,6 @@
 import {
   auditService,
-  ldapService,
+  authService,
   scheduleRepository,
   vacationRepository,
 } from '../services/container'
@@ -53,7 +53,7 @@ export const scheduleVacation = async () => {
       console.log(`[Worker] Processing ${a.type} for ${userId} (id=${a.id})`)
 
       if (a.type === 'VACATION_START') {
-        await ldapService.disableUser(userId)
+        await authService.disableUser(userId)
         await auditService.log({
           action: 'vacation.execute_disable',
           actor: 'system',
@@ -62,7 +62,7 @@ export const scheduleVacation = async () => {
           success: true,
         })
       } else if (a.type === 'VACATION_END') {
-        await ldapService.enableUser(userId)
+        await authService.enableUser(userId)
         await auditService.log({
           action: 'vacation.execute_enable',
           actor: 'system',

@@ -1,7 +1,6 @@
 import { Button } from '@compound/button'
 import { Pencil } from 'lucide-react'
 import Link from 'next/link'
-import { listGroups } from '@/actions/groups'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -11,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { groupService } from '@/services/container'
 import { GroupsSearch } from './groups-search'
 
 export default async function GroupsPage(props: { searchParams: Promise<{ q?: string }> }) {
@@ -21,11 +21,11 @@ export default async function GroupsPage(props: { searchParams: Promise<{ q?: st
   let error: string | undefined
 
   if (q) {
-    const res = await listGroups(q)
-    if (res.ok && res.data) {
-      list = res.data
+    const res = await groupService.search(q)
+    if (res.ok) {
+      list = res.value
     } else {
-      error = res.error
+      error = res.error.message
     }
   }
 

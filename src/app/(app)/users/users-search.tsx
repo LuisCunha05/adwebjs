@@ -4,7 +4,6 @@ import { Button } from '@compound/button'
 import { Search } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
-import { listGroups } from '@/actions/groups'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
@@ -14,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { groupService } from '@/services/container'
 
 const searchByOptions = [
   { value: 'sAMAccountName', label: 'Usuário' },
@@ -49,8 +49,9 @@ export function UsersSearch({ ous }: UsersSearchProps) {
       return
     }
     const t = setTimeout(() => {
-      listGroups(groupsQuery.trim())
-        .then((r) => setGroups(r.data ?? []))
+      groupService
+        .search(groupsQuery.trim())
+        .then((r) => setGroups(r.ok ? r.value : []))
         .catch(() => setGroups([]))
     }, 300)
     return () => clearTimeout(t)

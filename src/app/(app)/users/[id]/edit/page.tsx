@@ -20,5 +20,5 @@ export default async function UserEditPage(props: { params: Promise<{ id: string
   // Use empty defaults if config/ous fail
   const editConfig = configRes.ok && configRes.data ? configRes.data : { fetch: [], edit: [] }
 
-  return <UserEditForm initialUser={user} editConfig={editConfig} ous={ous.data} />
+  return <UserEditForm initialUser={user} editConfig={editConfig} ous={ous.value} />
 }

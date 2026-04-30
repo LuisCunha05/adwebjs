@@ -2,8 +2,7 @@
 
 import { LDAP_GROUP_DELETE } from '@/constants/config'
 import type { ActiveDirectoryUser, UpdateUserInput } from '@/schemas/attributesAd'
-import { auditService, ldapService } from '@/services/container'
-import type { PaginatedResult } from '@/types/ldap'
+import { auditService, authService, userService } from '@/services/container'
 
 import { verifySession } from '@/utils/manage-jwt'
 
@@ -17,7 +16,7 @@ export async function moveUser(id: string, targetOuDn: string): Promise<ActionRe
   await verifySession()
   if (!targetOuDn) return { ok: false, error: 'targetOuDn é obrigatório' }
   try {
-    await ldapService.moveUserToOu(id, targetOuDn)
+    await userService.moveOu(id, targetOuDn)
     await auditService.log({
       action: 'user.move',
       actor: 'server-action',
@@ -39,14 +38,13 @@ export async function moveUser(id: string, targetOuDn: string): Promise<ActionRe
   }
 }
 
-
 export async function updateUser(
   id: string,
   data: UpdateUserInput,
 ): Promise<ActionResult<ActiveDirectoryUser>> {
   await verifySession()
   try {
-    const updated = await ldapService.updateUser(id, data)
+    const updated = await userService.update(id, data)
     await auditService.log({
       action: 'user.update',
       actor: 'server-action',
@@ -67,15 +65,15 @@ export async function updateUser(
   }
 }
 
-export async function disableUser(id: string, opts?: { targetOu?: string }): Promise<ActionResult> {
+export async function disableUser(id: string, targetOu?: string): Promise<ActionResult> {
   await verifySession()
   try {
-    await ldapService.disableUser(id, opts)
+    await authService.disableUser(id, targetOu)
     await auditService.log({
       action: 'user.disable',
       actor: 'server-action',
       target: id,
-      details: opts,
+      details: { targetOu: targetOu ?? 'sem ou destino' },
       success: true,
     })
     return { ok: true }
@@ -85,7 +83,7 @@ export async function disableUser(id: string, opts?: { targetOu?: string }): Pro
       actor: 'server-action',
       target: id,
       success: false,
-      error: err.message,
+      error: err?.message,
     })
     return { ok: false, error: err.message || 'Disable failed' }
   }
@@ -94,7 +92,7 @@ export async function disableUser(id: string, opts?: { targetOu?: string }): Pro
 export async function enableUser(id: string): Promise<ActionResult> {
   await verifySession()
   try {
-    await ldapService.enableUser(id)
+    await authService.enableUser(id)
     await auditService.log({
       action: 'user.enable',
       actor: 'server-action',
@@ -117,7 +115,7 @@ export async function enableUser(id: string): Promise<ActionResult> {
 export async function unlockUser(id: string): Promise<ActionResult> {
   await verifySession()
   try {
-    await ldapService.unlockUser(id)
+    await authService.unlockUser(id)
     await auditService.log({
       action: 'user.unlock',
       actor: 'server-action',
@@ -141,7 +139,7 @@ export async function resetPassword(id: string, newPassword: string): Promise<Ac
   await verifySession()
   if (!newPassword) return { ok: false, error: 'Password required' }
   try {
-    await ldapService.setPassword(id, newPassword)
+    await authService.setPassword(id, newPassword)
     await auditService.log({
       action: 'user.reset_password',
       actor: 'server-action',
@@ -165,12 +163,17 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   const session = await verifySession()
   try {
     if (!LDAP_GROUP_DELETE) return { ok: false, error: 'O sistema não permite essa ação' }
-    const currentUser = await ldapService.getUser(session.user.sAMAccountName)
+    const currentUser = await userService.get(session.user.sAMAccountName)
 
-    if (!Array.isArray(currentUser.memberOf) || !currentUser.memberOf.includes(LDAP_GROUP_DELETE))
+    if (!currentUser.ok) {
+      return { ok: false, error: 'Ação não permitida' } as const
+    }
+
+    const user = currentUser.value
+    if (!user.memberOf?.includes(LDAP_GROUP_DELETE))
       return { ok: false, error: 'Ação não permitida' }
 
-    await ldapService.deleteUser(id)
+    await authService.deleteUser(id)
     await auditService.log({
       action: 'user.delete',
       actor: session.user.sAMAccountName,
@@ -190,31 +193,10 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   }
 }
 
-export async function listUsers(
-  q: string,
-  searchBy: string,
-  opts?: {
-    ou?: string
-    memberOf?: string
-    disabledOnly?: boolean
-    page?: number
-    pageSize?: number
-  },
-): Promise<ActionResult<PaginatedResult<ActiveDirectoryUser> | ActiveDirectoryUser[]>> {
-  await verifySession()
-  if (!q && !opts?.ou && !opts?.memberOf && !opts?.disabledOnly) return { ok: true, data: [] }
-  try {
-    const result = await ldapService.searchUsers(q, searchBy, opts)
-    return { ok: true, data: result }
-  } catch (err: any) {
-    return { ok: false, error: err.message || 'Search failed' }
-  }
-}
-
 export async function createUser(body: any): Promise<ActionResult<any>> {
   await verifySession()
   try {
-    const user = await ldapService.createUser(body)
+    const user = await userService.create(body)
     await auditService.log({
       action: 'user.create',
       actor: 'server-action',

@@ -8,12 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ldapService } from '@/services/container'
+import { ouService } from '@/services/container'
 
 export default async function OUsPage() {
-  const res = await ldapService.listOUs()
-  const list = res.ok ? res.data : []
-  const error = res.ok ? null : res.error
+  const res = await ouService.listOUs()
+  const list = res.ok ? res.value : []
+  const error = res.ok ? null : res.error.message
 
   return (
     <div className="space-y-6">

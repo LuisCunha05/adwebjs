@@ -1,4 +1,3 @@
-import { log } from 'node:console'
 import { db } from '../infrastructure/database'
 import { AuditRepository } from '../repositories/audit-repository'
 import { ScheduleRepository } from '../repositories/schedule-repository'
@@ -6,6 +5,7 @@ import { VacationRepository } from '../repositories/vacation-repository'
 import { AuditService } from './audit'
 import { AuthService } from './auth'
 import { VacationScheduleService } from './contracts/vacation-schedule'
+import { DashboardService } from './dashboard'
 import { GroupService } from './group'
 import { logger } from './logger'
 import { OuService } from './ou'
@@ -35,3 +35,4 @@ export const vacationScheduleService = new VacationScheduleService(
   scheduleRepository,
 )
 export const auditService = new AuditService(auditRepository)
+export const dashboardService = new DashboardService(logger)
