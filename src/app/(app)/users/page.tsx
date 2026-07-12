@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { listOusCached } from '@/queries/ldap'
-import { userService } from '@/services/container'
+import { groupService, userService } from '@/services/container'
 import { DownloadButton } from './download-button'
 import { UsersSearch } from './users-search'
 
@@ -59,8 +59,24 @@ export default async function UsersPage(props: {
   const pageSize = Number(searchParams.pageSize) || 10
 
   // Parallel fetch: OUs always needed for search filter
-  const ousPromise = await listOusCached()
+  const [ousPromise, groupResult, searchResult] = await Promise.all([
+    listOusCached(),
+    groupService.search(q),
+    userService.search(q, searchBy, {
+      ou: ou || undefined,
+      memberOf: memberOf || undefined,
+      disabledOnly: disabledOnly || undefined,
+      page,
+      pageSize,
+    }),
+  ])
   const ous = ousPromise.ok && ousPromise.value ? ousPromise.value : []
+  const groups = groupResult.ok
+    ? groupResult.value.map((group) => {
+        const { dn, cn, description } = group
+        return { dn, cn, description }
+      })
+    : []
 
   let list: any[] = []
   let total = 0
@@ -71,27 +87,13 @@ export default async function UsersPage(props: {
   const hasFilters = !!(ou || memberOf || disabledOnly)
 
   if (q.trim() || hasFilters) {
-    const res = await userService.search(q, searchBy, {
-      ou: ou || undefined,
-      memberOf: memberOf || undefined,
-      disabledOnly: disabledOnly || undefined,
-      page,
-      pageSize,
-    })
-    if (res.ok) {
-      if (Array.isArray(res.value.data)) {
-        // It's a PaginatedResult
-        list = res.value.data
-        total = res.value.total
-        totalPages = res.value.totalPages
-      } else if (Array.isArray(res.value)) {
-        // Fallback if returns array (shouldn't happen with current service logic but for safety)
-        list = res.value
-        total = list.length
-        totalPages = 1
-      }
+    if (searchResult.ok) {
+      // It's a PaginatedResult
+      list = searchResult.value.data
+      total = searchResult.value.total
+      totalPages = searchResult.value.totalPages
     } else {
-      error = res.error.message
+      error = searchResult.error.message
     }
   }
 
@@ -114,7 +116,7 @@ export default async function UsersPage(props: {
         </Button>
       </div>
 
-      <UsersSearch ous={ous} />
+      <UsersSearch ous={ous} groups={groups} />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

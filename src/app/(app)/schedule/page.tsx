@@ -1,10 +1,20 @@
 import { listSchedule } from '@/actions/schedule'
+import { userService } from '@/services/container'
 import { ScheduleForm } from './schedule-form'
 import { VacationList } from './vacation-list'
 
 export default async function SchedulePage() {
-  const res = await listSchedule()
-  const actions = res.ok && res.data ? res.data : []
+  const [userResult, scheduleResult] = await Promise.all([userService.listAll(), listSchedule()])
+
+  const users = userResult.ok
+    ? userResult.value.map((user) => {
+        const { cn, displayName, sAMAccountName } = user
+
+        return { cn, displayName, sAMAccountName }
+      })
+    : []
+
+  const actions = scheduleResult.ok && scheduleResult.data ? scheduleResult.data : []
 
   return (
     <div className="space-y-8">
@@ -15,7 +25,7 @@ export default async function SchedulePage() {
         </p>
       </div>
 
-      <ScheduleForm />
+      <ScheduleForm users={users} />
       <VacationList actions={actions} />
     </div>
   )

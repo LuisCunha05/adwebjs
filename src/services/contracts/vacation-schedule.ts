@@ -57,7 +57,7 @@ export class VacationScheduleService implements IVacationScheduler {
 
       if (!vacationId) throw new Error('Unreachable')
 
-      return { ok: true, value: vacationId } as const
+      return { ok: true, value: vacationId as number } as const
     } catch (error: unknown) {
       this.#logger.error(error instanceof Error ? error.message : String(error))
       return errorResult('Internal', 'Transaction error')

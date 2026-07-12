@@ -1,3 +1,4 @@
+import 'server-only'
 import { cache } from 'react'
 import { ouService, userService } from '@/services/container'
 

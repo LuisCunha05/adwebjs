@@ -31,6 +31,24 @@ export class UserService extends BaseLdapService implements IUserService {
     this.#logger = logger
   }
 
+  async listAll() {
+    const client = await this.getAdminClient()
+
+    const result = await client.search(LDAP_BASE_DN, {
+      scope: 'sub',
+      attributes: SEARCH_USERS_ATTRIBUTES as unknown as string[],
+    })
+
+    const parsedEntries = AdUserListSchema.safeParse(result.searchEntries)
+
+    if (!parsedEntries.success) {
+      this.#logger.error('error while parsing', parsedEntries.error.format())
+      return errorResult('Internal', 'invalid shape')
+    }
+
+    return { ok: true, value: parsedEntries.data } as const
+  }
+
   async search(query: string, searchBy: string, options?: SearchUsersOptions) {
     const client = await this.getAdminClient()
 

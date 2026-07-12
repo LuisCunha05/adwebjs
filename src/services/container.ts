@@ -1,3 +1,4 @@
+import 'server-only'
 import { db } from '../infrastructure/database'
 import { AuditRepository } from '../repositories/audit-repository'
 import { ScheduleRepository } from '../repositories/schedule-repository'

@@ -1,7 +1,7 @@
 import { FolderTree } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
-import type { OU } from '@/types/ldap'
+import type { OU } from '@/types/ou'
 import { MoveOuModal } from './move-ou-modal'
 
 export function parentOuFromDn(dn: string): string {

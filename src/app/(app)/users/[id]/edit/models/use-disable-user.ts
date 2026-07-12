@@ -17,23 +17,19 @@ export function useDisableUser(id: string | undefined) {
   function handleDisablePermanent() {
     startDisable(async () => {
       if (!id) return
-      try {
-        const res = await disableUser(
-          id,
-          disableTargetOu ? { targetOu: disableTargetOu } : undefined,
-        )
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success(
-          disableTargetOu
-            ? 'Conta desativada e usuário movido para a OU informada.'
-            : 'Conta desativada.',
-        )
-        setDisableDialogOpen(false)
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao desativar.')
+      const res = await disableUser(id, disableTargetOu || undefined)
+      if (!res.ok) {
+        toast.error('Erro ao desativar usuário')
+        return
       }
+
+      toast.success(
+        disableTargetOu
+          ? 'Conta desativada e usuário movido para a OU informada.'
+          : 'Conta desativada.',
+      )
+      setDisableDialogOpen(false)
+      router.refresh()
     })
   }
 

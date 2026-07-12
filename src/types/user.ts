@@ -38,6 +38,7 @@ export interface CreateUserInput {
 }
 
 export interface IUserService {
+  listAll(): Promise<Result<ActiveDirectoryUser[], InternalError>>
   search(
     query: string,
     searchBy: string,

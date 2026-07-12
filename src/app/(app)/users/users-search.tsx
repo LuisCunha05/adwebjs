@@ -3,7 +3,7 @@
 import { Button } from '@compound/button'
 import { Search } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { groupService } from '@/services/container'
 
 const searchByOptions = [
   { value: 'sAMAccountName', label: 'Usuário' },
@@ -25,9 +24,10 @@ const searchByOptions = [
 
 interface UsersSearchProps {
   ous: { dn: string; ou?: string; name?: string }[]
+  groups: { dn: string; cn?: string; description?: string }[]
 }
 
-export function UsersSearch({ ous }: UsersSearchProps) {
+export function UsersSearch({ ous, groups }: UsersSearchProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -37,25 +37,8 @@ export function UsersSearch({ ous }: UsersSearchProps) {
   const [memberOf, setMemberOf] = useState(searchParams.get('memberOf') || '')
   const [disabledOnly, setDisabledOnly] = useState(searchParams.get('disabledOnly') === 'true')
 
-  const [groups, setGroups] = useState<{ dn?: string; cn?: string; name?: string }[]>([])
   const [groupsQuery, setGroupsQuery] = useState('')
   const [isPending, startTransition] = useTransition()
-
-  // Fetch groups for autocomplete
-  useEffect(() => {
-    if (!groupsQuery.trim()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setGroups([])
-      return
-    }
-    const t = setTimeout(() => {
-      groupService
-        .search(groupsQuery.trim())
-        .then((r) => setGroups(r.ok ? r.value : []))
-        .catch(() => setGroups([]))
-    }, 300)
-    return () => clearTimeout(t)
-  }, [groupsQuery])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -118,8 +101,11 @@ export function UsersSearch({ ous }: UsersSearchProps) {
           </div>
           <div className="flex flex-wrap items-end gap-3 pt-2 border-t">
             <div className="w-[220px] space-y-2">
-              <label className="text-sm font-medium leading-none">OU (opcional)</label>
+              <label htmlFor="select-ou" className="text-sm font-medium leading-none">
+                OU (opcional)
+              </label>
               <Select
+                name="select-ou"
                 value={ou || '__all__'}
                 onValueChange={(v) => setOu(v === '__all__' ? '' : v)}
               >
@@ -137,9 +123,12 @@ export function UsersSearch({ ous }: UsersSearchProps) {
               </Select>
             </div>
             <div className="w-[260px] space-y-2">
-              <label className="text-sm font-medium leading-none">Grupo (opcional)</label>
+              <label htmlFor="input-group" className="text-sm font-medium leading-none">
+                Grupo (opcional)
+              </label>
               <div className="flex gap-2">
                 <Input
+                  id="input-group"
                   placeholder="Buscar grupo..."
                   value={groupsQuery}
                   onChange={(e) => setGroupsQuery(e.target.value)}
@@ -156,12 +145,12 @@ export function UsersSearch({ ous }: UsersSearchProps) {
                     <SelectItem value="__none__">Nenhum</SelectItem>
                     {groups
                       .slice(0, 80)
-                      .filter((g) => (g.dn ?? g.cn) != null && (g.dn ?? g.cn) !== '')
+                      .filter((g) => g.cn ?? g.dn)
                       .map((g) => {
-                        const val = String(g.dn ?? g.cn)
+                        const val = String(g.dn)
                         return (
                           <SelectItem key={val} value={val}>
-                            {(g.cn ?? g.name ?? g.dn ?? '').slice(0, 30)}
+                            {(g.cn ?? g.description ?? g.dn).slice(0, 30)}
                           </SelectItem>
                         )
                       })}

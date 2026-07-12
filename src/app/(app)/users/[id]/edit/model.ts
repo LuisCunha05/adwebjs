@@ -105,17 +105,15 @@ export function useUserModel({ initialUser, editConfig }: UseUserModelProps) {
         setRemovingGroupId(null)
         return
       }
-      try {
-        const res = await removeMemberFromGroup(groupCn, user.dn)
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success(`Removido do grupo ${groupCn}.`)
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao remover do grupo.')
-      } finally {
-        setRemovingGroupId(null)
+      const res = await removeMemberFromGroup(groupCn, user.dn)
+      if (!res.ok) {
+        toast.error(res.error.message)
+        return
       }
+
+      toast.success(`Removido do grupo ${groupCn}.`)
+      router.refresh()
+      setRemovingGroupId(null)
     })
   }
 

@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { OU } from '@/types/ldap'
+import type { OU } from '@/types/ou'
 
 function dnMatch(a: string, b: string): boolean {
   return (a || '').toLowerCase().trim() === (b || '').toLowerCase().trim()

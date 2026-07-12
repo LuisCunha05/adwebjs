@@ -35,27 +35,30 @@ export async function createVacation(
     return { ok: false, error: 'Invalid dates' }
   }
 
-  try {
-    const vacationId = await vacationScheduleService.schedule(String(userId), startDate, endDate)
-    await auditService.log({
-      action: 'vacation.schedule',
-      actor: 'server-action',
-      target: String(userId),
-      details: { startDate, endDate, vacationId },
-      success: true,
-    })
-    return { ok: true, data: { vacationId } }
-  } catch (err: unknown) {
+  const vacationResult = await vacationScheduleService.schedule(String(userId), startDate, endDate)
+
+  if (!vacationResult.ok) {
     await auditService.log({
       action: 'vacation.schedule',
       actor: 'server-action',
       target: String(userId),
       details: { startDate, endDate },
       success: false,
-      error: err instanceof Error ? err.message : 'Schedule vacation failed',
+      error: vacationResult.error.message,
     })
-    return { ok: false, error: err instanceof Error ? err.message : 'Schedule vacation failed' }
+    return { ok: false, error: 'Schedule vacation failed' }
   }
+
+  const vacationId = vacationResult.value
+
+  await auditService.log({
+    action: 'vacation.schedule',
+    actor: 'server-action',
+    target: String(userId),
+    details: { startDate, endDate, vacationId },
+    success: true,
+  })
+  return { ok: true, data: { vacationId } }
 }
 
 export async function cancelTask(id: number): Promise<ActionResult> {

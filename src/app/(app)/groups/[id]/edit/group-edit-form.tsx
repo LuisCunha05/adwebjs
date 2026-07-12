@@ -78,7 +78,10 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
         .map((m: string) => m.trim())
         .filter(Boolean)
       const res = await updateGroup(group.dn, { name: form.name || undefined, member: memberList })
-      if (!res.ok) throw new Error(res.error)
+      if (!res.ok) {
+        toast.error(res.error.message)
+        return
+      }
 
       toast.success('Grupo atualizado.')
       router.refresh()
@@ -94,7 +97,10 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
     setActionLoading(dn)
     try {
       const res = await addMemberToGroup(group.dn, dn)
-      if (!res.ok) throw new Error(res.error)
+      if (!res.ok) {
+        toast.error(res.error.message)
+        return
+      }
 
       toast.success('Membro adicionado.')
       setAddSearch('')
@@ -112,7 +118,9 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
     setActionLoading(dn)
     try {
       const res = await removeMemberFromGroup(group.dn, dn)
-      if (!res.ok) throw new Error(res.error)
+      if (!res.ok) {
+        return toast.error(res.error.message)
+      }
 
       toast.success('Membro removido.')
       router.refresh()

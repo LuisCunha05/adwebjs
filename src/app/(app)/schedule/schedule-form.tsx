@@ -6,51 +6,26 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { createVacation } from '@/actions/schedule'
-import { listUsers } from '@/actions/users'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
-import { PaginatedResult } from '@/types/ldap'
 
-export function ScheduleForm() {
+type UserScheduleDto = Pick<ActiveDirectoryUser, 'cn' | 'displayName' | 'sAMAccountName'>
+
+type ScheduleFormProps = {
+  users: UserScheduleDto[]
+}
+
+export function ScheduleForm(props: ScheduleFormProps) {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
 
   const [userSearch, setUserSearch] = useState('')
-  const [userResults, setUserResults] = useState<ActiveDirectoryUser[]>([])
   const [selectedUser, setSelectedUser] = useState<{ id: string; label: string } | null>(null)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [searching, setSearching] = useState(false)
-
-  async function handleSearchUser() {
-    const q = userSearch.trim()
-    if (!q) {
-      setUserResults([])
-      return
-    }
-    setSearching(true)
-    try {
-      // Search by sAMAccountName as per original logic
-      const res = await listUsers(q, 'sAMAccountName')
-      if (res.data) {
-        if ('data' in res.data && Array.isArray(res.data.data)) {
-          setUserResults(res.data.data)
-        } else if (Array.isArray(res.data)) {
-          setUserResults(res.data)
-        } else {
-          setUserResults([])
-        }
-      } else {
-        setUserResults([])
-      }
-    } catch {
-      setUserResults([])
-    } finally {
-      setSearching(false)
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -76,7 +51,6 @@ export function ScheduleForm() {
       setStartDate('')
       setEndDate('')
       setUserSearch('')
-      setUserResults([])
 
       router.refresh()
     } catch (err: any) {
@@ -107,17 +81,10 @@ export function ScheduleForm() {
                 placeholder="Buscar por nome de usuário..."
                 value={selectedUser ? selectedUser.label : userSearch}
                 onChange={(e) => {
-                  setUserSearch(e.target.value)
                   if (selectedUser) setSelectedUser(null)
                 }}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleSearchUser())}
               />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleSearchUser}
-                disabled={searching}
-              >
+              <Button type="button" variant="secondary" disabled={searching}>
                 {searching ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
@@ -125,9 +92,9 @@ export function ScheduleForm() {
                 )}
               </Button>
             </div>
-            {userResults.length > 0 && !selectedUser && (
+            {props.users.length > 0 && !selectedUser && (
               <ul className="rounded-lg border divide-y max-h-40 overflow-auto">
-                {userResults.map((u) => (
+                {props.users.map((u) => (
                   <li key={u.sAMAccountName}>
                     <button
                       type="button"
@@ -139,7 +106,6 @@ export function ScheduleForm() {
                             .filter(Boolean)
                             .join(' – '),
                         })
-                        setUserResults([])
                         setUserSearch('')
                       }}
                     >
