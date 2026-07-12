@@ -15,7 +15,7 @@ import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
 
 interface Group {
   dn: string
-  cn: string
+  cn?: string
   name?: string
   member?: string | string[]
 }
@@ -134,27 +134,7 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
   async function handleSearchUsers() {
     const q = addSearch.trim()
     if (!q) {
-      setUserSearchResults([])
       return
-    }
-    setSearching(true)
-    try {
-      const res = await listUsers(q, 'sAMAccountName')
-      if (res.data) {
-        if ('data' in res.data && Array.isArray(res.data.data)) {
-          setUserSearchResults(res.data.data)
-        } else if (Array.isArray(res.data)) {
-          setUserSearchResults(res.data)
-        } else {
-          setUserSearchResults([])
-        }
-      } else {
-        setUserSearchResults([])
-      }
-    } catch {
-      setUserSearchResults([])
-    } finally {
-      setSearching(false)
     }
   }
 

@@ -7,18 +7,18 @@ export default async function UserEditPage(props: { params: Promise<{ id: string
   const { id } = await props.params
 
   // Parallel fetch for data
-  const [user, configRes, ous] = await Promise.all([
+  const [userResult, configRes, ous] = await Promise.all([
     showUserCached(id),
     getUserAttributesConfig(),
     listOusCached(),
   ])
 
-  if (!user || !configRes || !ous.ok) {
+  if (!userResult.ok || !configRes || !ous.ok) {
     notFound()
   }
 
   // Use empty defaults if config/ous fail
   const editConfig = configRes.ok && configRes.data ? configRes.data : { fetch: [], edit: [] }
 
-  return <UserEditForm initialUser={user} editConfig={editConfig} ous={ous.value} />
+  return <UserEditForm initialUser={userResult.value} editConfig={editConfig} ous={ous.value} />
 }
