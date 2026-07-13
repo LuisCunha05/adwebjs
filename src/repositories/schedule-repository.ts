@@ -39,6 +39,46 @@ export class ScheduleRepository extends BaseRepository implements IScheduleRepos
     return rows.map((row) => this.mapRowToTask(row))
   }
 
+  async listPaginated(params: {
+    skip?: number
+    take?: number
+    vacationIds?: number[]
+    startDate?: Date
+    endDate?: Date
+  }): Promise<{ tasks: ScheduledTask[]; total: number }> {
+    const where: any = {}
+
+    if (params.vacationIds !== undefined) {
+      where.relatedTable = 'vacations'
+      where.relatedId = { in: params.vacationIds }
+    }
+
+    if (params.startDate || params.endDate) {
+      where.runAt = {}
+      if (params.startDate) {
+        where.runAt.gte = params.startDate
+      }
+      if (params.endDate) {
+        where.runAt.lte = params.endDate
+      }
+    }
+
+    const [rows, total] = await Promise.all([
+      this.db.scheduledTask.findMany({
+        where,
+        orderBy: { runAt: 'asc' },
+        ...(params.skip !== undefined ? { skip: params.skip } : {}),
+        ...(params.take !== undefined ? { take: params.take } : {}),
+      }),
+      this.db.scheduledTask.count({ where }),
+    ])
+
+    return {
+      tasks: rows.map((row) => this.mapRowToTask(row)),
+      total,
+    }
+  }
+
   async updateStatus(
     id: number,
     status: ScheduleStatus,

@@ -1,13 +1,30 @@
 import { listUsersCached } from '@/queries/ldap'
-import { listScheduleCached, listVacationsCached } from '@/queries/schedule'
+import { listSchedulePaginated } from '@/queries/schedule'
 import { ScheduleForm } from './schedule-form'
 import { VacationList } from './vacation-list'
 
-export default async function SchedulePage() {
-  const [userResult, scheduleResult, vacationResult] = await Promise.all([
+export default async function SchedulePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const resolvedSearchParams = await searchParams
+
+  const person = typeof resolvedSearchParams.person === 'string' ? resolvedSearchParams.person : undefined
+  const startDate = typeof resolvedSearchParams.startDate === 'string' ? resolvedSearchParams.startDate : undefined
+  const endDate = typeof resolvedSearchParams.endDate === 'string' ? resolvedSearchParams.endDate : undefined
+  const page = typeof resolvedSearchParams.page === 'string' ? Number(resolvedSearchParams.page) || 1 : 1
+  const limit = 10
+
+  const [userResult, scheduleResult] = await Promise.all([
     listUsersCached(),
-    listScheduleCached(),
-    listVacationsCached(),
+    listSchedulePaginated({
+      page,
+      limit,
+      person,
+      startDate,
+      endDate,
+    }),
   ])
 
   const users = userResult.ok
@@ -18,12 +35,12 @@ export default async function SchedulePage() {
       })
     : []
 
-  const actions = scheduleResult.ok ? scheduleResult.value : []
-  const vacations = vacationResult.ok ? vacationResult.value : []
+  const paginatedData = scheduleResult.ok
+    ? scheduleResult.value
+    : { tasks: [], total: 0, page: 1, limit: 10 }
 
   const userError = !userResult.ok ? userResult.error.message : null
   const scheduleError = !scheduleResult.ok ? scheduleResult.error.message : null
-  const vacationError = !vacationResult.ok ? vacationResult.error.message : null
 
   return (
     <div className="space-y-8">
@@ -34,17 +51,21 @@ export default async function SchedulePage() {
         </p>
       </div>
 
-      {(userError || scheduleError || vacationError) && (
+      {(userError || scheduleError) && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 space-y-1">
           {userError && <p>Erro ao carregar usuários: {userError}</p>}
           {scheduleError && <p>Erro ao carregar agendamentos: {scheduleError}</p>}
-          {vacationError && <p>Erro ao carregar férias: {vacationError}</p>}
         </div>
       )}
 
       <div className="grid gap-6">
         <ScheduleForm users={users} />
-        <VacationList actions={actions} vacations={vacations} users={users} />
+        <VacationList
+          actions={paginatedData.tasks}
+          totalCount={paginatedData.total}
+          currentPage={paginatedData.page}
+          pageSize={paginatedData.limit}
+        />
       </div>
     </div>
   )
