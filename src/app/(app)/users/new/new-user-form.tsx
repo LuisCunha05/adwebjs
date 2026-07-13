@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-
 interface NewUserFormProps {
   ous: { dn: string; ou?: string; name?: string }[]
 }
@@ -67,12 +66,8 @@ export function NewUserForm({ ous }: NewUserFormProps) {
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>OU de destino *</Label>
-              <Select
-                defaultValue={state?.state.parentOuDn}
-                name="parentOuDn"
-                required
-              >
-                <SelectTrigger className='w-full'>
+              <Select defaultValue={state?.state.parentOuDn} name="parentOuDn" required>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione a OU" />
                 </SelectTrigger>
                 <SelectContent>
@@ -106,13 +101,7 @@ export function NewUserForm({ ous }: NewUserFormProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha inicial *</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                minLength={12}
-              />
+              <Input id="password" name="password" type="password" required minLength={12} />
               <p className="text-muted-foreground text-xs">Mínimo 8 caracteres.</p>
             </div>
             <div className="space-y-2">

@@ -25,8 +25,10 @@ export default async function SchedulePage() {
         </p>
       </div>
 
-      <ScheduleForm users={users} />
-      <VacationList actions={actions} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <ScheduleForm users={users} />
+        <VacationList actions={actions} />
+      </div>
     </div>
   )
 }

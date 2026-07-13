@@ -10,7 +10,7 @@ export function useEnableUser(id: string | undefined) {
   function handleEnable() {
     startEnable(async () => {
       if (!id) return
-        const res = await enableUser(id)
+      const res = await enableUser(id)
       if (!res.ok) {
         toast.error(res.error.message)
       }

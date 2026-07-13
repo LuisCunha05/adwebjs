@@ -50,7 +50,8 @@ export const errorActionResult = <Data, T extends ErrorUnion['_tag']>(
   state: Data,
   kind: T,
   message: string,
-): ErrorActionResult<Data,
+): ErrorActionResult<
+  Data,
   Extract<
     ErrorUnion,
     {

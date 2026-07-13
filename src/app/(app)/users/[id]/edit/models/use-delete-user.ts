@@ -11,7 +11,7 @@ export function useDeleteUser(id: string | undefined) {
   function handleDelete() {
     startDelete(async () => {
       if (!id) return
-        const res = await deleteUser(id)
+      const res = await deleteUser(id)
       if (!res.ok) {
         toast.error(res.error.message)
         return

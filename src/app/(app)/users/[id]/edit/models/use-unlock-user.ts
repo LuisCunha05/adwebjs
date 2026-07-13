@@ -17,7 +17,6 @@ export function useUnlockUser(id: string | undefined) {
       }
 
       toast.success('Conta desbloqueada.')
-
     })
   }
 

@@ -361,14 +361,12 @@ export const PasswordSchema = z
   .regex(/[0-9]/, 'Password must contain at least one number')
   .regex(/[^a-zA-Z0-9]/, 'Password must contain at least one special character')
 
-export const CreateUserFormSchema = z
-  .object({
-    cn: z.string().min(1).max(64),
-    parentOuDn: z.string().min(1, 'Parent OU DN is required'),
-    sAMAccountName: z.string().trim().min(1, 'sAMAccountName is required').max(20),
-    password: PasswordSchema,
-  })
-
+export const CreateUserFormSchema = z.object({
+  cn: z.string().min(1).max(64),
+  parentOuDn: z.string().min(1, 'Parent OU DN is required'),
+  sAMAccountName: z.string().trim().min(1, 'sAMAccountName is required').max(20),
+  password: PasswordSchema,
+})
 
 export type CreateUserForm = z.infer<typeof CreateUserFormSchema>
 
