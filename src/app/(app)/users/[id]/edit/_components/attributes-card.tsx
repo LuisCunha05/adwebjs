@@ -23,7 +23,6 @@ interface AttributesCardProps {
   sections: { name: string; attrs: EditAttribute[] }[]
   submitAction: (payload: FormData) => void
   isSaving: boolean
-  isDisabled: boolean
   isPwdNeverExpires: boolean
 }
 
@@ -32,7 +31,6 @@ export function AttributesCard({
   sections,
   submitAction,
   isSaving,
-  isDisabled,
   isPwdNeverExpires,
 }: AttributesCardProps) {
   return (
@@ -64,6 +62,7 @@ export function AttributesCard({
             </div>
           ))}
 
+          <input type="hidden" name="id" value={user.sAMAccountName ?? ''} />
           <div className="space-y-2 pt-2">
             <Label htmlFor="sAMAccountName">Usuário (sAMAccountName)</Label>
             <Input
@@ -75,21 +74,6 @@ export function AttributesCard({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 pt-2">
-            <div className="space-y-2">
-              <Label>Status da conta</Label>
-              <Select name="accountDisabled" defaultValue={isDisabled ? 'desativada' : 'ativa'}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ativa">Ativa</SelectItem>
-                  <SelectItem value="desativada">Desativada</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-muted-foreground text-xs">
-                Conta ativa permite login; desativada bloqueia o acesso.
-              </p>
-            </div>
             <div className="space-y-2">
               <Label>Senha nunca expira</Label>
               <Select name="passwordNeverExpires" defaultValue={isPwdNeverExpires ? 'sim' : 'nao'}>

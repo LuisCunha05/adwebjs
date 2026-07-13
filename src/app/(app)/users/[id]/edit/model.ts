@@ -1,28 +1,15 @@
 import { useRouter } from 'next/navigation'
-import { useActionState, useMemo, useState, useTransition } from 'react'
+import { useActionState, useEffect, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
 import { removeMemberFromGroup } from '@/actions/groups'
 import { updateUser } from '@/actions/users'
-import { useAuth, useSession } from '@/components/auth-provider'
+import { useSession } from '@/components/auth-provider'
 import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
 import type { EditAttribute } from '@/types/ldap'
 
 const UAC_DISABLED = 2
 const UAC_DONT_EXPIRE_PASSWD = 65536
-
-export function flagsToUac(
-  current: number | string | undefined,
-  accountDisabled: boolean,
-  passwordNeverExpires: boolean,
-) {
-  const base = Number(current) || 512
-  return String(
-    (base & ~(UAC_DISABLED | UAC_DONT_EXPIRE_PASSWD)) |
-      (accountDisabled ? UAC_DISABLED : 0) |
-      (passwordNeverExpires ? UAC_DONT_EXPIRE_PASSWD : 0),
-  )
-}
 
 export function cnFromDn(dn: string): string {
   const m = dn.match(/^CN=([^,]+)/i)
@@ -49,38 +36,19 @@ export function useUserModel({ initialUser, editConfig }: UseUserModelProps) {
 
   const id = initialUser?.sAMAccountName
 
-  const [updateState, submitAction, isSaving] = useActionState(
-    async (prevState: any, formData: FormData) => {
-      if (!id || !editConfig) return prevState
-      try {
-        const isAccountDisabled = formData.get('accountDisabled') === 'desativada'
-        const isPasswordNeverExpires = formData.get('passwordNeverExpires') === 'sim'
-        const uac = flagsToUac(
-          prevState?.userAccountControl ?? initialUser.userAccountControl,
-          isAccountDisabled,
-          isPasswordNeverExpires,
-        )
-        const body: Record<string, unknown> = { userAccountControl: uac }
-        for (const a of editConfig.edit) {
-          const v = formData.get(a.name)
-          if (typeof v === 'string' && v.trim() !== '') body[a.name] = v.trim()
-          else if (v !== null && v !== '') body[a.name] = v
-        }
+  const initialState = useMemo(() => ({ ok: true, value: initialUser }) as const, [initialUser])
+  const [updateState, submitAction, isSaving] = useActionState(updateUser, initialState)
 
-        const res = await updateUser(id, body)
-        if (!res.ok) throw new Error(res.error)
+  useEffect(() => {
+    if (updateState === initialState) return
+    if (!updateState.ok) {
+      toast.error(updateState.error.message || 'Erro ao salvar.')
+    } else {
+      toast.success('Usuário atualizado.')
+    }
+  }, [updateState, initialState])
 
-        toast.success('Usuário atualizado.')
-        return res.data
-      } catch (err: any) {
-        toast.error(err.message || 'Erro ao salvar.')
-        return prevState
-      }
-    },
-    initialUser,
-  )
-
-  const user = updateState || initialUser
+  const user = updateState?.ok ? updateState.value : initialUser
 
   const [isPendingGroupRemove, startGroupRemove] = useTransition()
 

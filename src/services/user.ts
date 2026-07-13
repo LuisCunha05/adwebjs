@@ -291,7 +291,7 @@ export class UserService extends BaseLdapService implements IUserService {
       await client.modify(dn, modifications)
       this.#logger.debug(`LDAP Debug - User updated successfully: ${id}`)
 
-      const updatedUser = await this.get(dn)
+      const updatedUser = await this.get(id)
 
       if (!updatedUser.ok) return errorResult('Internal', 'error while getting updated user')
       return { ok: true, value: updatedUser.value } as const

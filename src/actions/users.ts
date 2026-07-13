@@ -4,6 +4,9 @@ import { LDAP_GROUP_DELETE } from '@/constants/config'
 import { getSessionCached } from '@/queries/session'
 import type { ActiveDirectoryUser, UpdateUserInput } from '@/schemas/attributesAd'
 import { auditService, authService, userService } from '@/services/container'
+import type { InternalError } from '@/types/error'
+import type { Result } from '@/types/utils'
+import { errorResult } from '@/utils/error'
 
 interface ActionResult<T = void> {
   ok: boolean
@@ -37,21 +40,70 @@ export async function moveUser(id: string, targetOuDn: string): Promise<ActionRe
   }
 }
 
+import { getEditConfig } from '@/services/ad-user-attributes'
+
+const UAC_DISABLED = 2
+const UAC_DONT_EXPIRE_PASSWD = 65536
+
+function flagsToUac(current: number | string | undefined, passwordNeverExpires: boolean) {
+  const base = Number(current) || 512
+  return String(
+    (base & ~(UAC_DISABLED | UAC_DONT_EXPIRE_PASSWD)) |
+      (passwordNeverExpires ? UAC_DONT_EXPIRE_PASSWD : 0),
+  )
+}
+
 export async function updateUser(
-  id: string,
-  data: UpdateUserInput,
-): Promise<ActionResult<ActiveDirectoryUser>> {
+  prevState: Result<ActiveDirectoryUser, InternalError> | null,
+  formData: FormData,
+): Promise<Result<ActiveDirectoryUser, InternalError>> {
   await getSessionCached()
+  const id = formData.get('id')?.toString()
+  if (!id) {
+    return errorResult('Internal', 'ID do usuário não fornecido')
+  }
+
   try {
-    const updated = await userService.update(id, data)
+    const editConfig = getEditConfig()
+    const currentUserRes = await userService.get(id)
+    if (!currentUserRes.ok) {
+      return errorResult('Internal', 'Usuário não encontrado')
+    }
+
+    const currentUac = prevState?.ok
+      ? prevState.value.userAccountControl
+      : currentUserRes.value.userAccountControl
+
+    const isPasswordNeverExpires = formData.get('passwordNeverExpires') === 'sim'
+    const uac = flagsToUac(currentUac, isPasswordNeverExpires)
+
+    const body: Record<string, unknown> = { userAccountControl: uac }
+    for (const a of editConfig) {
+      const v = formData.get(a.name)
+      if (typeof v === 'string' && v.trim() !== '') body[a.name] = v.trim()
+      else if (v !== null && v !== '') body[a.name] = v
+    }
+
+    const updated = await userService.update(id, body)
+    if (!updated.ok) {
+      await auditService.log({
+        action: 'user.update',
+        actor: 'server-action',
+        target: id,
+        success: false,
+        error: updated.error.message,
+      })
+      return errorResult('Internal', 'Error while updating user')
+    }
+
     await auditService.log({
       action: 'user.update',
       actor: 'server-action',
       target: id,
-      details: { fields: Object.keys(data) },
+      details: { fields: Object.keys(body) },
       success: true,
     })
-    return { ok: true, data: JSON.parse(JSON.stringify(updated)) }
+    return { ok: true, value: updated.value }
   } catch (err: any) {
     await auditService.log({
       action: 'user.update',
@@ -60,7 +112,7 @@ export async function updateUser(
       success: false,
       error: err.message,
     })
-    return { ok: false, error: err.message || 'Update failed' }
+    return errorResult('Internal', err.message || 'Update failed')
   }
 }
 

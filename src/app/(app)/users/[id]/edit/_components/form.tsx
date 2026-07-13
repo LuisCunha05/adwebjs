@@ -59,7 +59,6 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         sections={model.sections}
         submitAction={model.submitAction}
         isSaving={model.isSaving}
-        isDisabled={model.isDisabled}
         isPwdNeverExpires={model.isPwdNeverExpires}
       />
 
