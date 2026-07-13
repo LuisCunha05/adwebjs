@@ -33,10 +33,12 @@ function groupByVacation(actions: ScheduledTask[]): VacationGroup[] {
       })
     }
 
-    const group = byVacation.get(a.relatedId)!
-    group.actionIds.push(a.id)
-    if (new Date(a.runAt) < new Date(group.startDate)) group.startDate = a.runAt
-    if (!group.endDate || new Date(a.runAt) > new Date(group.endDate)) group.endDate = a.runAt
+    const group = byVacation.get(a.relatedId)
+    if (group) {
+      group.actionIds.push(a.id)
+      if (new Date(a.runAt) < new Date(group.startDate)) group.startDate = a.runAt
+      if (!group.endDate || new Date(a.runAt) > new Date(group.endDate)) group.endDate = a.runAt
+    }
   }
 
   return Array.from(byVacation.values()).sort(
@@ -70,18 +72,21 @@ export function VacationList({ actions }: VacationListProps) {
 
   async function handleCancelVacation(vacation: VacationGroup) {
     const vacationId = Number(vacation.vacationId)
-    if (cancelId || isNaN(vacationId)) return
+    if (cancelId || Number.isNaN(vacationId)) return
 
     setCancelId(vacationId)
     try {
       // Cancel all tasks associated with this vacation
       for (const id of vacation.actionIds) {
-        await cancelTask(id)
+        const res = await cancelTask(id)
+        if (!res.ok) {
+          throw new Error(res.error.message)
+        }
       }
       toast.success('Agendamento de férias cancelado.')
       router.refresh()
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao cancelar.')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao cancelar.')
     } finally {
       setCancelId(null)
     }

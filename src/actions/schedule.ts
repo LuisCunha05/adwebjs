@@ -1,51 +1,87 @@
 'use server'
 
+import { z } from 'zod'
 import { getSessionCached } from '@/queries/session'
 import { auditService, scheduleService, vacationScheduleService } from '@/services/container'
-import type { ScheduledTask } from '@/types/schedule'
+import type {
+  InternalError,
+  InvalidShapeError,
+  NotFoundError,
+  UnauthorizedError,
+} from '@/types/error'
+import type { ActionResult, Result } from '@/types/utils'
+import { errorActionResult, errorResult } from '@/utils/error'
 
-interface ActionResult<T = void> {
-  ok: boolean
-  data?: T
-  error?: string
-}
+const CreateVacationSchema = z
+  .object({
+    userId: z.string().trim().min(1, 'Usuário é obrigatório'),
+    startDate: z.string().trim().min(1, 'Data de ida é obrigatória'),
+    endDate: z.string().trim().min(1, 'Data de volta é obrigatória'),
+  })
+  .refine(
+    (data) => {
+      const start = new Date(data.startDate)
+      const end = new Date(data.endDate)
+      return !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end > start
+    },
+    {
+      message: 'Data de volta deve ser após a data de ida.',
+      path: ['endDate'],
+    },
+).transform(data => {
+  const { endDate, startDate, userId } = data
 
-export async function listSchedule(): Promise<ActionResult<ScheduledTask[]>> {
-  await getSessionCached()
-  try {
-    const actions = await scheduleService.list()
-    return { ok: true, data: JSON.parse(JSON.stringify(actions)) }
-  } catch (err: unknown) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Schedule list failed' }
-  }
+  return { endDate: new Date(endDate).toISOString(), startDate:new Date(startDate).toISOString(),userId}
+  })
+
+export type CreateVacationFormState = {
+  userId: string
+  startDate: string
+  endDate: string
 }
 
 export async function createVacation(
-  userId: string,
-  startDate: string,
-  endDate: string,
-): Promise<ActionResult<{ vacationId: number }>> {
+  _prevState: ActionResult<
+    CreateVacationFormState,
+    InternalError | UnauthorizedError | InvalidShapeError
+  > | null,
+  formData: FormData,
+): Promise<
+  ActionResult<CreateVacationFormState, InternalError | UnauthorizedError | InvalidShapeError>
+> {
+  // 1. Authorization check
   await getSessionCached()
-  if (!userId || !startDate || !endDate) return { ok: false, error: 'Missing required fields' }
 
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
-    return { ok: false, error: 'Invalid dates' }
+  const userId = formData.get('userId')?.toString() || ''
+  const startDate = formData.get('startDate')?.toString() || ''
+  const endDate = formData.get('endDate')?.toString() || ''
+
+  const state = { userId, startDate, endDate }
+
+  // 2. Input validation
+  const validation = CreateVacationSchema.safeParse({ userId, startDate, endDate })
+
+  if (!validation.success) {
+    return errorActionResult(state, 'InvalidShape', validation.error.issues[0].message)
   }
 
-  const vacationResult = await vacationScheduleService.schedule(String(userId), startDate, endDate)
+  // 3. Execution
+  const vacationResult = await vacationScheduleService.schedule(
+    validation.data.userId,
+    validation.data.startDate,
+    validation.data.endDate,
+  )
 
   if (!vacationResult.ok) {
     await auditService.log({
       action: 'vacation.schedule',
       actor: 'server-action',
-      target: String(userId),
-      details: { startDate, endDate },
+      target: validation.data.userId,
+      details: { startDate: validation.data.startDate, endDate: validation.data.endDate },
       success: false,
       error: vacationResult.error.message,
     })
-    return { ok: false, error: 'Schedule vacation failed' }
+    return errorActionResult(state, 'Internal', 'Agendamento de férias falhou.')
   }
 
   const vacationId = vacationResult.value
@@ -53,21 +89,28 @@ export async function createVacation(
   await auditService.log({
     action: 'vacation.schedule',
     actor: 'server-action',
-    target: String(userId),
-    details: { startDate, endDate, vacationId },
+    target: validation.data.userId,
+    details: { startDate: validation.data.startDate, endDate: validation.data.endDate, vacationId },
     success: true,
   })
-  return { ok: true, data: { vacationId } }
+
+  return { ok: true, state }
 }
 
-export async function cancelTask(id: number): Promise<ActionResult> {
+export async function cancelTask(
+  id: number,
+): Promise<Result<void, InternalError | UnauthorizedError | NotFoundError>> {
   await getSessionCached()
-  if (Number.isNaN(id)) return { ok: false, error: 'Invalid ID' }
+  if (Number.isNaN(id)) {
+    return errorResult('Internal', 'ID inválido')
+  }
   try {
     const removed = await scheduleService.remove(id)
-    if (!removed) return { ok: false, error: 'Scheduled action not found' }
-    return { ok: true }
+    if (!removed) {
+      return errorResult('NotFound', 'Agendamento não encontrado')
+    }
+    return { ok: true, value: undefined }
   } catch (err: unknown) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Cancel failed' }
+    return errorResult('Internal', err instanceof Error ? err.message : 'Cancelamento falhou')
   }
 }

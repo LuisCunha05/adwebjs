@@ -1,10 +1,10 @@
-import { listSchedule } from '@/actions/schedule'
-import { userService } from '@/services/container'
+import { listUsersCached } from '@/queries/ldap'
+import { listScheduleCached } from '@/queries/schedule'
 import { ScheduleForm } from './schedule-form'
 import { VacationList } from './vacation-list'
 
 export default async function SchedulePage() {
-  const [userResult, scheduleResult] = await Promise.all([userService.listAll(), listSchedule()])
+  const [userResult, scheduleResult] = await Promise.all([listUsersCached(), listScheduleCached()])
 
   const users = userResult.ok
     ? userResult.value.map((user) => {
@@ -14,7 +14,10 @@ export default async function SchedulePage() {
       })
     : []
 
-  const actions = scheduleResult.ok && scheduleResult.data ? scheduleResult.data : []
+  const actions = scheduleResult.ok ? scheduleResult.value : []
+
+  const userError = !userResult.ok ? userResult.error.message : null
+  const scheduleError = !scheduleResult.ok ? scheduleResult.error.message : null
 
   return (
     <div className="space-y-8">
@@ -25,7 +28,14 @@ export default async function SchedulePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      {(userError || scheduleError) && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 space-y-1">
+          {userError && <p>Erro ao carregar usuários: {userError}</p>}
+          {scheduleError && <p>Erro ao carregar agendamentos: {scheduleError}</p>}
+        </div>
+      )}
+
+      <div className="grid gap-6">
         <ScheduleForm users={users} />
         <VacationList actions={actions} />
       </div>

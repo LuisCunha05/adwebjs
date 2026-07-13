@@ -13,3 +13,8 @@ export const showUserCached = cache(async (id: string) => {
   console.log({ userCache: id })
   return userService.get(id)
 })
+
+export const listUsersCached = cache(async () => {
+  await getSessionCached()
+  return userService.listAll()
+})
