@@ -16,6 +16,9 @@ WORKDIR /app
 COPY . .
 COPY --from=deps /app/node_modules ./node_modules
 
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm exec prisma generate --schema src/infrastructure/prisma/schema.prisma
+
 RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
     pnpm build
 

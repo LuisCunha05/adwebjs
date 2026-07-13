@@ -1,0 +1,54 @@
+services:
+  adwebapp-dev:
+    image: node:24.13.1-slim
+    container_name: adwebapp-dev
+    working_dir: /app
+    ports:
+      - "${PORT:-3000}:3000"
+    command: >
+      sh -c "
+        corepack enable &&
+        pnpm install &&
+        pnpm exec prisma generate --schema src/infrastructure/prisma/schema.prisma &&
+        pnpm exec prisma db push --schema src/infrastructure/prisma/schema.prisma &&
+        pnpm dev
+      "
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - adwebapp-network
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: adwebapp-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-adwebapp}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-user} -d $${POSTGRES_DB:-adwebapp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - adwebapp-network
+    volumes:
+      - postgres-data-dev:/var/lib/postgresql/data
+
+networks:
+  adwebapp-network:
+    driver: bridge
+
+volumes:
+  postgres-data-dev:
