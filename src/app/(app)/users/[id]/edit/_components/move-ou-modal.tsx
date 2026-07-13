@@ -46,16 +46,16 @@ export function MoveOuModal({
         toast.info('O usuário já está nesta OU.')
         return
       }
-      try {
         const res = await moveUser(userId, moveOuTarget.trim())
-        if (!res.ok) throw new Error(res.error)
-
-        toast.success('Usuário movido para a nova OU.')
-        setOpen(false)
-        router.refresh()
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao mover usuário.')
+      if (!res.ok) {
+        toast.error(res.error.message)
+        return
       }
+
+      toast.success('Usuário movido para a nova OU.')
+      setOpen(false)
+      router.refresh()
+
     })
   }
 

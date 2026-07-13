@@ -2,42 +2,39 @@
 
 import { LDAP_GROUP_DELETE } from '@/constants/config'
 import { getSessionCached } from '@/queries/session'
-import type { ActiveDirectoryUser, UpdateUserInput } from '@/schemas/attributesAd'
+import type { ActiveDirectoryUser, CreateUserForm } from '@/schemas/attributesAd'
+import { CreateUserFormSchema } from '@/schemas/attributesAd'
 import { auditService, authService, userService } from '@/services/container'
-import type { InternalError } from '@/types/error'
-import type { Result } from '@/types/utils'
-import { errorResult } from '@/utils/error'
+import type { InternalError, InvalidShapeError } from '@/types/error'
+import type { Result,ActionResult } from '@/types/utils'
+import { errorResult ,errorActionResult} from '@/utils/error'
 
-interface ActionResult<T = void> {
-  ok: boolean
-  data?: T
-  error?: string
-}
 
-export async function moveUser(id: string, targetOuDn: string): Promise<ActionResult> {
+export async function moveUser(id: string, targetOuDn: string): Promise<ActionResult<string, InternalError>> {
   await getSessionCached()
-  if (!targetOuDn) return { ok: false, error: 'targetOuDn é obrigatório' }
-  try {
-    await userService.moveOu(id, targetOuDn)
-    await auditService.log({
-      action: 'user.move',
-      actor: 'server-action',
-      target: id,
-      details: { targetOuDn },
-      success: true,
-    })
-    return { ok: true }
-  } catch (err: any) {
+  if (!targetOuDn) return errorActionResult(targetOuDn, "Internal", "TargetOu é obrigatório")
+  const result = await userService.moveOu(id, targetOuDn)
+
+  if (!result.ok) {
     await auditService.log({
       action: 'user.move',
       actor: 'server-action',
       target: id,
       details: { targetOuDn },
       success: false,
-      error: err.message,
+      error: result.error.message,
     })
-    return { ok: false, error: err.message || 'Move failed' }
+    return errorActionResult(targetOuDn, "Internal", "Falha ao move usuário")
   }
+
+  await auditService.log({
+    action: 'user.move',
+    actor: 'server-action',
+    target: id,
+    details: { targetOuDn },
+    success: true,
+  })
+  return { ok: true, state:targetOuDn }
 }
 
 import { getEditConfig } from '@/services/ad-user-attributes'
@@ -116,154 +113,195 @@ export async function updateUser(
   }
 }
 
-export async function disableUser(id: string, targetOu?: string): Promise<ActionResult> {
+export async function disableUser(id: string, targetOu?: string): Promise<ActionResult<string, InternalError>> {
   await getSessionCached()
-  try {
-    await authService.disableUser(id, targetOu)
-    await auditService.log({
-      action: 'user.disable',
-      actor: 'server-action',
-      target: id,
-      details: { targetOu: targetOu ?? 'sem ou destino' },
-      success: true,
-    })
-    return { ok: true }
-  } catch (err: any) {
+  const result = await authService.disableUser(id, targetOu)
+
+  if (!result.ok) {
     await auditService.log({
       action: 'user.disable',
       actor: 'server-action',
       target: id,
       success: false,
-      error: err?.message,
+      error: result.error.message,
     })
-    return { ok: false, error: err.message || 'Disable failed' }
+    return errorActionResult(targetOu ?? "", "Internal", "Falha ao desativar usuário")
   }
+
+  await auditService.log({
+    action: 'user.disable',
+    actor: 'server-action',
+    target: id,
+    details: { targetOu: targetOu ?? 'sem ou destino' },
+    success: true,
+  })
+  return { ok: true, state: targetOu ?? "" }
 }
 
-export async function enableUser(id: string): Promise<ActionResult> {
+export async function enableUser(id: string): Promise<ActionResult<null, InternalError>> {
   await getSessionCached()
-  try {
-    await authService.enableUser(id)
+
+  const result = await authService.enableUser(id)
+
+  if (!result.ok) {
+    await auditService.log({
+      action: 'user.enable',
+      actor: 'server-action',
+      target: id,
+      success: false,
+      error: result.error.message,
+    })
+    return errorActionResult(null, "Internal", "Falha ao ativar usuário")
+  }
+
     await auditService.log({
       action: 'user.enable',
       actor: 'server-action',
       target: id,
       success: true,
     })
-    return { ok: true }
-  } catch (err: any) {
-    await auditService.log({
-      action: 'user.enable',
-      actor: 'server-action',
-      target: id,
-      success: false,
-      error: err.message,
-    })
-    return { ok: false, error: err.message || 'Enable failed' }
-  }
+    return { ok: true, state:null}
+
 }
 
-export async function unlockUser(id: string): Promise<ActionResult> {
+export async function unlockUser(id: string): Promise<ActionResult<null, InternalError>> {
   await getSessionCached()
-  try {
-    await authService.unlockUser(id)
-    await auditService.log({
-      action: 'user.unlock',
-      actor: 'server-action',
-      target: id,
-      success: true,
-    })
-    return { ok: true }
-  } catch (err: any) {
+  const result = await authService.unlockUser(id)
+  if (!result.ok) {
     await auditService.log({
       action: 'user.unlock',
       actor: 'server-action',
       target: id,
       success: false,
-      error: err.message,
+      error: result.error.message,
     })
-    return { ok: false, error: err.message || 'Unlock failed' }
+    return errorActionResult(null, "Internal", "Erro ao desbloquear usuário")
   }
+
+  await auditService.log({
+    action: 'user.unlock',
+    actor: 'server-action',
+    target: id,
+    success: true,
+  })
+  return { ok: true, state: null }
+
 }
 
-export async function resetPassword(id: string, newPassword: string): Promise<ActionResult> {
+export async function resetPassword(id: string, newPassword: string): Promise<ActionResult<null, InternalError>> {
   await getSessionCached()
-  if (!newPassword) return { ok: false, error: 'Password required' }
-  try {
-    await authService.setPassword(id, newPassword)
-    await auditService.log({
-      action: 'user.reset_password',
-      actor: 'server-action',
-      target: id,
-      success: true,
-    })
-    return { ok: true }
-  } catch (err: any) {
+  if (!newPassword) return errorActionResult(null, "Internal", "Senha é necessária")
+  const result = await authService.setPassword(id, newPassword)
+
+  if (!result.ok) {
     await auditService.log({
       action: 'user.reset_password',
       actor: 'server-action',
       target: id,
       success: false,
-      error: err.message,
+      error: result.error.message,
     })
-    return { ok: false, error: err.message || 'Reset password failed' }
+    return errorActionResult(null, "Internal", "Erro ao trocar senha")
   }
+  await auditService.log({
+    action: 'user.reset_password',
+    actor: 'server-action',
+    target: id,
+    success: true,
+  })
+  return { ok: true , state:null}
 }
 
-export async function deleteUser(id: string): Promise<ActionResult> {
+export async function deleteUser(id: string): Promise<ActionResult<null, InternalError>> {
   const session = await getSessionCached()
-  try {
-    if (!LDAP_GROUP_DELETE) return { ok: false, error: 'O sistema não permite essa ação' }
+
+    if (!LDAP_GROUP_DELETE) return errorActionResult(null, "Internal", 'O sistema não permite essa ação')
+
     const currentUser = await userService.get(session.user.sAMAccountName)
 
     if (!currentUser.ok) {
-      return { ok: false, error: 'Ação não permitida' } as const
+      return errorActionResult(null, "Internal",'Ação não permitida')
     }
 
     const user = currentUser.value
     if (!user.memberOf?.includes(LDAP_GROUP_DELETE))
-      return { ok: false, error: 'Ação não permitida' }
+      return errorActionResult(null, "Internal",'Ação não permitida')
 
-    await authService.deleteUser(id)
+  const result = await authService.deleteUser(id)
+
+  if (!result.ok) {
+    await auditService.log({
+      action: 'user.delete',
+      actor: session.user.sAMAccountName,
+      target: id,
+      success: false,
+      error: result.error.message,
+    })
+    return errorActionResult(null, "Internal", "Erro ao excluir usuário")
+  }
     await auditService.log({
       action: 'user.delete',
       actor: session.user.sAMAccountName,
       target: id,
       success: true,
     })
-    return { ok: true }
-  } catch (err: any) {
-    await auditService.log({
-      action: 'user.delete',
-      actor: session.user.sAMAccountName,
-      target: id,
-      success: false,
-      error: err.message,
-    })
-    return { ok: false, error: err.message || 'Delete failed' }
-  }
+    return { ok: true ,state: null}
+
 }
 
-export async function createUser(body: any): Promise<ActionResult<any>> {
+type CreateUserFormWithConfirmation = CreateUserForm & {confirmPassword?:string}
+
+export async function createUser(
+  _prevState: ActionResult<CreateUserFormWithConfirmation, InternalError | InvalidShapeError> | null,
+  formData: FormData,
+): Promise<ActionResult<CreateUserFormWithConfirmation, InternalError | InvalidShapeError>> {
   await getSessionCached()
-  try {
-    const user = await userService.create(body)
-    await auditService.log({
-      action: 'user.create',
-      actor: 'server-action',
-      target: body.sAMAccountName,
-      details: { parentOuDn: body.parentOuDn },
-      success: true,
-    })
-    return { ok: true, data: user }
-  } catch (err: any) {
-    await auditService.log({
-      action: 'user.create',
-      actor: 'server-action',
-      target: String(body.sAMAccountName),
-      success: false,
-      error: err.message,
-    })
-    return { ok: false, error: err.message || 'Create failed' }
+
+  const parentOuDn = formData.get('parentOuDn')?.toString() || ''
+  const sAMAccountName = formData.get('sAMAccountName')?.toString() || ''
+  const password = formData.get('password')?.toString() || ''
+  const confirmPassword = formData.get('confirmPassword')?.toString() || ''
+  const cn = formData.get('cn')?.toString() || ''
+
+  const state = {parentOuDn,sAMAccountName,password,cn}
+
+  if (password !== confirmPassword) {
+    return errorActionResult(state, 'InvalidShape', 'As senhas não coincidem.')
   }
+
+  const validation = CreateUserFormSchema.safeParse({
+    cn,
+    parentOuDn,
+    sAMAccountName,
+    password,
+  })
+
+  if (!validation.success) {
+    const errorMsg = validation.error.issues.map((i) => i.message).join(', ')
+    return errorActionResult(state, 'InvalidShape', errorMsg)
+  }
+
+  const result = await userService.create(validation.data)
+
+  if (!result.ok) {
+    await auditService.log({
+      action: 'user.create',
+      actor: 'server-action',
+      target: sAMAccountName,
+      success: false,
+      error: result.error.message,
+    })
+    return errorActionResult(state,'Internal', result.error.message)
+  }
+
+  await auditService.log({
+    action: 'user.create',
+    actor: 'server-action',
+    target: sAMAccountName,
+    details: { parentOuDn },
+    success: true,
+  })
+
+
+  return { ok: true, state: validation.data }
 }

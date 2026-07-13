@@ -15,16 +15,17 @@ export function useResetPassword(id: string | undefined) {
   function handleResetPassword() {
     startReset(async () => {
       if (!id || !resetPwdValue.trim() || resetPwdValue.length < 8) return
-      try {
-        const res = await resetPassword(id, resetPwdValue)
-        if (!res.ok) throw new Error(res.error)
 
-        toast.success('Senha redefinida.')
-        setResetPwdOpen(false)
-        setResetPwdValue('')
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao redefinir senha.')
+      const res = await resetPassword(id, resetPwdValue)
+
+      if (!res.ok) {
+        toast.error(res.error.message)
+        return
       }
+
+      toast.success('Senha redefinida.')
+      setResetPwdOpen(false)
+      setResetPwdValue('')
     })
   }
 

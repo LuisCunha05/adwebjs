@@ -363,39 +363,12 @@ export const PasswordSchema = z
 
 export const CreateUserFormSchema = z
   .object({
+    cn: z.string().min(1).max(64),
     parentOuDn: z.string().min(1, 'Parent OU DN is required'),
     sAMAccountName: z.string().trim().min(1, 'sAMAccountName is required').max(20),
     password: PasswordSchema,
-
-    // Optional fields with max length validation
-    cn: z.string().max(64).optional(),
-    givenName: z.string().max(64).optional(),
-    sn: z.string().max(64).optional(),
-    displayName: z.string().max(256).optional(),
-    mail: z.string().max(256).optional(),
-    description: z.string().max(1024).optional(),
-    title: z.string().max(64).optional(),
-    department: z.string().max(64).optional(),
-    company: z.string().max(64).optional(),
-    physicalDeliveryOfficeName: z.string().max(128).optional(),
-    streetAddress: z.string().max(1024).optional(),
-    telephoneNumber: z.string().max(64).optional(),
-    mobile: z.string().max(64).optional(),
-    userPrincipalName: z.string().optional(),
   })
-  .transform((data) => {
-    const cn = (
-      data.cn ||
-      data.displayName ||
-      `${data.givenName || ''} ${data.sn || ''}`.trim() ||
-      data.sAMAccountName
-    ).slice(0, 64)
 
-    return {
-      ...data,
-      cn,
-    }
-  })
 
 export type CreateUserForm = z.infer<typeof CreateUserFormSchema>
 

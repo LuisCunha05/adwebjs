@@ -172,7 +172,7 @@ export class UserService extends BaseLdapService implements IUserService {
     const rdn = `CN=${escapeDN(cn)}`
     const dn = `${rdn},${parentOuDn.trim()}`
     const domain = LDAP_DOMAIN
-    const upn = data.userPrincipalName || `${sAMAccountName}@${domain}`
+    const upn = `${sAMAccountName}@${domain}`
 
     const attrs: Array<{ type: string; values: (string | Buffer)[] }> = [
       {
@@ -184,10 +184,6 @@ export class UserService extends BaseLdapService implements IUserService {
       { type: 'cn', values: [cn] },
       { type: 'unicodePwd', values: [encodeUnicodePwd(password)] },
     ]
-
-    for (const [k, v] of Object.entries(data)) {
-      if (v) attrs.push({ type: k, values: [v] })
-    }
 
     const client = await this.getAdminClient()
 

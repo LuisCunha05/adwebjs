@@ -4,7 +4,7 @@ import { Button } from '@compound/button'
 import { ArrowLeft, Loader2, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { createUser } from '@/actions/users'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,12 +18,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const defaultForm = {
-  parentOuDn: '',
-  sAMAccountName: '',
-  password: '',
-  confirmPassword: '',
-}
 
 interface NewUserFormProps {
   ous: { dn: string; ou?: string; name?: string }[]
@@ -31,41 +25,18 @@ interface NewUserFormProps {
 
 export function NewUserForm({ ous }: NewUserFormProps) {
   const router = useRouter()
-  const [form, setForm] = useState(defaultForm)
-  const [saving, setSaving] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (form.password !== form.confirmPassword) {
-      toast.error('As senhas não coincidem.')
-      return
-    }
-    if (form.password.length < 8) {
-      toast.error('A senha deve ter pelo menos 8 caracteres.')
-      return
-    }
-    if (!form.parentOuDn || !form.sAMAccountName.trim()) {
-      toast.error('OU e nome de usuário (sAMAccountName) são obrigatórios.')
-      return
-    }
-    setSaving(true)
-    try {
-      const res = await createUser({
-        parentOuDn: form.parentOuDn,
-        sAMAccountName: form.sAMAccountName.trim(),
-        password: form.password,
-      })
-      if (!res.ok) throw new Error(res.error)
+  const [state, formAction, isPending] = useActionState(createUser, null)
 
-      const user = res.data
+  useEffect(() => {
+    if (!state) return
+    if (!state.ok) {
+      toast.error(state.error.message || 'Erro ao criar usuário.')
+    } else {
       toast.success('Usuário criado. Edite os demais dados na tela de edição.')
-      router.replace(`/users/${encodeURIComponent(user.sAMAccountName)}/edit`)
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao criar usuário.')
-    } finally {
-      setSaving(false)
+      router.replace(`/users/${encodeURIComponent(state.state.sAMAccountName)}/edit`)
     }
-  }
+  }, [state, router])
 
   return (
     <div className="space-y-6">
@@ -87,21 +58,21 @@ export function NewUserForm({ ous }: NewUserFormProps) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <Card className="max-w-2xl">
+      <form action={formAction}>
+        <Card>
           <CardHeader>
             <CardTitle>Dados obrigatórios</CardTitle>
             <CardDescription>OU de destino, nome de logon e senha inicial.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>OU de destino *</Label>
               <Select
-                value={form.parentOuDn}
-                onValueChange={(v) => setForm((f) => ({ ...f, parentOuDn: v }))}
+                defaultValue={state?.state.parentOuDn}
+                name="parentOuDn"
                 required
               >
-                <SelectTrigger>
+                <SelectTrigger className='w-full'>
                   <SelectValue placeholder="Selecione a OU" />
                 </SelectTrigger>
                 <SelectContent>
@@ -117,42 +88,49 @@ export function NewUserForm({ ous }: NewUserFormProps) {
               <Label htmlFor="sAMAccountName">Nome de logon (sAMAccountName) *</Label>
               <Input
                 id="sAMAccountName"
-                value={form.sAMAccountName}
-                onChange={(e) => setForm((f) => ({ ...f, sAMAccountName: e.target.value }))}
+                name="sAMAccountName"
+                defaultValue={state?.state.sAMAccountName}
                 placeholder="Ex.: joao.silva"
                 required
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha inicial *</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  required
-                  minLength={8}
-                />
-                <p className="text-muted-foreground text-xs">Mínimo 8 caracteres.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar senha *</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={form.confirmPassword}
-                  onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))}
-                  required
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="cn">Nome Completo*</Label>
+              <Input
+                id="cn"
+                name="cn"
+                defaultValue={state?.state.cn}
+                placeholder="Ex.: joao.silva"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha inicial *</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+                minLength={12}
+              />
+              <p className="text-muted-foreground text-xs">Mínimo 8 caracteres.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar senha *</Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                minLength={12}
+                required
+              />
             </div>
           </CardContent>
         </Card>
 
         <div className="mt-6 flex gap-3">
-          <Button type="submit" disabled={saving}>
-            {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+          <Button type="submit" disabled={isPending}>
+            {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
             Criar usuário
           </Button>
           <Button type="button" variant="outline" asChild>

@@ -8,14 +8,16 @@ export function useUnlockUser(id: string | undefined) {
   function handleUnlock() {
     startUnlock(async () => {
       if (!id) return
-      try {
-        const res = await unlockUser(id)
-        if (!res.ok) throw new Error(res.error)
 
-        toast.success('Conta desbloqueada.')
-      } catch (err: any) {
-        toast.error(err.message || 'Falha ao desbloquear.')
+      const res = await unlockUser(id)
+
+      if (!res.ok) {
+        toast.error(res.error.message)
+        return
       }
+
+      toast.success('Conta desbloqueada.')
+
     })
   }
 
