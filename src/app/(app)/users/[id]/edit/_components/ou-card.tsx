@@ -1,9 +1,9 @@
 import { FolderTree } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
 import type { OU } from '@/types/ou'
 import { MoveOuModal } from './move-ou-modal'
-import { Input } from '@/components/ui/input'
 
 export function parentOuFromDn(dn: string): string {
   const idx = dn.indexOf(',')
@@ -37,7 +37,7 @@ export function OuCard({ user: userRes, ous: ousRes }: OuCardProps) {
       : ousRes
 
   return (
-    <Card className="max-w-2xl">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FolderTree className="size-4" />

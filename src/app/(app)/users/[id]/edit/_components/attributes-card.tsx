@@ -34,7 +34,7 @@ export function AttributesCard({
   isPwdNeverExpires,
 }: AttributesCardProps) {
   return (
-    <Card className="max-w-2xl">
+    <Card>
       <CardHeader>
         <CardTitle>Atributos</CardTitle>
         <CardDescription>Dados configurados para o AD. Edite o que for necessário.</CardDescription>

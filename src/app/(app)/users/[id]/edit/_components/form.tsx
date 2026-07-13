@@ -44,30 +44,36 @@ export function UserEditForm({ initialUser, editConfig, ous }: UserEditFormProps
         </div>
       </div>
 
-      <QuickActionsCard
-        id={model.user.sAMAccountName}
-        isDisabled={model.isDisabled}
-        canDelete={model.canDelete}
-        ous={ous}
-        userAccountName={model.user.sAMAccountName}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 space-y-6">
+          <AttributesCard
+            user={model.user}
+            sections={model.sections}
+            submitAction={model.submitAction}
+            isSaving={model.isSaving}
+            isPwdNeverExpires={model.isPwdNeverExpires}
+          />
+        </div>
 
-      <OuCard ous={ous} user={initialUser} />
+        <div className="space-y-6">
+          <QuickActionsCard
+            id={model.user.sAMAccountName}
+            isDisabled={model.isDisabled}
+            canDelete={model.canDelete}
+            ous={ous}
+            userAccountName={model.user.sAMAccountName}
+          />
 
-      <AttributesCard
-        user={model.user}
-        sections={model.sections}
-        submitAction={model.submitAction}
-        isSaving={model.isSaving}
-        isPwdNeverExpires={model.isPwdNeverExpires}
-      />
+          <OuCard ous={ous} user={initialUser} />
 
-      <GroupsCard
-        memberOfList={model.memberOfList}
-        handleRemoveFromGroup={model.handleRemoveFromGroup}
-        isPendingGroupRemove={model.isPendingGroupRemove}
-        removingGroupId={model.removingGroupId}
-      />
+          <GroupsCard
+            memberOfList={model.memberOfList}
+            handleRemoveFromGroup={model.handleRemoveFromGroup}
+            isPendingGroupRemove={model.isPendingGroupRemove}
+            removingGroupId={model.removingGroupId}
+          />
+        </div>
+      </div>
     </div>
   )
 }

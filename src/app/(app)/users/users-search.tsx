@@ -77,7 +77,9 @@ export function UsersSearch({ ous, groups }: UsersSearchProps) {
               />
             </div>
             <div>
-              <Label htmlFor="searchBy" className="mb-2">Buscar por</Label>
+              <Label htmlFor="searchBy" className="mb-2">
+                Buscar por
+              </Label>
               <Select name="searchBy" value={searchBy} onValueChange={setSearchBy}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -92,7 +94,9 @@ export function UsersSearch({ ous, groups }: UsersSearchProps) {
               </Select>
             </div>
             <div>
-              <Label htmlFor="select-ou" className="mb-2">OU (opcional)</Label>
+              <Label htmlFor="select-ou" className="mb-2">
+                OU (opcional)
+              </Label>
               <Select
                 name="select-ou"
                 value={ou || '__all__'}
@@ -112,7 +116,9 @@ export function UsersSearch({ ous, groups }: UsersSearchProps) {
               </Select>
             </div>
             <div>
-              <Label htmlFor="input-group" className="mb-2">Grupo (opcional)</Label>
+              <Label htmlFor="input-group" className="mb-2">
+                Grupo (opcional)
+              </Label>
               <div>
                 <Select
                   value={memberOf || '__none__'}
