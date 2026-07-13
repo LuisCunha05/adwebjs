@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 
 import { listAuditLogs } from '@/actions/audit'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -11,7 +12,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ACTION_LABELS, AuditFilters } from './audit-filters'
-import { Skeleton } from '@/components/ui/skeleton'
 
 function actionLabel(action: string): string {
   return ACTION_LABELS[action] ?? action
@@ -28,9 +28,7 @@ function formatDate(iso: string): string {
   }
 }
 
-async function AuditTable(props: {
-  searchParams: Promise<{ [key: string]: string | undefined }>
-}) {
+async function AuditTable(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
   const params = await props.searchParams
   const filters = {
     action: params.action,
@@ -79,9 +77,7 @@ async function AuditTable(props: {
                     </TableCell>
                     <TableCell className="font-medium">{actionLabel(e.action)}</TableCell>
                     <TableCell>
-                      <span
-                        className={e.actor === 'system' ? 'text-muted-foreground italic' : ''}
-                      >
+                      <span className={e.actor === 'system' ? 'text-muted-foreground italic' : ''}>
                         {e.actor}
                       </span>
                     </TableCell>

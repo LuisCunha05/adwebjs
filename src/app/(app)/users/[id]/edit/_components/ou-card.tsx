@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
 import type { OU } from '@/types/ou'
 import { MoveOuModal } from './move-ou-modal'
+import { Input } from '@/components/ui/input'
 
 export function parentOuFromDn(dn: string): string {
   const idx = dn.indexOf(',')

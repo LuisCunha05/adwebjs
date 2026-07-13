@@ -32,7 +32,8 @@ export function ResetPasswordAction({ id }: ResetPasswordActionProps) {
         description="Defina uma nova senha para este usuário. Ele precisará usá-la no próximo login."
         handleConfirm={model.handleResetPassword}
         confirmButtonProps={{
-          disabled: !model.resetPwdValue.trim() || model.resetPwdValue.length < 8 || model.isPendingReset,
+          disabled:
+            !model.resetPwdValue.trim() || model.resetPwdValue.length < 8 || model.isPendingReset,
           loading: model.isPendingReset,
           text: 'Redefinir',
         }}

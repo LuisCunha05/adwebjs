@@ -19,7 +19,6 @@ export function AuthProvider({
   children: React.ReactNode
   session: Promise<Session>
 }) {
-
   const logout = useCallback(async () => {
     try {
       await logoutAction()

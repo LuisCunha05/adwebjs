@@ -27,11 +27,7 @@ export function QuickActionsCard({
         <CardDescription>Ativar, desativar ou desbloquear a conta.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
-        {isDisabled ? (
-          <EnableAction id={id} />
-        ) : (
-          <DisableAction id={id} ous={ous} />
-        )}
+        {isDisabled ? <EnableAction id={id} /> : <DisableAction id={id} ous={ous} />}
         <UnlockAction id={id} />
         <ResetPasswordAction id={id} />
         {canDelete && (

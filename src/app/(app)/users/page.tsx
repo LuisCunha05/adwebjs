@@ -173,9 +173,8 @@ export default async function UsersPage(props: {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button variant="outline" size="sm" asChild  leftIcon={<Pencil />}>
                           <Link href={`/users/${encodeURIComponent(u.sAMAccountName)}/edit`}>
-                            <Pencil className="size-4 mr-1" />
                             Editar
                           </Link>
                         </Button>

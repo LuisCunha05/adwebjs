@@ -19,11 +19,7 @@ export function ThemeToggle() {
       className="w-full justify-start gap-3 px-3"
       onClick={cycleTheme}
       title={
-        effectiveTheme === 'light'
-          ? 'Claro'
-          : effectiveTheme === 'dark'
-            ? 'Escuro'
-            : 'Sistema'
+        effectiveTheme === 'light' ? 'Claro' : effectiveTheme === 'dark' ? 'Escuro' : 'Sistema'
       }
     >
       {effectiveTheme === 'light' ? (
@@ -34,11 +30,7 @@ export function ThemeToggle() {
         <Monitor className="size-4 shrink-0" />
       )}
       <span className="text-sm">
-        {effectiveTheme === 'light'
-          ? 'Claro'
-          : effectiveTheme === 'dark'
-            ? 'Escuro'
-            : 'Sistema'}
+        {effectiveTheme === 'light' ? 'Claro' : effectiveTheme === 'dark' ? 'Escuro' : 'Sistema'}
       </span>
     </Button>
   )

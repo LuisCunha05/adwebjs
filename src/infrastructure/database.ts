@@ -1,6 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
-import { DATABASE_URL } from '../constants/config'
 import { PrismaClient } from '@prisma/client'
+import { DATABASE_URL } from '../constants/config'
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient
