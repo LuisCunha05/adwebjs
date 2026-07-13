@@ -12,8 +12,7 @@ export class AuditService {
     success: boolean
     error?: string
   }): Promise<void> {
-    const entry: Omit<AuditEntry, 'id'> = {
-      at: new Date().toISOString(),
+    const entry: Omit<AuditEntry, 'id' | 'createdAt'> = {
       action: params.action,
       actor: params.actor,
       target: params.target,

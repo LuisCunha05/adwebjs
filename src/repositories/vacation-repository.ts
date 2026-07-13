@@ -8,14 +8,12 @@ export class VacationRepository extends BaseRepository implements IVacationRepos
   }
 
   async add(vacation: Omit<Vacation, 'id' | 'createdAt'>): Promise<number> {
-    const createdAt = new Date().toISOString()
     const result = await this.db.vacation.create({
       data: {
         userId: vacation.userId,
         startDate: vacation.startDate,
         endDate: vacation.endDate,
         description: vacation.description || null,
-        createdAt: createdAt,
       },
       select: { id: true },
     })
@@ -28,10 +26,10 @@ export class VacationRepository extends BaseRepository implements IVacationRepos
     return {
       id: row.id,
       userId: row.userId,
-      startDate: row.startDate,
-      endDate: row.endDate,
+      startDate: row.startDate.toISOString(),
+      endDate: row.endDate.toISOString(),
       description: row.description || undefined,
-      createdAt: row.createdAt,
+      createdAt: row.createdAt.toISOString(),
     }
   }
 

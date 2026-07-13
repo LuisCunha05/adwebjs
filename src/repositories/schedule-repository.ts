@@ -8,7 +8,6 @@ export class ScheduleRepository extends BaseRepository implements IScheduleRepos
   }
 
   async add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): Promise<number> {
-    const createdAt = new Date().toISOString()
     const result = await this.db.scheduledTask.create({
       data: {
         type: task.type,
@@ -16,7 +15,6 @@ export class ScheduleRepository extends BaseRepository implements IScheduleRepos
         runAt: task.runAt,
         relatedId: task.relatedId,
         relatedTable: task.relatedTable,
-        createdAt: createdAt,
       },
       select: { id: true },
     })
@@ -31,14 +29,14 @@ export class ScheduleRepository extends BaseRepository implements IScheduleRepos
       },
       orderBy: { runAt: 'asc' },
     })
-    return rows.map((row: any) => this.mapRowToTask(row))
+    return rows.map((row) => this.mapRowToTask(row))
   }
 
   async listAll(): Promise<ScheduledTask[]> {
     const rows = await this.db.scheduledTask.findMany({
       orderBy: { runAt: 'asc' },
     })
-    return rows.map((row: any) => this.mapRowToTask(row))
+    return rows.map((row) => this.mapRowToTask(row))
   }
 
   async updateStatus(
