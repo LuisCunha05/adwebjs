@@ -49,47 +49,56 @@ export async function fetchData(): Promise<Result<SomeData, InternalError>> {
 - **Server Action Validation:** All user inputs must be validated within the server action using **Zod**.
 - **Authorization Check:** All server actions MUST perform an authorization check as their first step using [getSessionCached](file:///home/lcunha/projects/adwebjs/src/queries/session.ts) from [src/queries/session.ts](file:///home/lcunha/projects/adwebjs/src/queries/session.ts).
 - **Do NOT catch authorization redirect:** Do not wrap `await getSessionCached()` in a `try/catch` block. This is critical because `getSessionCached` throws a Next.js redirect error for unauthenticated access, and catching it breaks the redirect flow.
+- **Form State Preservation (`ActionResult`):** For interactive forms where user inputs need to be preserved on validation or execution failure (so the form fields do not wipe), use [ActionResult](file:///home/lcunha/projects/adwebjs/src/types/utils.ts) instead of `Result`. Use the [errorActionResult](file:///home/lcunha/projects/adwebjs/src/utils/error.ts) helper to return the current form state alongside the error.
 
-### Action Example
+### Result vs ActionResult
+- Use **`Result<T, E>`** (`{ ok: true; value: T } | { ok: false; error: E }`) for data queries, services, or actions that do not require preserving user inputs (e.g., delete, toggle state actions).
+- Use **`ActionResult<T, E>`** (`{ ok: true; state: T } | { ok: false; state: T; error: E }`) for forms that use `useActionState` to return values back to the form inputs in case of failure.
+
+### Action Example (with ActionResult)
 ```typescript
 'use server'
 
 import { getSessionCached } from '@/queries/session'
 import { z } from 'zod'
-import type { Result } from '@/types/utils'
+import type { ActionResult } from '@/types/utils'
 import type { InternalError, UnauthorizedError, InvalidShapeError } from '@/types/error'
-import { errorResult } from '@/utils/error'
+import { errorActionResult } from '@/utils/error'
 
 const FormSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
 })
 
+type FormState = { title: string }
+
 export async function createItemAction(
-  prevState: Result<Item, InternalError | UnauthorizedError | InvalidShapeError> | null,
+  prevState: ActionResult<FormState, InternalError | UnauthorizedError | InvalidShapeError> | null,
   formData: FormData
-): Promise<Result<Item, InternalError | UnauthorizedError | InvalidShapeError>> {
+): Promise<ActionResult<FormState, InternalError | UnauthorizedError | InvalidShapeError>> {
   // 1. Authorization check (Do NOT wrap in try/catch to avoid breaking Next.js redirect throw)
   await getSessionCached()
 
+  // Extract raw form data for state preservation
+  const title = formData.get('title')?.toString() || ''
+  const state = { title }
+
   // 2. Input validation
-  const validation = FormSchema.safeParse({
-    title: formData.get('title'),
-  })
+  const validation = FormSchema.safeParse({ title })
 
   if (!validation.success) {
-    return errorResult('InvalidShape', validation.error.issues[0].message)
+    return errorActionResult(state, 'InvalidShape', validation.error.issues[0].message)
   }
 
   // 3. Logic execution (directly return service response)
   const res = await service.create(validation.data)
   if (!res.ok) {
-    return errorResult('Internal', res.error.message)
+    return errorActionResult(state, 'Internal', res.error.message)
   }
-  return { ok: true, value: res.value }
+  return { ok: true, state: validation.data }
 }
 ```
 
-### Client Form Example
+### Client Form Example (with ActionResult)
 ```typescript
 'use client'
 
@@ -97,13 +106,20 @@ import { useActionState } from 'react'
 import { createItemAction } from '@/actions/items'
 
 export function ItemForm() {
+  // Bind action and initial state (null)
   const [state, formAction, isPending] = useActionState(createItemAction, null)
 
   return (
     <form action={formAction} className="space-y-4">
       <div>
         <label htmlFor="title">Title</label>
-        <input id="title" name="title" required />
+        {/* Restore user inputs using state?.state */}
+        <input 
+          id="title" 
+          name="title" 
+          defaultValue={state?.state.title} 
+          required 
+        />
       </div>
       
       {state && !state.ok && (
@@ -117,6 +133,7 @@ export function ItemForm() {
   )
 }
 ```
+
 
 ---
 
