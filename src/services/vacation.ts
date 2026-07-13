@@ -6,4 +6,8 @@ export class VacationService {
   async get(id: number): Promise<Vacation | undefined> {
     return await this.vacationRepo.get(id)
   }
+
+  async list(): Promise<Vacation[]> {
+    return await this.vacationRepo.listAll()
+  }
 }

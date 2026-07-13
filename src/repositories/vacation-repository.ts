@@ -33,6 +33,20 @@ export class VacationRepository extends BaseRepository implements IVacationRepos
     }
   }
 
+  async listAll(): Promise<Vacation[]> {
+    const rows = await this.db.vacation.findMany({
+      orderBy: { startDate: 'desc' },
+    })
+    return rows.map((row) => ({
+      id: row.id,
+      userId: row.userId,
+      startDate: row.startDate.toISOString(),
+      endDate: row.endDate.toISOString(),
+      description: row.description || undefined,
+      createdAt: row.createdAt.toISOString(),
+    }))
+  }
+
   async remove(id: number): Promise<void> {
     await this.db.vacation.delete({ where: { id } })
   }

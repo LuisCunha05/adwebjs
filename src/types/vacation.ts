@@ -12,5 +12,6 @@ export interface Vacation {
 export interface IVacationRepository extends BaseRepository {
   add(vacation: Omit<Vacation, 'id' | 'createdAt'>): Promise<number>
   get(id: number): Promise<Vacation | undefined>
+  listAll(): Promise<Vacation[]>
   remove(id: number): Promise<void>
 }
