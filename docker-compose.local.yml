@@ -1,32 +1,4 @@
 services:
-  adwebapp-dev:
-    image: node:24.13.1-slim
-    container_name: adwebapp-dev
-    working_dir: /app
-    ports:
-      - "${PORT:-3000}:3000"
-    command: >
-      sh -c "
-        corepack enable &&
-        pnpm install &&
-        pnpm exec prisma generate --schema src/infrastructure/prisma/schema.prisma &&
-        pnpm exec prisma db push --schema src/infrastructure/prisma/schema.prisma &&
-        pnpm dev
-      "
-    env_file:
-      - .env
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - CI=true
-    volumes:
-      - .:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - adwebapp-network
-
   postgres:
     image: postgres:18-alpine
     container_name: adwebapp-postgres-dev
