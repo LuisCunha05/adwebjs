@@ -29,7 +29,7 @@ export class VacationScheduleService implements IVacationScheduler {
 
     let vacationId: number | null = null
     try {
-      this.vacationRepo.transaction(async (tx) => {
+      await this.vacationRepo.transaction(async (tx) => {
         vacationId = await this.vacationRepo.withTransaction(tx).add({
           userId,
           startDate,
@@ -72,7 +72,7 @@ export class VacationScheduleService implements IVacationScheduler {
     let removedId: number | null = null
 
     try {
-      this.scheduleRepo.transaction(async (tx) => {
+      await this.scheduleRepo.transaction(async (tx) => {
         removedId = await this.scheduleRepo
           .withTransaction(tx)
           .removeByRelatedId(vacationId, 'vacations')

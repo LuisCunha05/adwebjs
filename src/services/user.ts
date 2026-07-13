@@ -35,11 +35,11 @@ export class UserService extends BaseLdapService implements IUserService {
     const client = await this.getAdminClient()
 
     const filter = new AndFilter({
-      filters:
-      [
+      filters: [
         new EqualityFilter({ attribute: 'objectClass', value: 'user' }),
         new EqualityFilter({ attribute: 'objectCategory', value: 'person' }),
-      ]})
+      ],
+    })
 
     const result = await client.search(LDAP_BASE_DN, {
       scope: 'sub',

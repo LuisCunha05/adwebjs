@@ -128,9 +128,9 @@ export function VacationList({ actions }: VacationListProps) {
                       </span>
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      {new Date(v.startDate).toLocaleDateString('pt-BR')}
+                      {new Date(v.startDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                       {v.endDate && v.endDate !== v.startDate
-                        ? ` -> ${new Date(v.endDate).toLocaleDateString('pt-BR')}`
+                        ? ` -> ${new Date(v.endDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`
                         : ''}
                     </p>
                   </div>

@@ -11,43 +11,16 @@ import type {
 } from '@/types/error'
 import type { ActionResult, Result } from '@/types/utils'
 import { errorActionResult, errorResult } from '@/utils/error'
-
-const CreateVacationSchema = z
-  .object({
-    userId: z.string().trim().min(1, 'Usuário é obrigatório'),
-    startDate: z.string().trim().min(1, 'Data de ida é obrigatória'),
-    endDate: z.string().trim().min(1, 'Data de volta é obrigatória'),
-  })
-  .refine(
-    (data) => {
-      const start = new Date(data.startDate)
-      const end = new Date(data.endDate)
-      return !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end > start
-    },
-    {
-      message: 'Data de volta deve ser após a data de ida.',
-      path: ['endDate'],
-    },
-).transform(data => {
-  const { endDate, startDate, userId } = data
-
-  return { endDate: new Date(endDate).toISOString(), startDate:new Date(startDate).toISOString(),userId}
-  })
-
-export type CreateVacationFormState = {
-  userId: string
-  startDate: string
-  endDate: string
-}
+import { CreateVacationSchema ,CreateVacationForm} from '@/schemas/schedule'
 
 export async function createVacation(
   _prevState: ActionResult<
-    CreateVacationFormState,
+    CreateVacationForm,
     InternalError | UnauthorizedError | InvalidShapeError
   > | null,
   formData: FormData,
 ): Promise<
-  ActionResult<CreateVacationFormState, InternalError | UnauthorizedError | InvalidShapeError>
+  ActionResult<CreateVacationForm, InternalError | UnauthorizedError | InvalidShapeError>
 > {
   // 1. Authorization check
   await getSessionCached()
@@ -94,7 +67,7 @@ export async function createVacation(
     success: true,
   })
 
-  return { ok: true, state }
+  return { ok: true, state:{endDate: "",  startDate: "", userId:""} }
 }
 
 export async function cancelTask(
