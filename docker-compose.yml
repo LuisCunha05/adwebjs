@@ -29,8 +29,11 @@ services:
       target: builder
     command: >
       sh -c "
-        pnpm exec prisma migrate deploy --schema src/infrastructure/prisma/schema.prisma || 
-        pnpm exec prisma db push --schema src/infrastructure/prisma/schema.prisma
+        if [ -d src/infrastructure/prisma/migrations ] && [ -n \"\$(ls -A src/infrastructure/prisma/migrations 2>/dev/null)\" ]; then
+          pnpm exec prisma migrate deploy --schema src/infrastructure/prisma/schema.prisma;
+        else
+          pnpm exec prisma db push --schema src/infrastructure/prisma/schema.prisma;
+        fi
       "
     env_file:
       - .env
@@ -61,7 +64,7 @@ services:
     networks:
       - adwebapp-network
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
 
 networks:
   adwebapp-network:
