@@ -1,9 +1,8 @@
 'use server'
 
+import { getSessionCached } from '@/queries/session'
 import { auditService } from '@/services/container'
 import type { AuditEntry } from '@/types/audit'
-
-import { verifySession } from '@/utils/manage-jwt'
 
 interface ActionResult<T = void> {
   ok: boolean
@@ -19,7 +18,7 @@ export async function listAuditLogs(filters?: {
   target?: string
   limit?: number
 }): Promise<ActionResult<AuditEntry[]>> {
-  await verifySession()
+  await getSessionCached()
   try {
     const limit = filters?.limit ? Math.min(Number(filters.limit), 2000) : 500
     const entries = await auditService.list({ ...filters, limit } as any)

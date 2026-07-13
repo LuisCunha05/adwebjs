@@ -1,10 +1,9 @@
 'use server'
 
 import { LDAP_GROUP_DELETE } from '@/constants/config'
+import { getSessionCached } from '@/queries/session'
 import type { ActiveDirectoryUser, UpdateUserInput } from '@/schemas/attributesAd'
 import { auditService, authService, userService } from '@/services/container'
-
-import { verifySession } from '@/utils/manage-jwt'
 
 interface ActionResult<T = void> {
   ok: boolean
@@ -13,7 +12,7 @@ interface ActionResult<T = void> {
 }
 
 export async function moveUser(id: string, targetOuDn: string): Promise<ActionResult> {
-  await verifySession()
+  await getSessionCached()
   if (!targetOuDn) return { ok: false, error: 'targetOuDn é obrigatório' }
   try {
     await userService.moveOu(id, targetOuDn)
@@ -42,7 +41,7 @@ export async function updateUser(
   id: string,
   data: UpdateUserInput,
 ): Promise<ActionResult<ActiveDirectoryUser>> {
-  await verifySession()
+  await getSessionCached()
   try {
     const updated = await userService.update(id, data)
     await auditService.log({
@@ -66,7 +65,7 @@ export async function updateUser(
 }
 
 export async function disableUser(id: string, targetOu?: string): Promise<ActionResult> {
-  await verifySession()
+  await getSessionCached()
   try {
     await authService.disableUser(id, targetOu)
     await auditService.log({
@@ -90,7 +89,7 @@ export async function disableUser(id: string, targetOu?: string): Promise<Action
 }
 
 export async function enableUser(id: string): Promise<ActionResult> {
-  await verifySession()
+  await getSessionCached()
   try {
     await authService.enableUser(id)
     await auditService.log({
@@ -113,7 +112,7 @@ export async function enableUser(id: string): Promise<ActionResult> {
 }
 
 export async function unlockUser(id: string): Promise<ActionResult> {
-  await verifySession()
+  await getSessionCached()
   try {
     await authService.unlockUser(id)
     await auditService.log({
@@ -136,7 +135,7 @@ export async function unlockUser(id: string): Promise<ActionResult> {
 }
 
 export async function resetPassword(id: string, newPassword: string): Promise<ActionResult> {
-  await verifySession()
+  await getSessionCached()
   if (!newPassword) return { ok: false, error: 'Password required' }
   try {
     await authService.setPassword(id, newPassword)
@@ -160,7 +159,7 @@ export async function resetPassword(id: string, newPassword: string): Promise<Ac
 }
 
 export async function deleteUser(id: string): Promise<ActionResult> {
-  const session = await verifySession()
+  const session = await getSessionCached()
   try {
     if (!LDAP_GROUP_DELETE) return { ok: false, error: 'O sistema não permite essa ação' }
     const currentUser = await userService.get(session.user.sAMAccountName)
@@ -194,7 +193,7 @@ export async function deleteUser(id: string): Promise<ActionResult> {
 }
 
 export async function createUser(body: any): Promise<ActionResult<any>> {
-  await verifySession()
+  await getSessionCached()
   try {
     const user = await userService.create(body)
     await auditService.log({

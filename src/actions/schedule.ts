@@ -1,9 +1,8 @@
 'use server'
 
+import { getSessionCached } from '@/queries/session'
 import { auditService, scheduleService, vacationScheduleService } from '@/services/container'
 import type { ScheduledTask } from '@/types/schedule'
-
-import { verifySession } from '@/utils/manage-jwt'
 
 interface ActionResult<T = void> {
   ok: boolean
@@ -12,7 +11,7 @@ interface ActionResult<T = void> {
 }
 
 export async function listSchedule(): Promise<ActionResult<ScheduledTask[]>> {
-  await verifySession()
+  await getSessionCached()
   try {
     const actions = await scheduleService.list()
     return { ok: true, data: JSON.parse(JSON.stringify(actions)) }
@@ -26,7 +25,7 @@ export async function createVacation(
   startDate: string,
   endDate: string,
 ): Promise<ActionResult<{ vacationId: number }>> {
-  await verifySession()
+  await getSessionCached()
   if (!userId || !startDate || !endDate) return { ok: false, error: 'Missing required fields' }
 
   const start = new Date(startDate)
@@ -62,7 +61,7 @@ export async function createVacation(
 }
 
 export async function cancelTask(id: number): Promise<ActionResult> {
-  await verifySession()
+  await getSessionCached()
   if (Number.isNaN(id)) return { ok: false, error: 'Invalid ID' }
   try {
     const removed = await scheduleService.remove(id)

@@ -1,17 +1,16 @@
 'use server'
 
+import { getSessionCached } from '@/queries/session'
 import { auditService, groupService } from '@/services/container'
 import type { InternalError, MissingVariableError } from '@/types/error'
 import type { Result } from '@/types/utils'
 import { errorResult } from '@/utils/error'
 
-import { verifySession } from '@/utils/manage-jwt'
-
 export async function updateGroup(
   id: string,
   changes: { name?: string; description?: string; member?: string[] },
 ): Promise<Result<number, InternalError>> {
-  await verifySession()
+  await getSessionCached()
   const groupResult = await groupService.update(id, changes)
 
   if (!groupResult.ok) {
@@ -39,7 +38,7 @@ export async function addMemberToGroup(
   id: string,
   dn: string,
 ): Promise<Result<null, InternalError | MissingVariableError>> {
-  await verifySession()
+  await getSessionCached()
   if (!dn) return errorResult('MissingVariable', 'DN is required')
 
   const resultGroup = await groupService.addMember(id, dn.trim())
@@ -70,7 +69,7 @@ export async function removeMemberFromGroup(
   id: string,
   dn: string,
 ): Promise<Result<null, InternalError | MissingVariableError>> {
-  await verifySession()
+  await getSessionCached()
   if (!dn) return errorResult('MissingVariable', 'DN is required')
 
   const result = await groupService.removeMember(id, dn.trim())

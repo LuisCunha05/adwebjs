@@ -1,13 +1,15 @@
 import 'server-only'
 import { cache } from 'react'
+import { getSessionCached } from '@/queries/session'
 import { ouService, userService } from '@/services/container'
 
-export const listOusCached = cache(() => {
-  console.log('ous cached')
+export const listOusCached = cache(async () => {
+  await getSessionCached()
   return ouService.listOUs()
 })
 
-export const showUserCached = cache((id: string) => {
+export const showUserCached = cache(async (id: string) => {
+  await getSessionCached()
   console.log({ userCache: id })
   return userService.get(id)
 })
