@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "biome check . --write",
     "format": "biome format . --fix",
-    "cron": "node --import=tsx --env-file=.env src/tasks/cron.ts"
+    "cron": "node --import=tsx --env-file=.env src/tasks/cron.ts",
+    "gen:client": "prisma generate",
+    "gen:migration": "prisma generate migration dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
