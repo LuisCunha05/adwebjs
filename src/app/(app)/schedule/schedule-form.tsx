@@ -3,91 +3,61 @@
 import { Button } from '@compound/button'
 import { CalendarClock, Loader2, UserSearch } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useActionState, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { createVacation } from '@/actions/schedule'
-import { listUsers } from '@/actions/users'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
-import { PaginatedResult } from '@/types/ldap'
 
-export function ScheduleForm() {
+type UserScheduleDto = Pick<ActiveDirectoryUser, 'cn' | 'displayName' | 'sAMAccountName'>
+
+type ScheduleFormProps = {
+  users: UserScheduleDto[]
+}
+
+export function ScheduleForm(props: ScheduleFormProps) {
   const router = useRouter()
-  const [submitting, setSubmitting] = useState(false)
+  const [state, formAction, isPending] = useActionState(createVacation, null)
+  const [formKey, setFormKey] = useState(0)
 
   const [userSearch, setUserSearch] = useState('')
-  const [userResults, setUserResults] = useState<ActiveDirectoryUser[]>([])
-  const [selectedUser, setSelectedUser] = useState<{ id: string; label: string } | null>(null)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [searching, setSearching] = useState(false)
+  const deferredSearch = useDeferredValue(userSearch)
+  const [selectedUser, setSelectedUser] = useState<UserScheduleDto | null>(null)
 
-  async function handleSearchUser() {
-    const q = userSearch.trim()
-    if (!q) {
-      setUserResults([])
-      return
-    }
-    setSearching(true)
-    try {
-      // Search by sAMAccountName as per original logic
-      const res = await listUsers(q, 'sAMAccountName')
-      if (res.data) {
-        if ('data' in res.data && Array.isArray(res.data.data)) {
-          setUserResults(res.data.data)
-        } else if (Array.isArray(res.data)) {
-          setUserResults(res.data)
-        } else {
-          setUserResults([])
-        }
-      } else {
-        setUserResults([])
-      }
-    } catch {
-      setUserResults([])
-    } finally {
-      setSearching(false)
-    }
-  }
+  const filteredUsers = useMemo(() => {
+    if (!deferredSearch) return props.users
+    const query = deferredSearch.toLowerCase().trim()
+    return props.users.filter((u) => {
+      const matchSam = u.sAMAccountName?.toLowerCase().includes(query)
+      const matchCn = u.cn?.toLowerCase().includes(query)
+      const matchDisplay = u.displayName?.toLowerCase().includes(query)
+      return matchSam || matchCn || matchDisplay
+    })
+  }, [props.users, deferredSearch])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!selectedUser || !startDate || !endDate || submitting) return
-
-    // Basic client validation
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    if (end <= start) {
-      toast.error('Data de volta deve ser após a data de ida.')
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      const res = await createVacation(selectedUser.id, startDate, endDate)
-      if (!res.ok) throw new Error(res.error)
-
+  useEffect(() => {
+    if (state?.ok) {
       toast.success('Férias agendadas: conta será desativada na ida e reativada na volta.')
-
-      // Reset form
       setSelectedUser(null)
-      setStartDate('')
-      setEndDate('')
       setUserSearch('')
-      setUserResults([])
-
+      setFormKey((prev) => prev + 1)
       router.refresh()
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao agendar.')
-    } finally {
-      setSubmitting(false)
     }
-  }
+  }, [state, router])
+
+  useEffect(() => {
+    if (state && !state.ok && state.state?.userId) {
+      const found = props.users.find((u) => u.sAMAccountName === state.state.userId)
+      if (found) {
+        setSelectedUser(found)
+      }
+    }
+  }, [state, props.users])
 
   return (
-    <Card className="max-w-xl">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CalendarClock className="size-4" />
@@ -98,48 +68,41 @@ export function ScheduleForm() {
           reativada.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className="space-y-4">
+        {state && !state.ok && (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive dark:border-destructive/30 dark:bg-destructive/10/30">
+            {state.error.message}
+          </div>
+        )}
+
+        <form key={formKey} action={formAction} className="space-y-4">
           <div className="space-y-2">
             <Label>Usuário</Label>
             <div className="flex gap-2">
+              <input type="hidden" name="userId" value={selectedUser?.sAMAccountName || ''} />
               <Input
                 placeholder="Buscar por nome de usuário..."
-                value={selectedUser ? selectedUser.label : userSearch}
+                value={selectedUser ? (selectedUser.cn ?? selectedUser.sAMAccountName) : userSearch}
                 onChange={(e) => {
+                  if (selectedUser) {
+                    setSelectedUser(null)
+                  }
                   setUserSearch(e.target.value)
-                  if (selectedUser) setSelectedUser(null)
                 }}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleSearchUser())}
               />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleSearchUser}
-                disabled={searching}
-              >
-                {searching ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <UserSearch className="size-4" />
-                )}
+              <Button type="button" variant="secondary" disabled>
+                <UserSearch className="size-4" />
               </Button>
             </div>
-            {userResults.length > 0 && !selectedUser && (
+            {filteredUsers.length > 0 && !selectedUser && (
               <ul className="rounded-lg border divide-y max-h-40 overflow-auto">
-                {userResults.map((u) => (
+                {filteredUsers.map((u) => (
                   <li key={u.sAMAccountName}>
                     <button
                       type="button"
                       className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
                       onClick={() => {
-                        setSelectedUser({
-                          id: u.sAMAccountName || '',
-                          label: [u.sAMAccountName, u.cn, u.displayName]
-                            .filter(Boolean)
-                            .join(' – '),
-                        })
-                        setUserResults([])
+                        setSelectedUser(u)
                         setUserSearch('')
                       }}
                     >
@@ -150,15 +113,20 @@ export function ScheduleForm() {
                 ))}
               </ul>
             )}
+            {filteredUsers.length === 0 && !selectedUser && (
+              <div className="rounded-lg border border-muted p-3 text-sm text-muted-foreground text-center">
+                Nenhum usuário encontrado.
+              </div>
+            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="startDate">Data de ida (desativa)</Label>
               <Input
                 id="startDate"
+                name="startDate"
                 type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                defaultValue={state?.state?.startDate || ''}
                 required
               />
             </div>
@@ -166,15 +134,15 @@ export function ScheduleForm() {
               <Label htmlFor="endDate">Data de volta (reativa)</Label>
               <Input
                 id="endDate"
+                name="endDate"
                 type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                defaultValue={state?.state?.endDate || ''}
                 required
               />
             </div>
           </div>
-          <Button type="submit" disabled={!selectedUser || !startDate || !endDate || submitting}>
-            {submitting ? <Loader2 className="size-4 animate-spin" /> : 'Agendar férias'}
+          <Button type="submit" disabled={!selectedUser || isPending}>
+            {isPending ? <Loader2 className="size-4 animate-spin" /> : 'Agendar férias'}
           </Button>
         </form>
       </CardContent>

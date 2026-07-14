@@ -1,8 +1,6 @@
 import { Button } from '@compound/button'
 import { Download, Pencil, UserPlus } from 'lucide-react'
 import Link from 'next/link'
-import { listOUs } from '@/actions/ous'
-import { listUsers } from '@/actions/users'
 import { Pagination } from '@/components/pagination'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,8 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { PaginatedResult } from '@/types/ldap'
-import { verifySession } from '@/utils/manage-jwt'
+import { listOusCached } from '@/queries/ldap'
+import { groupService, userService } from '@/services/container'
 import { DownloadButton } from './download-button'
 import { UsersSearch } from './users-search'
 
@@ -51,7 +49,6 @@ export default async function UsersPage(props: {
     pageSize?: string
   }>
 }) {
-  await verifySession()
   const searchParams = await props.searchParams
   const q = searchParams.q || ''
   const searchBy = searchParams.searchBy || 'sAMAccountName'
@@ -62,7 +59,24 @@ export default async function UsersPage(props: {
   const pageSize = Number(searchParams.pageSize) || 10
 
   // Parallel fetch: OUs always needed for search filter
-  const ousPromise = listOUs()
+  const [ousPromise, groupResult, searchResult] = await Promise.all([
+    listOusCached(),
+    groupService.search(q),
+    userService.search(q, searchBy, {
+      ou: ou || undefined,
+      memberOf: memberOf || undefined,
+      disabledOnly: disabledOnly || undefined,
+      page,
+      pageSize,
+    }),
+  ])
+  const ous = ousPromise.ok && ousPromise.value ? ousPromise.value : []
+  const groups = groupResult.ok
+    ? groupResult.value.map((group) => {
+        const { dn, cn, description } = group
+        return { dn, cn, description }
+      })
+    : []
 
   let list: any[] = []
   let total = 0
@@ -73,32 +87,15 @@ export default async function UsersPage(props: {
   const hasFilters = !!(ou || memberOf || disabledOnly)
 
   if (q.trim() || hasFilters) {
-    const res = await listUsers(q, searchBy, {
-      ou: ou || undefined,
-      memberOf: memberOf || undefined,
-      disabledOnly: disabledOnly || undefined,
-      page,
-      pageSize,
-    })
-    if (res.ok && res.data) {
-      if ('data' in res.data && Array.isArray(res.data.data)) {
-        // It's a PaginatedResult
-        list = res.data.data
-        total = res.data.total
-        totalPages = res.data.totalPages
-      } else if (Array.isArray(res.data)) {
-        // Fallback if returns array (shouldn't happen with current service logic but for safety)
-        list = res.data
-        total = list.length
-        totalPages = 1
-      }
+    if (searchResult.ok) {
+      // It's a PaginatedResult
+      list = searchResult.value.data
+      total = searchResult.value.total
+      totalPages = searchResult.value.totalPages
     } else {
-      error = res.error
+      error = searchResult.error.message
     }
   }
-
-  const ousRes = await ousPromise
-  const ous = ousRes.ok && ousRes.data ? ousRes.data : []
 
   const hasSearched = q.trim() || hasFilters
 
@@ -119,7 +116,7 @@ export default async function UsersPage(props: {
         </Button>
       </div>
 
-      <UsersSearch ous={ous} />
+      <UsersSearch ous={ous} groups={groups} />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -176,9 +173,8 @@ export default async function UsersPage(props: {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button variant="outline" size="sm" asChild leftIcon={<Pencil />}>
                           <Link href={`/users/${encodeURIComponent(u.sAMAccountName)}/edit`}>
-                            <Pencil className="size-4 mr-1" />
                             Editar
                           </Link>
                         </Button>

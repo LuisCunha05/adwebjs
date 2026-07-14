@@ -1,3 +1,5 @@
+import type { BaseRepository } from '@/services/base'
+
 export enum ScheduleStatus {
   PENDING = 'PENDING',
   RUNNING = 'RUNNING',
@@ -18,10 +20,17 @@ export interface ScheduledTask {
   error?: string
 }
 
-export interface IScheduleRepository {
+export interface IScheduleRepository extends BaseRepository {
   add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): Promise<number>
   listPending(maxDate?: Date): Promise<ScheduledTask[]>
   listAll(): Promise<ScheduledTask[]>
+  listPaginated(params: {
+    skip?: number
+    take?: number
+    vacationIds?: number[]
+    startDate?: Date
+    endDate?: Date
+  }): Promise<{ tasks: ScheduledTask[]; total: number }>
   updateStatus(
     id: number,
     status: ScheduleStatus,

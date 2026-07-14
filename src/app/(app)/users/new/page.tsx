@@ -1,11 +1,9 @@
-import { listOUs } from '@/actions/ous'
-import { verifySession } from '@/utils/manage-jwt'
+import { listOusCached } from '@/queries/ldap'
 import { NewUserForm } from './new-user-form'
 
 export default async function NewUserPage() {
-  await verifySession()
-  const ousRes = await listOUs()
-  const ous = ousRes.ok && ousRes.data ? ousRes.data : []
+  const ousRes = await listOusCached()
+  const ous = ousRes.ok && ousRes.value ? ousRes.value : []
 
   return <NewUserForm ous={ous} />
 }

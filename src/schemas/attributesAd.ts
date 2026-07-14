@@ -29,8 +29,10 @@ export const GroupSchema = z.object({
   dn: z.string(),
   cn: ldapSingleValue,
   description: ldapSingleValue,
-  member: ldapMultiValue.optional(),
+  member: ldapMultiValue,
 })
+
+export type Group = z.infer<typeof GroupSchema>
 
 export const OuSchema = z.object({
   dn: z.string(),
@@ -115,19 +117,19 @@ export const ActiveDirectoryUserSchema = z.object({
    * Given-Name (givenName)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  givenName: ldapSingleValue,
+  givenName: ldapSingleValue.optional(),
 
   /**
    * Surname (sn)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  sn: ldapSingleValue,
+  sn: ldapSingleValue.optional(),
 
   /**
    * Display-Name (displayName)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  displayName: ldapSingleValue,
+  displayName: ldapSingleValue.optional(),
 
   /**
    * Description (description)
@@ -140,7 +142,7 @@ export const ActiveDirectoryUserSchema = z.object({
    * Initials (initials)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  initials: ldapSingleValue,
+  initials: ldapSingleValue.optional(),
 
   // --- Account Control & Security ---
 
@@ -156,33 +158,33 @@ export const ActiveDirectoryUserSchema = z.object({
    * Syntax: Integer | Single-Valued: TRUE
    * Bitmask for flags like ACCOUNTDISABLE, LOCKOUT, etc.
    */
-  userAccountControl: ldapSingleValue,
+  userAccountControl: ldapSingleValue.optional(),
 
   /**
    * Account-Expires (accountExpires)
    * Syntax: Large Integer (Int64) | Single-Valued: TRUE
    * 100-nanosecond intervals since 1601.
    */
-  accountExpires: ldapSingleValue,
+  accountExpires: ldapSingleValue.optional(),
 
   /**
    * Password-Last-Set (pwdLastSet)
    * Syntax: Large Integer (Int64) | Single-Valued: TRUE
    */
-  pwdLastSet: ldapSingleValue,
+  pwdLastSet: ldapSingleValue.optional(),
 
   /**
    * Last-Logon (lastLogon)
    * Syntax: Large Integer (Int64) | Single-Valued: TRUE
    * Note: Not replicated across DCs.
    */
-  lastLogon: ldapSingleValue,
+  lastLogon: ldapSingleValue.optional(),
 
   /**
    * Bad-Password-Count (badPwdCount)
    * Syntax: Integer | Single-Valued: TRUE
    */
-  badPwdCount: ldapSingleValue,
+  badPwdCount: ldapSingleValue.optional(),
 
   // --- Contact Information ---
 
@@ -190,7 +192,7 @@ export const ActiveDirectoryUserSchema = z.object({
    * Telephone-Number (telephoneNumber)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  telephoneNumber: ldapSingleValue,
+  telephoneNumber: ldapSingleValue.optional(),
 
   /**
    * Mail (mail)
@@ -209,13 +211,13 @@ export const ActiveDirectoryUserSchema = z.object({
    * Mobile (mobile)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  mobile: ldapSingleValue,
+  mobile: ldapSingleValue.optional(),
 
   /**
    * Physical-Delivery-Office-Name (physicalDeliveryOfficeName)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  physicalDeliveryOfficeName: ldapSingleValue,
+  physicalDeliveryOfficeName: ldapSingleValue.optional(),
 
   // --- Organization ---
 
@@ -244,13 +246,13 @@ export const ActiveDirectoryUserSchema = z.object({
    * Syntax: Distinguished Name | Single-Valued: TRUE
    * Link to another object.
    */
-  manager: ldapSingleValue,
+  manager: ldapSingleValue.optional(),
 
   /**
    * Employee-ID (employeeID)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  employeeID: ldapSingleValue,
+  employeeID: ldapSingleValue.optional(),
 
   /**
    * Member-Of (memberOf)
@@ -265,32 +267,32 @@ export const ActiveDirectoryUserSchema = z.object({
    * Street-Address (streetAddress)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  streetAddress: ldapSingleValue,
+  streetAddress: ldapSingleValue.optional(),
 
   /**
    * City / Locality (l)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  l: ldapSingleValue,
+  l: ldapSingleValue.optional(),
 
   /**
    * State / Province (st)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  st: ldapSingleValue,
+  st: ldapSingleValue.optional(),
 
   /**
    * Postal-Code (postalCode)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  postalCode: ldapSingleValue,
+  postalCode: ldapSingleValue.optional(),
 
   /**
    * Country-Code (c)
    * Syntax: Unicode String | Single-Valued: TRUE
    * 2-character ISO code (e.g., "US").
    */
-  c: ldapSingleValue,
+  c: ldapSingleValue.optional(),
 
   // --- Profile & Script ---
 
@@ -298,25 +300,25 @@ export const ActiveDirectoryUserSchema = z.object({
    * Script-Path (scriptPath)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  scriptPath: ldapSingleValue,
+  scriptPath: ldapSingleValue.optional(),
 
   /**
    * Profile-Path (profilePath)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  profilePath: ldapSingleValue,
+  profilePath: ldapSingleValue.optional(),
 
   /**
    * Home-Directory (homeDirectory)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  homeDirectory: ldapSingleValue,
+  homeDirectory: ldapSingleValue.optional(),
 
   /**
    * Home-Drive (homeDrive)
    * Syntax: Unicode String | Single-Valued: TRUE
    */
-  homeDrive: ldapSingleValue,
+  homeDrive: ldapSingleValue.optional(),
 
   // --- System Metadata ---
 
@@ -324,19 +326,19 @@ export const ActiveDirectoryUserSchema = z.object({
    * When-Created (whenCreated)
    * Syntax: Generalized Time | Single-Valued: TRUE
    */
-  whenCreated: ldapSingleValue,
+  whenCreated: ldapSingleValue.optional(),
 
   /**
    * When-Changed (whenChanged)
    * Syntax: Generalized Time | Single-Valued: TRUE
    */
-  whenChanged: ldapSingleValue,
+  whenChanged: ldapSingleValue.optional(),
 
   /**
    * Object-GUID (objectGUID)
    * Syntax: Octet String (UUID) | Single-Valued: TRUE
    */
-  objectGUID: ldapSingleValue,
+  objectGUID: ldapSingleValue.optional(),
   /**
    * wWWHomePage (Home page)
    * Syntax: String (Unicode) | Single-Valued: TRUE
@@ -347,7 +349,7 @@ export const ActiveDirectoryUserSchema = z.object({
    * ipPhone (telefone Ip)
    * Syntax: String (Unicode) | Single-Valued: TRUE
    */
-  ipPhone: ldapSingleValue,
+  ipPhone: ldapSingleValue.optional(),
 })
 
 export type ActiveDirectoryUser = z.infer<typeof ActiveDirectoryUserSchema>
@@ -359,41 +361,12 @@ export const PasswordSchema = z
   .regex(/[0-9]/, 'Password must contain at least one number')
   .regex(/[^a-zA-Z0-9]/, 'Password must contain at least one special character')
 
-export const CreateUserFormSchema = z
-  .object({
-    parentOuDn: z.string().min(1, 'Parent OU DN is required'),
-    sAMAccountName: z.string().trim().min(1, 'sAMAccountName is required').max(20),
-    password: PasswordSchema,
-
-    // Optional fields with max length validation
-    cn: z.string().max(64).optional(),
-    givenName: z.string().max(64).optional(),
-    sn: z.string().max(64).optional(),
-    displayName: z.string().max(256).optional(),
-    mail: z.string().max(256).optional(),
-    description: z.string().max(1024).optional(),
-    title: z.string().max(64).optional(),
-    department: z.string().max(64).optional(),
-    company: z.string().max(64).optional(),
-    physicalDeliveryOfficeName: z.string().max(128).optional(),
-    streetAddress: z.string().max(1024).optional(),
-    telephoneNumber: z.string().max(64).optional(),
-    mobile: z.string().max(64).optional(),
-    userPrincipalName: z.string().optional(),
-  })
-  .transform((data) => {
-    const cn = (
-      data.cn ||
-      data.displayName ||
-      `${data.givenName || ''} ${data.sn || ''}`.trim() ||
-      data.sAMAccountName
-    ).slice(0, 64)
-
-    return {
-      ...data,
-      cn,
-    }
-  })
+export const CreateUserFormSchema = z.object({
+  cn: z.string().min(1).max(64),
+  parentOuDn: z.string().min(1, 'Parent OU DN is required'),
+  sAMAccountName: z.string().trim().min(1, 'sAMAccountName is required').max(20),
+  password: PasswordSchema,
+})
 
 export type CreateUserForm = z.infer<typeof CreateUserFormSchema>
 

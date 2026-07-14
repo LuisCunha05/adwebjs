@@ -1,7 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,37 +12,37 @@ datasource db {
 model Vacation {
   id          Int      @id @default(autoincrement())
   userId      String   @map("user_id")
-  startDate   String   @map("start_date")
-  endDate     String   @map("end_date")
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
   description String?
-  createdAt   String   @map("created_at")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("vacations")
 }
 
 model ScheduledTask {
-  id           Int      @id @default(autoincrement())
-  type         String   @db.VarChar(50)
-  status       String   @default("PENDING") @db.VarChar(20)
-  runAt        String   @map("run_at")
-  relatedId    Int      @map("related_id")
-  relatedTable String   @map("related_table") @db.VarChar(50)
-  createdAt    String   @map("created_at")
-  executedAt   String?  @map("executed_at")
+  id           Int       @id @default(autoincrement())
+  type         String    @db.VarChar(50)
+  status       String    @default("PENDING") @db.VarChar(20)
+  runAt        DateTime  @map("run_at")
+  relatedTable String    @map("related_table") @db.VarChar(50)
+  relatedId    Int       @map("related_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  executedAt   DateTime? @map("executed_at")
   error        String?
 
   @@map("scheduled_tasks")
 }
 
 model AuditLog {
-  id      Int     @id @default(autoincrement())
-  at      String
-  action  String
-  actor   String
-  target  String?
-  details String?
-  success Int
-  error   String?
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  action    String   @db.VarChar(255)
+  actor     String   @db.VarChar(255)
+  target    String?  @db.VarChar(255)
+  details   String?
+  success   Boolean
+  error     String?
 
   @@map("audit_logs")
 }

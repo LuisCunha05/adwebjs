@@ -1,3 +1,5 @@
+import type { BaseRepository } from '@/services/base'
+
 export interface Vacation {
   id: number
   userId: string
@@ -7,8 +9,9 @@ export interface Vacation {
   createdAt: string
 }
 
-export interface IVacationRepository {
+export interface IVacationRepository extends BaseRepository {
   add(vacation: Omit<Vacation, 'id' | 'createdAt'>): Promise<number>
   get(id: number): Promise<Vacation | undefined>
+  listAll(): Promise<Vacation[]>
   remove(id: number): Promise<void>
 }

@@ -1,12 +1,12 @@
 'use client'
 
 import { Button } from '@compound/button'
-import { Search } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
-import { listGroups } from '@/actions/groups'
+import { useState, useTransition } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -25,9 +25,10 @@ const searchByOptions = [
 
 interface UsersSearchProps {
   ous: { dn: string; ou?: string; name?: string }[]
+  groups: { dn: string; cn?: string; description?: string }[]
 }
 
-export function UsersSearch({ ous }: UsersSearchProps) {
+export function UsersSearch({ ous, groups }: UsersSearchProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -37,24 +38,8 @@ export function UsersSearch({ ous }: UsersSearchProps) {
   const [memberOf, setMemberOf] = useState(searchParams.get('memberOf') || '')
   const [disabledOnly, setDisabledOnly] = useState(searchParams.get('disabledOnly') === 'true')
 
-  const [groups, setGroups] = useState<{ dn?: string; cn?: string; name?: string }[]>([])
   const [groupsQuery, setGroupsQuery] = useState('')
   const [isPending, startTransition] = useTransition()
-
-  // Fetch groups for autocomplete
-  useEffect(() => {
-    if (!groupsQuery.trim()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setGroups([])
-      return
-    }
-    const t = setTimeout(() => {
-      listGroups(groupsQuery.trim())
-        .then((r) => setGroups(r.data ?? []))
-        .catch(() => setGroups([]))
-    }, 300)
-    return () => clearTimeout(t)
-  }, [groupsQuery])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -80,23 +65,21 @@ export function UsersSearch({ ous }: UsersSearchProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSearch} className="space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-50 space-y-2">
-              <label htmlFor="q" className="text-sm font-medium leading-none">
-                Termo
-              </label>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 items-end">
+            <div className="space-y-2">
+              <Label htmlFor="q">Termo</Label>
               <Input
                 id="q"
-                placeholder="Ex.: joao ou * para todos (com filtros)"
+                placeholder="Ex.: joao ou * para todos"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                className="max-w-md"
+                className="w-full"
               />
             </div>
-            <div className="w-45 space-y-2">
-              <label htmlFor="searchBy" className="text-sm font-medium leading-none">
+            <div>
+              <Label htmlFor="searchBy" className="mb-2">
                 Buscar por
-              </label>
+              </Label>
               <Select name="searchBy" value={searchBy} onValueChange={setSearchBy}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -110,19 +93,16 @@ export function UsersSearch({ ous }: UsersSearchProps) {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" disabled={isPending}>
-              <Search className="size-4 mr-2" />
-              {isPending ? 'Buscando…' : 'Buscar'}
-            </Button>
-          </div>
-          <div className="flex flex-wrap items-end gap-3 pt-2 border-t">
-            <div className="w-[220px] space-y-2">
-              <label className="text-sm font-medium leading-none">OU (opcional)</label>
+            <div>
+              <Label htmlFor="select-ou" className="mb-2">
+                OU (opcional)
+              </Label>
               <Select
+                name="select-ou"
                 value={ou || '__all__'}
                 onValueChange={(v) => setOu(v === '__all__' ? '' : v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,51 +115,57 @@ export function UsersSearch({ ous }: UsersSearchProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-[260px] space-y-2">
-              <label className="text-sm font-medium leading-none">Grupo (opcional)</label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Buscar grupo..."
-                  value={groupsQuery}
-                  onChange={(e) => setGroupsQuery(e.target.value)}
-                  className="h-9 flex-1"
-                />
+            <div>
+              <Label htmlFor="input-group" className="mb-2">
+                Grupo (opcional)
+              </Label>
+              <div>
                 <Select
                   value={memberOf || '__none__'}
                   onValueChange={(v) => setMemberOf(v === '__none__' ? '' : v)}
                 >
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Nenhum</SelectItem>
                     {groups
+                      .filter((g) => {
+                        const name = g.cn ?? g.description ?? g.dn ?? ''
+                        return name.toLowerCase().includes(groupsQuery.toLowerCase())
+                      })
                       .slice(0, 80)
-                      .filter((g) => (g.dn ?? g.cn) != null && (g.dn ?? g.cn) !== '')
                       .map((g) => {
-                        const val = String(g.dn ?? g.cn)
+                        const val = String(g.dn)
                         return (
                           <SelectItem key={val} value={val}>
-                            {(g.cn ?? g.name ?? g.dn ?? '').slice(0, 30)}
+                            {(g.cn ?? g.description ?? g.dn).slice(0, 30)}
                           </SelectItem>
                         )
                       })}
-                    {groupsQuery.trim() && groups.length === 0 && (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhum grupo</div>
-                    )}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer">
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-4 border-t">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm font-medium">
               <input
                 type="checkbox"
                 checked={disabledOnly}
                 onChange={(e) => setDisabledOnly(e.target.checked)}
-                className="rounded border-input"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
               />
-              <span className="text-sm">Apenas desativados</span>
+              <span>Apenas desativados</span>
             </label>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? (
+                <Loader2 className="size-4 mr-2 animate-spin" />
+              ) : (
+                <Search className="size-4 mr-2" />
+              )}
+              {isPending ? 'Buscando…' : 'Buscar'}
+            </Button>
           </div>
         </form>
       </CardContent>

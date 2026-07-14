@@ -1,22 +1,43 @@
-import { Button } from '@compound/button'
 import { FolderTree } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
+import type { OU } from '@/types/ou'
+import { MoveOuModal } from './move-ou-modal'
 
-interface OuCardProps {
-  currentOuDn: string
-  currentOuDisplay: string
-  openMoveOuDialog: () => void
-  isPendingMove: boolean
+export function parentOuFromDn(dn: string): string {
+  const idx = dn.indexOf(',')
+  return idx >= 0 ? dn.slice(idx + 1).trim() : ''
 }
 
-export function OuCard({
-  currentOuDn,
-  currentOuDisplay,
-  openMoveOuDialog,
-  isPendingMove,
-}: OuCardProps) {
+export function dnMatch(a: string, b: string): boolean {
+  return (a || '').toLowerCase().trim() === (b || '').toLowerCase().trim()
+}
+
+interface OuCardProps {
+  user: ActiveDirectoryUser
+  ous: OU[]
+}
+
+export function OuCard({ user: userRes, ous: ousRes }: OuCardProps) {
+  if (!userRes) return null
+
+  const currentOuDn = parentOuFromDn(userRes?.dn || '')
+
+  const currentOuDisplay = ousRes.length
+    ? ousRes.find((o) => dnMatch(o.dn, currentOuDn))?.ou ||
+      ousRes.find((o) => dnMatch(o.dn, currentOuDn))?.name ||
+      currentOuDn
+    : currentOuDn
+
+  const hasCurrent = currentOuDn && ousRes.some((o) => dnMatch(o.dn, currentOuDn))
+  const ousForMove =
+    currentOuDn && !hasCurrent
+      ? [{ dn: currentOuDn, ou: currentOuDn, name: currentOuDn }, ...ousRes]
+      : ousRes
+
   return (
-    <Card className="max-w-2xl">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FolderTree className="size-4" />
@@ -40,14 +61,11 @@ export function OuCard({
               </p>
             )}
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={openMoveOuDialog}
-            loading={isPendingMove}
-            leftIcon="arrow-right-left"
-            text="Mover para outra OU"
+          <MoveOuModal
+            userId={userRes.sAMAccountName}
+            currentOuDn={currentOuDn}
+            currentOuDisplay={currentOuDisplay}
+            ousForMove={ousForMove}
           />
         </div>
       </CardContent>

@@ -1,9 +1,8 @@
 'use server'
 
+import { getSessionCached } from '@/queries/session'
 import { getEditConfig, getFetchAttributes } from '@/services/ad-user-attributes'
 import type { EditAttribute } from '@/types/ldap'
-
-import { verifySession } from '@/utils/manage-jwt'
 
 interface ActionResult<T = void> {
   ok: boolean
@@ -14,7 +13,7 @@ interface ActionResult<T = void> {
 export async function getUserAttributesConfig(): Promise<
   ActionResult<{ fetch: string[]; edit: EditAttribute[] }>
 > {
-  await verifySession()
+  await getSessionCached()
   try {
     return {
       ok: true,

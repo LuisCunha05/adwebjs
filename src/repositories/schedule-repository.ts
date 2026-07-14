@@ -1,11 +1,13 @@
+import { BaseRepository } from '@/services/base'
 import type { DatabaseClient } from '../types/database'
 import { type IScheduleRepository, type ScheduledTask, ScheduleStatus } from '../types/schedule'
 
-export class ScheduleRepository implements IScheduleRepository {
-  constructor(private db: DatabaseClient) {}
+export class ScheduleRepository extends BaseRepository implements IScheduleRepository {
+  constructor(protected db: DatabaseClient) {
+    super(db)
+  }
 
   async add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): Promise<number> {
-    const createdAt = new Date().toISOString()
     const result = await this.db.scheduledTask.create({
       data: {
         type: task.type,
@@ -13,7 +15,6 @@ export class ScheduleRepository implements IScheduleRepository {
         runAt: task.runAt,
         relatedId: task.relatedId,
         relatedTable: task.relatedTable,
-        createdAt: createdAt,
       },
       select: { id: true },
     })
@@ -28,14 +29,54 @@ export class ScheduleRepository implements IScheduleRepository {
       },
       orderBy: { runAt: 'asc' },
     })
-    return rows.map((row: any) => this.mapRowToTask(row))
+    return rows.map((row) => this.mapRowToTask(row))
   }
 
   async listAll(): Promise<ScheduledTask[]> {
     const rows = await this.db.scheduledTask.findMany({
       orderBy: { runAt: 'asc' },
     })
-    return rows.map((row: any) => this.mapRowToTask(row))
+    return rows.map((row) => this.mapRowToTask(row))
+  }
+
+  async listPaginated(params: {
+    skip?: number
+    take?: number
+    vacationIds?: number[]
+    startDate?: Date
+    endDate?: Date
+  }): Promise<{ tasks: ScheduledTask[]; total: number }> {
+    const where: any = {}
+
+    if (params.vacationIds !== undefined) {
+      where.relatedTable = 'vacations'
+      where.relatedId = { in: params.vacationIds }
+    }
+
+    if (params.startDate || params.endDate) {
+      where.runAt = {}
+      if (params.startDate) {
+        where.runAt.gte = params.startDate
+      }
+      if (params.endDate) {
+        where.runAt.lte = params.endDate
+      }
+    }
+
+    const [rows, total] = await Promise.all([
+      this.db.scheduledTask.findMany({
+        where,
+        orderBy: { runAt: 'asc' },
+        ...(params.skip !== undefined ? { skip: params.skip } : {}),
+        ...(params.take !== undefined ? { take: params.take } : {}),
+      }),
+      this.db.scheduledTask.count({ where }),
+    ])
+
+    return {
+      tasks: rows.map((row) => this.mapRowToTask(row)),
+      total,
+    }
   }
 
   async updateStatus(

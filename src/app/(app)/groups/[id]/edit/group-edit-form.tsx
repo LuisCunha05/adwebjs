@@ -7,17 +7,15 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { addMemberToGroup, removeMemberFromGroup, updateGroup } from '@/actions/groups'
-import { listUsers } from '@/actions/users'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import type { ActiveDirectoryUser } from '@/schemas/attributesAd'
-import { PaginatedResult } from '@/types/ldap'
 
 interface Group {
   dn: string
-  cn: string
+  cn?: string
   name?: string
   member?: string | string[]
 }
@@ -80,7 +78,10 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
         .map((m: string) => m.trim())
         .filter(Boolean)
       const res = await updateGroup(group.dn, { name: form.name || undefined, member: memberList })
-      if (!res.ok) throw new Error(res.error)
+      if (!res.ok) {
+        toast.error(res.error.message)
+        return
+      }
 
       toast.success('Grupo atualizado.')
       router.refresh()
@@ -96,7 +97,10 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
     setActionLoading(dn)
     try {
       const res = await addMemberToGroup(group.dn, dn)
-      if (!res.ok) throw new Error(res.error)
+      if (!res.ok) {
+        toast.error(res.error.message)
+        return
+      }
 
       toast.success('Membro adicionado.')
       setAddSearch('')
@@ -114,7 +118,9 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
     setActionLoading(dn)
     try {
       const res = await removeMemberFromGroup(group.dn, dn)
-      if (!res.ok) throw new Error(res.error)
+      if (!res.ok) {
+        return toast.error(res.error.message)
+      }
 
       toast.success('Membro removido.')
       router.refresh()
@@ -128,27 +134,7 @@ export function GroupEditForm({ group, initialResolvedMembers }: GroupEditFormPr
   async function handleSearchUsers() {
     const q = addSearch.trim()
     if (!q) {
-      setUserSearchResults([])
       return
-    }
-    setSearching(true)
-    try {
-      const res = await listUsers(q, 'sAMAccountName')
-      if (res.data) {
-        if ('data' in res.data && Array.isArray(res.data.data)) {
-          setUserSearchResults(res.data.data)
-        } else if (Array.isArray(res.data)) {
-          setUserSearchResults(res.data)
-        } else {
-          setUserSearchResults([])
-        }
-      } else {
-        setUserSearchResults([])
-      }
-    } catch {
-      setUserSearchResults([])
-    } finally {
-      setSearching(false)
     }
   }
 

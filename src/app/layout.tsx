@@ -20,20 +20,20 @@ export const metadata: Metadata = {
   description: 'Gerencie usuários e grupos do Active Directory',
 }
 
-import { getSession } from '@/utils/manage-jwt'
+import { getSessionCached } from '@/queries/session'
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const session = await getSession()
+  const session = getSessionCached()
 
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
-          <AuthProvider initialSession={session}>
+          <AuthProvider session={session}>
             {children}
             <Toaster richColors position="top-right" />
           </AuthProvider>

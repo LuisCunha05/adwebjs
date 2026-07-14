@@ -7,6 +7,8 @@
 !next.config.ts
 !package.json
 !pnpm-lock.yaml
+!pnpm-workspace.yaml
 !postcss.config.mjs
 !tsconfig.json
+!prisma.config.ts
 !.env

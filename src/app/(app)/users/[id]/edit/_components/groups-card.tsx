@@ -22,7 +22,7 @@ export function GroupsCard({
   if (memberOfList.length === 0) return null
 
   return (
-    <Card className="max-w-2xl">
+    <Card>
       <CardHeader>
         <CardTitle>Grupos</CardTitle>
         <CardDescription>

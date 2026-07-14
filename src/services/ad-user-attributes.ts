@@ -1,5 +1,5 @@
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 
 import { AD_EXTRA_ATTRIBUTES, SCHEDULE_DATA_DIR } from '../constants/config'
 import { DEFAULT_EDIT, DEFAULT_FETCH } from '../constants/ldap'
@@ -61,9 +61,4 @@ export function getEditConfig(): EditAttribute[] {
     }
   }
   return edit
-}
-
-/** Caminho do arquivo de config (para documentação ou UI). */
-export function getConfigPath(): string {
-  return CONFIG_PATH
 }

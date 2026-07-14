@@ -82,7 +82,7 @@ Permite buscar e filtrar usuários por OU e grupo, mover contas entre OUs sem de
 
 ### Logs de auditoria
 - Histórico de ações (criar/editar/desativar/excluir usuários, mover, redefinir senha, alterar grupos, agendar férias, etc.).
-- Armazenado em banco de dados local (SQLite).
+- Armazenado em banco de dados.
 - Filtros por período, ação, ator e alvo.
 
 ### Interface
@@ -95,7 +95,7 @@ Permite buscar e filtrar usuários por OU e grupo, mover contas entre OUs sem de
 
 - **Fullstack Next.js**: O projeto é uma aplicação **Next.js 16** (App Router) unificada.
 - **Server Actions**: A lógica de negócio e as chamadas ao LDAP são executadas no servidor através de Server Actions (`src/actions/`), garantindo segurança e separação de camadas.
-- **Persistência (SQLite)**: Agendamentos, logs de auditoria e férias são armazenados em um banco de dados SQLite local (`data/database.sqlite`), gerenciado via `node:sqlite`.
+- **Persistência (PostGres)**: Agendamentos, logs de auditoria e férias são armazenados em um banco de dados PostGres em docker , gerenciado via PrismaORM.
 - **Worker de Agendamento**: Um processo separado (`src/tasks/cron.ts`) é responsável por verificar e executar as tarefas agendadas (ativar/desativar usuários em férias).
 - **LDAP**: A comunicação com o Active Directory é feita via `ldapts`.
 
@@ -182,9 +182,16 @@ A maneira mais fácil de rodar a aplicação em produção é utilizando Docker 
 
 Para rodar a aplicação em modo de desenvolvimento (com hot-reload):
 
-```bash
-pnpm dev
-```
+1. **Gerar Prisma  Client**
+  ```bash
+  pnpm dlx prisma generate
+  ```
+
+
+2. **Executar ambiente dev**
+  ```bash
+  pnpm dev
+  ```
 Acesse `http://localhost:3000`.
 
 ### Scripts npm (raiz do projeto)

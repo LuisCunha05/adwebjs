@@ -1,3 +1,4 @@
+import 'server-only'
 import { jwtVerify, SignJWT } from 'jose'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -41,12 +42,6 @@ export async function getSession(): Promise<Session | null> {
   if (!payload) return null
 
   return payload.session
-}
-
-export async function verifySession() {
-  const isAuthenticated = await getSession()
-  if (!isAuthenticated) redirect('/login')
-  return isAuthenticated
 }
 
 const createJwtToken = async (payload: Payload) => {

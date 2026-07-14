@@ -1,6 +1,6 @@
 export interface AuditEntry {
   id: number
-  at: string
+  createdAt: string
   action: AuditAction
   actor: string
   target?: string

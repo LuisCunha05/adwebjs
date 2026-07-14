@@ -1,5 +1,4 @@
 import { FolderOpen } from 'lucide-react'
-import { listOUs } from '@/actions/ous'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -9,13 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { verifySession } from '@/utils/manage-jwt'
+import { ouService } from '@/services/container'
 
 export default async function OUsPage() {
-  await verifySession()
-  const res = await listOUs()
-  const list = res.ok && res.data ? res.data : []
-  const error = res.ok ? null : res.error
+  const res = await ouService.listOUs()
+  const list = res.ok ? res.value : []
+  const error = res.ok ? null : res.error.message
 
   return (
     <div className="space-y-6">
