@@ -6,6 +6,7 @@ import {
   type Filter,
   PresenceFilter,
   SubstringFilter,
+  ExtensibleFilter
 } from 'ldapts'
 import { LDAP_BASE_DN, LDAP_DOMAIN } from '@/constants/config'
 import { SEARCH_USERS_ATTRIBUTES, USER_OBJECT_CLASSES } from '@/constants/ldap'
@@ -85,8 +86,9 @@ export class UserService extends BaseLdapService implements IUserService {
       }
       if (options?.disabledOnly) {
         filters.push(
-          new EqualityFilter({
-            attribute: 'userAccountControl:1.2.840.113556.1.4.803:',
+          new ExtensibleFilter({
+            matchType: "userAccountControl",
+            rule:"1.2.840.113556.1.4.803",
             value: '2',
           }),
         )

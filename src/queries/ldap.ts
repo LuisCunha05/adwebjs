@@ -10,7 +10,6 @@ export const listOusCached = cache(async () => {
 
 export const showUserCached = cache(async (id: string) => {
   await getSessionCached()
-  console.log({ userCache: id })
   return userService.get(id)
 })
 
