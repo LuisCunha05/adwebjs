@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 import { getSessionCached } from '@/queries/session'
+import { type CreateVacationForm, CreateVacationSchema } from '@/schemas/schedule'
 import { auditService, scheduleService, vacationScheduleService } from '@/services/container'
 import type {
   InternalError,
@@ -11,7 +12,6 @@ import type {
 } from '@/types/error'
 import type { ActionResult, Result } from '@/types/utils'
 import { errorActionResult, errorResult } from '@/utils/error'
-import { CreateVacationSchema ,CreateVacationForm} from '@/schemas/schedule'
 
 export async function createVacation(
   _prevState: ActionResult<
@@ -67,7 +67,7 @@ export async function createVacation(
     success: true,
   })
 
-  return { ok: true, state:{endDate: "",  startDate: "", userId:""} }
+  return { ok: true, state: { endDate: '', startDate: '', userId: '' } }
 }
 
 export async function cancelTask(
@@ -77,13 +77,13 @@ export async function cancelTask(
   if (Number.isNaN(id)) {
     return errorResult('Internal', 'ID inválido')
   }
-  try {
-    const removed = await scheduleService.remove(id)
-    if (!removed) {
-      return errorResult('NotFound', 'Agendamento não encontrado')
-    }
-    return { ok: true, value: undefined }
-  } catch (err: unknown) {
-    return errorResult('Internal', err instanceof Error ? err.message : 'Cancelamento falhou')
+
+  const res = await scheduleService.remove(id)
+  if (!res.ok) {
+    return res
   }
+  if (!res.value) {
+    return errorResult('NotFound', 'Agendamento não encontrado')
+  }
+  return { ok: true, value: undefined }
 }

@@ -10,10 +10,14 @@ export default async function SchedulePage({
 }) {
   const resolvedSearchParams = await searchParams
 
-  const person = typeof resolvedSearchParams.person === 'string' ? resolvedSearchParams.person : undefined
-  const startDate = typeof resolvedSearchParams.startDate === 'string' ? resolvedSearchParams.startDate : undefined
-  const endDate = typeof resolvedSearchParams.endDate === 'string' ? resolvedSearchParams.endDate : undefined
-  const page = typeof resolvedSearchParams.page === 'string' ? Number(resolvedSearchParams.page) || 1 : 1
+  const person =
+    typeof resolvedSearchParams.person === 'string' ? resolvedSearchParams.person : undefined
+  const startDate =
+    typeof resolvedSearchParams.startDate === 'string' ? resolvedSearchParams.startDate : undefined
+  const endDate =
+    typeof resolvedSearchParams.endDate === 'string' ? resolvedSearchParams.endDate : undefined
+  const page =
+    typeof resolvedSearchParams.page === 'string' ? Number(resolvedSearchParams.page) || 1 : 1
   const limit = 10
 
   const [userResult, scheduleResult] = await Promise.all([

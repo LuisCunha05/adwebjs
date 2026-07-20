@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { listScheduleAllFiltered } from '@/queries/schedule'
 import { getSession } from '@/utils/manage-jwt'
 

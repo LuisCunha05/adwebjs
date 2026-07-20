@@ -8,7 +8,9 @@ import {
   PasswordSchema,
 } from '@/schemas/attributesAd'
 import type { IAuthService } from '@/types/auth'
+import type { InternalError, NotFoundError, ParseError } from '@/types/error'
 import type { ILogger } from '@/types/logger'
+import type { Result } from '@/types/utils'
 import { errorResult } from '@/utils/error'
 import { BaseLdapService } from './ldap'
 
@@ -170,7 +172,10 @@ export class AuthService extends BaseLdapService implements IAuthService {
     }
   }
 
-  async disableUser(id: string, targetOu?: string) {
+  async disableUser(
+    id: string,
+    targetOu?: string,
+  ): Promise<Result<null, NotFoundError | ParseError | InternalError>> {
     const client = await this.getAdminClient()
 
     const userResult = await this.getUser(id)
@@ -207,7 +212,7 @@ export class AuthService extends BaseLdapService implements IAuthService {
     }
   }
 
-  async enableUser(id: string) {
+  async enableUser(id: string): Promise<Result<null, NotFoundError | ParseError | InternalError>> {
     const userResult = await this.getUser(id)
     if (!userResult.ok) return userResult
     const user = userResult.value

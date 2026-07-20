@@ -30,29 +30,39 @@ export class VacationScheduleService implements IVacationScheduler {
     let vacationId: number | null = null
     try {
       await this.vacationRepo.transaction(async (tx) => {
-        vacationId = await this.vacationRepo.withTransaction(tx).add({
+        const addVacationRes = await this.vacationRepo.withTransaction(tx).add({
           userId,
           startDate,
           endDate,
           description: `Férias ${userId}`,
         })
+        if (!addVacationRes.ok) {
+          throw new Error(addVacationRes.error.message)
+        }
+        vacationId = addVacationRes.value
 
         const schedule = this.scheduleRepo.withTransaction(tx)
-        await schedule.add({
+        const addStartRes = await schedule.add({
           type: 'VACATION_START',
           status: ScheduleStatus.PENDING,
           runAt: startDate,
           relatedId: vacationId,
           relatedTable: 'vacations',
         })
+        if (!addStartRes.ok) {
+          throw new Error(addStartRes.error.message)
+        }
 
-        await schedule.add({
+        const addEndRes = await schedule.add({
           type: 'VACATION_END',
           status: ScheduleStatus.PENDING,
           runAt: endDate,
           relatedId: vacationId,
           relatedTable: 'vacations',
         })
+        if (!addEndRes.ok) {
+          throw new Error(addEndRes.error.message)
+        }
       })
 
       if (!vacationId) throw new Error('Unreachable')
@@ -65,7 +75,11 @@ export class VacationScheduleService implements IVacationScheduler {
   }
 
   async cancel(vacationId: number) {
-    const vacations = await this.vacationRepo.get(vacationId)
+    const getRes = await this.vacationRepo.get(vacationId)
+    if (!getRes.ok) {
+      return getRes
+    }
+    const vacations = getRes.value
 
     if (!vacations) return errorResult('NotFound', 'vacation not found')
 
@@ -73,11 +87,18 @@ export class VacationScheduleService implements IVacationScheduler {
 
     try {
       await this.scheduleRepo.transaction(async (tx) => {
-        removedId = await this.scheduleRepo
+        const removeTasksRes = await this.scheduleRepo
           .withTransaction(tx)
           .removeByRelatedId(vacationId, 'vacations')
+        if (!removeTasksRes.ok) {
+          throw new Error(removeTasksRes.error.message)
+        }
+        removedId = removeTasksRes.value
 
-        await this.vacationRepo.withTransaction(tx).remove(vacationId)
+        const removeVacationRes = await this.vacationRepo.withTransaction(tx).remove(vacationId)
+        if (!removeVacationRes.ok) {
+          throw new Error(removeVacationRes.error.message)
+        }
       })
 
       if (!removedId) throw new Error('Unreachable')

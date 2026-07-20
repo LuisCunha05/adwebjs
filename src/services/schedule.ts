@@ -1,12 +1,11 @@
-import type { Result } from '@/types/utils'
 import type { InternalError } from '@/types/error'
-import { errorResult } from '@/utils/error'
+import type { Result } from '@/types/utils'
 import type { IScheduleRepository, ScheduledTask } from '../types/schedule'
 
 export class ScheduleService {
   constructor(private scheduleRepo: IScheduleRepository) {}
 
-  async list(): Promise<ScheduledTask[]> {
+  async list(): Promise<Result<ScheduledTask[], InternalError>> {
     return await this.scheduleRepo.listAll()
   }
 
@@ -17,18 +16,10 @@ export class ScheduleService {
     startDate?: Date
     endDate?: Date
   }): Promise<Result<{ tasks: ScheduledTask[]; total: number }, InternalError>> {
-    try {
-      const result = await this.scheduleRepo.listPaginated(params)
-      return { ok: true, value: result }
-    } catch (err: unknown) {
-      return errorResult(
-        'Internal',
-        err instanceof Error ? err.message : 'Failed to query scheduled tasks',
-      )
-    }
+    return await this.scheduleRepo.listPaginated(params)
   }
 
-  async remove(id: number): Promise<boolean> {
+  async remove(id: number): Promise<Result<boolean, InternalError>> {
     return await this.scheduleRepo.remove(id)
   }
 }

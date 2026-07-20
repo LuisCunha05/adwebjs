@@ -1,37 +1,29 @@
 import 'server-only'
 import { cache } from 'react'
-import { getSessionCached } from '@/queries/session'
 import { listUsersCached } from '@/queries/ldap'
+import { getSessionCached } from '@/queries/session'
 import { scheduleService, vacationService } from '@/services/container'
 import type { InternalError } from '@/types/error'
 import type { ScheduledTask } from '@/types/schedule'
-import type { Vacation } from '@/types/vacation'
 import type { Result } from '@/types/utils'
+import type { Vacation } from '@/types/vacation'
 import { errorResult } from '@/utils/error'
 
 export const listScheduleCached = cache(
   async (): Promise<Result<ScheduledTask[], InternalError>> => {
     await getSessionCached()
-    try {
-      const actions = await scheduleService.list()
-      return { ok: true, value: actions }
-    } catch (err: unknown) {
-      return errorResult('Internal', err instanceof Error ? err.message : 'Schedule list failed')
-    }
+    const res = await scheduleService.list()
+    if (!res.ok) return res
+    return { ok: true, value: res.value }
   },
 )
 
-export const listVacationsCached = cache(
-  async (): Promise<Result<Vacation[], InternalError>> => {
-    await getSessionCached()
-    try {
-      const vacations = await vacationService.list()
-      return { ok: true, value: vacations }
-    } catch (err: unknown) {
-      return errorResult('Internal', err instanceof Error ? err.message : 'Vacation list failed')
-    }
-  },
-)
+export const listVacationsCached = cache(async (): Promise<Result<Vacation[], InternalError>> => {
+  await getSessionCached()
+  const res = await vacationService.list()
+  if (!res.ok) return res
+  return { ok: true, value: res.value }
+})
 
 export async function listSchedulePaginated(filters: {
   page: number
@@ -61,25 +53,23 @@ export async function listSchedulePaginated(filters: {
     const users = userResult.ok ? userResult.value : []
     const vacations = vacationResult.ok ? vacationResult.value : []
 
-    let vacationIds: number[] | undefined = undefined
+    let vacationIds: number[] | undefined
 
     if (filters.person) {
       const lowerPerson = filters.person.toLowerCase()
       const matchingUsers = users.filter(
         (u) =>
           u.sAMAccountName.toLowerCase().includes(lowerPerson) ||
-          (u.displayName && u.displayName.toLowerCase().includes(lowerPerson)) ||
-          (u.cn && u.cn.toLowerCase().includes(lowerPerson)),
+          u.displayName?.toLowerCase().includes(lowerPerson) ||
+          u.cn?.toLowerCase().includes(lowerPerson),
       )
       const matchingUserIds = matchingUsers.map((u) => u.sAMAccountName)
-      const matchingVacations = vacations.filter((v) =>
-        matchingUserIds.includes(v.userId),
-      )
+      const matchingVacations = vacations.filter((v) => matchingUserIds.includes(v.userId))
       vacationIds = matchingVacations.map((v) => v.id)
     }
 
     const startParsed = filters.startDate ? new Date(filters.startDate) : undefined
-    const endParsed = filters.endDate ? new Date(filters.endDate + 'T23:59:59.999Z') : undefined
+    const endParsed = filters.endDate ? new Date(`${filters.endDate}T23:59:59.999Z`) : undefined
 
     const skip = (filters.page - 1) * filters.limit
     const take = filters.limit
@@ -123,10 +113,10 @@ export async function listSchedulePaginated(filters: {
         limit: filters.limit,
       },
     }
-  } catch (err: unknown) {
+  } catch (_err: unknown) {
     return errorResult(
       'Internal',
-      err instanceof Error ? err.message : 'Schedule list paginated failed',
+      'An error occurred while retrieving the paginated schedule list.',
     )
   }
 }
@@ -135,12 +125,7 @@ export async function listScheduleAllFiltered(filters: {
   person?: string
   startDate?: string
   endDate?: string
-}): Promise<
-  Result<
-    (ScheduledTask & { userId: string; displayName: string })[],
-    InternalError
-  >
-> {
+}): Promise<Result<(ScheduledTask & { userId: string; displayName: string })[], InternalError>> {
   await getSessionCached()
 
   try {
@@ -152,25 +137,23 @@ export async function listScheduleAllFiltered(filters: {
     const users = userResult.ok ? userResult.value : []
     const vacations = vacationResult.ok ? vacationResult.value : []
 
-    let vacationIds: number[] | undefined = undefined
+    let vacationIds: number[] | undefined
 
     if (filters.person) {
       const lowerPerson = filters.person.toLowerCase()
       const matchingUsers = users.filter(
         (u) =>
           u.sAMAccountName.toLowerCase().includes(lowerPerson) ||
-          (u.displayName && u.displayName.toLowerCase().includes(lowerPerson)) ||
-          (u.cn && u.cn.toLowerCase().includes(lowerPerson)),
+          u.displayName?.toLowerCase().includes(lowerPerson) ||
+          u.cn?.toLowerCase().includes(lowerPerson),
       )
       const matchingUserIds = matchingUsers.map((u) => u.sAMAccountName)
-      const matchingVacations = vacations.filter((v) =>
-        matchingUserIds.includes(v.userId),
-      )
+      const matchingVacations = vacations.filter((v) => matchingUserIds.includes(v.userId))
       vacationIds = matchingVacations.map((v) => v.id)
     }
 
     const startParsed = filters.startDate ? new Date(filters.startDate) : undefined
-    const endParsed = filters.endDate ? new Date(filters.endDate + 'T23:59:59.999Z') : undefined
+    const endParsed = filters.endDate ? new Date(`${filters.endDate}T23:59:59.999Z`) : undefined
 
     const scheduleRes = await scheduleService.listPaginated({
       vacationIds,
@@ -204,10 +187,7 @@ export async function listScheduleAllFiltered(filters: {
       ok: true,
       value: enrichedTasks,
     }
-  } catch (err: unknown) {
-    return errorResult(
-      'Internal',
-      err instanceof Error ? err.message : 'Schedule list filtered failed',
-    )
+  } catch (_err: unknown) {
+    return errorResult('Internal', 'An error occurred while retrieving the filtered schedule list.')
   }
 }

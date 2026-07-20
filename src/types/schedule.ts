@@ -1,4 +1,6 @@
 import type { BaseRepository } from '@/services/base'
+import type { InternalError } from './error'
+import type { Result } from './utils'
 
 export enum ScheduleStatus {
   PENDING = 'PENDING',
@@ -21,21 +23,24 @@ export interface ScheduledTask {
 }
 
 export interface IScheduleRepository extends BaseRepository {
-  add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): Promise<number>
-  listPending(maxDate?: Date): Promise<ScheduledTask[]>
-  listAll(): Promise<ScheduledTask[]>
+  add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): Promise<Result<number, InternalError>>
+  listPending(
+    maxDate?: Date,
+    relatedTable?: string,
+  ): Promise<Result<ScheduledTask[], InternalError>>
+  listAll(): Promise<Result<ScheduledTask[], InternalError>>
   listPaginated(params: {
     skip?: number
     take?: number
     vacationIds?: number[]
     startDate?: Date
     endDate?: Date
-  }): Promise<{ tasks: ScheduledTask[]; total: number }>
+  }): Promise<Result<{ tasks: ScheduledTask[]; total: number }, InternalError>>
   updateStatus(
     id: number,
     status: ScheduleStatus,
     details?: { error?: string; executedAt?: string },
-  ): Promise<void>
-  remove(id: number): Promise<boolean>
-  removeByRelatedId(relatedId: number, relatedTable: string): Promise<number>
+  ): Promise<Result<void, InternalError>>
+  remove(id: number): Promise<Result<boolean, InternalError>>
+  removeByRelatedId(relatedId: number, relatedTable: string): Promise<Result<number, InternalError>>
 }

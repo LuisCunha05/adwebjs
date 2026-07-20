@@ -3,7 +3,7 @@
 import { Button } from '@compound/button'
 import { CalendarX, Download, Loader2, Trash2 } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useState, useTransition, useEffect } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { cancelTask } from '@/actions/schedule'
 import { Badge } from '@/components/ui/badge'
@@ -235,12 +235,7 @@ export function VacationList({ actions, totalCount, currentPage, pageSize }: Vac
             />
           </div>
           <div className="flex gap-2">
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isPending}
-              className="h-9 text-xs"
-            >
+            <Button type="submit" size="sm" disabled={isPending} className="h-9 text-xs">
               Buscar
             </Button>
             {hasActiveFilters && (

@@ -35,7 +35,7 @@ export class AuditRepository extends BaseRepository {
       ...(filters.limit ? { take: filters.limit } : {}),
     })
 
-    return rows.map((row) => ({
+    return rows.map((row: any) => ({
       id: row.id,
       createdAt: row.createdAt.toISOString(),
       action: row.action as any,
