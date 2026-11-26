@@ -123,3 +123,7 @@ dist
 # Prisma generated contract artifacts
 src/infrastructure/prisma/contract.d.ts
 src/infrastructure/prisma/contract.json
+
+# Playwright
+playwright-report/
+test-results/

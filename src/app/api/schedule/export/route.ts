@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { listScheduleAllFiltered } from '@/queries/schedule'
-import { getSession } from '@/utils/manage-jwt'
+import { getSession } from '@/utils/session'
 
 export async function GET(request: NextRequest) {
   const session = await getSession()

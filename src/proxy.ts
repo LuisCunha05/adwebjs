@@ -1,25 +1,29 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { SESSION_COOKIE_NAME } from '@/constants/config'
-import { verifyJwtToken } from './utils/manage-jwt'
+import { verifySessionCookie } from '@/utils/session-core'
 
-export function proxy(request: NextRequest) {
-  const session = request.cookies.get(SESSION_COOKIE_NAME)?.value
+export async function proxy(request: NextRequest) {
+  const cookieValue = request.cookies.get(SESSION_COOKIE_NAME)?.value
   const isLoginPage = request.nextUrl.pathname === '/login'
+  const session = await verifySessionCookie(cookieValue)
 
   if (!session && !isLoginPage) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  if (session) {
-    const isValidSession = verifyJwtToken(session)
-    if (!isValidSession) {
-      return NextResponse.redirect(new URL('/login', request.url))
+    const response = NextResponse.redirect(new URL('/login', request.url))
+    if (cookieValue) {
+      response.cookies.delete(SESSION_COOKIE_NAME)
     }
+    return response
   }
 
   if (session && isLoginPage) {
     return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  if (cookieValue && !session) {
+    const response = NextResponse.next()
+    response.cookies.delete(SESSION_COOKIE_NAME)
+    return response
   }
 
   return NextResponse.next()

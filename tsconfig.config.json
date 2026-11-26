@@ -14,5 +14,12 @@
     "noErrorTruncation": true,
     "types": ["node"]
   },
-  "include": ["next.config.ts", "prisma.config.ts", "oxlint.config.ts", "oxfmt.config.ts"]
+  "include": [
+    "next.config.ts",
+    "prisma.config.ts",
+    "oxlint.config.ts",
+    "oxfmt.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ]
 }

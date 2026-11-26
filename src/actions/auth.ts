@@ -6,7 +6,7 @@ import { loginSchema } from '@/schemas/login'
 import { authService } from '@/services/container'
 import { logger } from '@/services/logger'
 import type { Session } from '@/types/session'
-import { createSession, deleteSession } from '@/utils/manage-jwt'
+import { createSession, deleteSession } from '@/utils/session'
 
 function getVal(v: string | string[] | undefined): string | undefined {
   if (v === undefined) return undefined

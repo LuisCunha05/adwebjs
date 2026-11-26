@@ -16,7 +16,7 @@ const configSchema = z.object({
   LDAP_GROUP_DELETE: z.string().trim().optional(),
 
   // Session
-  JWT_SECRET_KEY: z.string().trim().min(20),
+  SESSION_SECRET: z.string().trim().min(32, 'SESSION_SECRET must be at least 32 characters'),
   SESSION_COOKIE_NAME: z.string().trim().optional().default('adweb_session'),
   SESSION_EXPIRATION_SECONDS: z.coerce.number().optional().default(3600),
 
@@ -55,6 +55,7 @@ export const LDAP_DEBUG = env.LDAP_DEBUG
 export const LDAP_GROUP_REQUIRED = env.LDAP_GROUP_REQUIRED
 export const LDAP_GROUP_DELETE = env.LDAP_GROUP_DELETE
 
+export const SESSION_SECRET = env.SESSION_SECRET
 export const SESSION_COOKIE_NAME = env.SESSION_COOKIE_NAME
 export const SESSION_EXPIRATION_SECONDS = env.SESSION_EXPIRATION_SECONDS
 

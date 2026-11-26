@@ -10,7 +10,7 @@ Permite buscar e filtrar usuários por OU e grupo, mover contas entre OUs sem de
 |--------|------------|
 | Fullstack | Next.js 16 (App Router), React 19 |
 | Estilo | Tailwind CSS 4, Radix UI, next-themes |
-| Backend / API | Server Actions, Route Handlers, ldapts, jose (JWT) |
+| Backend / API | Server Actions, Route Handlers, ldapts, iron-session |
 | Banco de Dados | SQLite (armazenamento local) |
 | Job Runner | Node.js cron (processo isolado) |
 
@@ -46,7 +46,7 @@ Permite buscar e filtrar usuários por OU e grupo, mover contas entre OUs sem de
 
 ### Autenticação
 - Login com credenciais do Active Directory (usuário e senha).
-- Sessão stateless via JWT (assinada com `jose`), armazenada em cookie HTTP-only.
+- Sessão stateless criptografada com `iron-session`, armazenada em cookie HTTP-only.
 - Acesso à aplicação restrito a membros do grupo configurado em `LDAP_GROUP_REQUIRED`.
 
 ### Dashboard (Início)
@@ -152,7 +152,7 @@ Crie um arquivo `.env` na raiz do projeto.
 | `LDAP_DEBUG` | Se `true`, emite logs detalhados do LDAP no console. |
 | `SCHEDULE_DATA_DIR` | Diretório onde o banco de dados SQLite será salvo (padrão: `data/`). |
 | `AD_EXTRA_ATTRIBUTES` | Lista de atributos extras do AD para buscar e editar. |
-| `JWT_SECRET_KEY` | Chave secreta para assinar o token de sessão (JWT). |
+| `SESSION_SECRET` | Chave secreta (mínimo 32 caracteres) para criptografar o cookie de sessão (`iron-session`). |
 | `SESSION_EXPIRATION_SECONDS` | Duração da sessão em segundos. |
 | `SESSION_COOKIE_NAME` | Nome do cookie de sessão (padrão: `session`). |
 
