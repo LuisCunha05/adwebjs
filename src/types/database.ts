@@ -1,3 +1,4 @@
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type { PostgresClient, PostgresTransactionContext } from '@prisma/orm-postgres/runtime'
+import type { Contract } from '@/infrastructure/prisma/contract.d'
 
-export type DatabaseClient = PrismaClient | Prisma.TransactionClient
+export type DatabaseClient = PostgresClient<Contract> | PostgresTransactionContext<Contract>

@@ -1,6 +1,10 @@
+import type { ResultType } from '@prisma/orm-postgres/components/runtime'
+import { and } from '@prisma/orm-postgres/orm-client'
 import { BaseRepository } from '@/services/base'
 import type { DatabaseClient } from '../types/database'
 import { type IScheduleRepository, type ScheduledTask, ScheduleStatus } from '../types/schedule'
+
+type ScheduledTaskRow = ResultType<DatabaseClient['orm']['public']['ScheduledTask']>
 
 export class ScheduleRepository extends BaseRepository implements IScheduleRepository {
   constructor(protected db: DatabaseClient) {
@@ -8,34 +12,27 @@ export class ScheduleRepository extends BaseRepository implements IScheduleRepos
   }
 
   async add(task: Omit<ScheduledTask, 'id' | 'createdAt'>): Promise<number> {
-    const result = await this.db.scheduledTask.create({
-      data: {
-        type: task.type,
-        status: task.status,
-        runAt: task.runAt,
-        relatedId: task.relatedId,
-        relatedTable: task.relatedTable,
-      },
-      select: { id: true },
+    const result = await this.db.orm.public.ScheduledTask.select('id').create({
+      type: task.type,
+      status: task.status,
+      runAt: new Date(task.runAt),
+      relatedId: task.relatedId,
+      relatedTable: task.relatedTable,
     })
     return result.id
   }
 
   async listPending(maxDate: Date = new Date()): Promise<ScheduledTask[]> {
-    const rows = await this.db.scheduledTask.findMany({
-      where: {
-        status: ScheduleStatus.PENDING,
-        runAt: { lte: maxDate.toISOString() },
-      },
-      orderBy: { runAt: 'asc' },
-    })
+    const rows = await this.db.orm.public.ScheduledTask.where((t) =>
+      and(t.status.eq(ScheduleStatus.PENDING), t.runAt.lte(maxDate)),
+    )
+      .orderBy((t) => t.runAt.asc())
+      .all()
     return rows.map((row) => this.mapRowToTask(row))
   }
 
   async listAll(): Promise<ScheduledTask[]> {
-    const rows = await this.db.scheduledTask.findMany({
-      orderBy: { runAt: 'asc' },
-    })
+    const rows = await this.db.orm.public.ScheduledTask.orderBy((t) => t.runAt.asc()).all()
     return rows.map((row) => this.mapRowToTask(row))
   }
 
@@ -46,36 +43,42 @@ export class ScheduleRepository extends BaseRepository implements IScheduleRepos
     startDate?: Date
     endDate?: Date
   }): Promise<{ tasks: ScheduledTask[]; total: number }> {
-    const where: any = {}
+    if (params.vacationIds !== undefined && params.vacationIds.length === 0) {
+      return { tasks: [], total: 0 }
+    }
+
+    let query = this.db.orm.public.ScheduledTask
 
     if (params.vacationIds !== undefined) {
-      where.relatedTable = 'vacations'
-      where.relatedId = { in: params.vacationIds }
+      const vacationIds = params.vacationIds
+      query = query.where((t) => and(t.relatedTable.eq('vacations'), t.relatedId.in(vacationIds)))
     }
 
-    if (params.startDate || params.endDate) {
-      where.runAt = {}
-      if (params.startDate) {
-        where.runAt.gte = params.startDate
-      }
-      if (params.endDate) {
-        where.runAt.lte = params.endDate
-      }
+    if (params.startDate) {
+      const startDate = params.startDate
+      query = query.where((t) => t.runAt.gte(startDate))
+    }
+    if (params.endDate) {
+      const endDate = params.endDate
+      query = query.where((t) => t.runAt.lte(endDate))
     }
 
-    const [rows, total] = await Promise.all([
-      this.db.scheduledTask.findMany({
-        where,
-        orderBy: { runAt: 'asc' },
-        ...(params.skip !== undefined ? { skip: params.skip } : {}),
-        ...(params.take !== undefined ? { take: params.take } : {}),
-      }),
-      this.db.scheduledTask.count({ where }),
+    let paged = query.orderBy((t) => t.runAt.asc())
+    if (params.skip !== undefined) {
+      paged = paged.offset(params.skip)
+    }
+    if (params.take !== undefined) {
+      paged = paged.limit(params.take)
+    }
+
+    const [rows, agg] = await Promise.all([
+      paged.all(),
+      query.aggregate((a) => ({ total: a.count() })),
     ])
 
     return {
       tasks: rows.map((row) => this.mapRowToTask(row)),
-      total,
+      total: agg.total,
     }
   }
 
@@ -84,42 +87,35 @@ export class ScheduleRepository extends BaseRepository implements IScheduleRepos
     status: ScheduleStatus,
     details?: { error?: string; executedAt?: string },
   ): Promise<void> {
-    await this.db.scheduledTask.update({
-      where: { id },
-      data: {
-        status,
-        error: details?.error || null,
-        executedAt: details?.executedAt || null,
-      },
+    await this.db.orm.public.ScheduledTask.where({ id }).update({
+      status,
+      error: details?.error || null,
+      executedAt: details?.executedAt ? new Date(details.executedAt) : null,
     })
   }
 
   async remove(id: number): Promise<boolean> {
-    try {
-      await this.db.scheduledTask.delete({ where: { id } })
-      return true
-    } catch (e) {
-      return false
-    }
+    const deleted = await this.db.orm.public.ScheduledTask.where({ id }).delete()
+    return deleted !== null
   }
 
   async removeByRelatedId(relatedId: number, relatedTable: string): Promise<number> {
-    const result = await this.db.scheduledTask.deleteMany({
-      where: { relatedId, relatedTable },
-    })
-    return result.count
+    return await this.db.orm.public.ScheduledTask.where({
+      relatedId,
+      relatedTable,
+    }).deleteAndCount()
   }
 
-  private mapRowToTask(row: any): ScheduledTask {
+  private mapRowToTask(row: ScheduledTaskRow): ScheduledTask {
     return {
       id: row.id,
       type: row.type,
       status: row.status as ScheduleStatus,
-      runAt: row.runAt,
+      runAt: row.runAt.toISOString(),
       relatedId: row.relatedId,
       relatedTable: row.relatedTable,
-      createdAt: row.createdAt,
-      executedAt: row.executedAt || undefined,
+      createdAt: row.createdAt.toISOString(),
+      executedAt: row.executedAt ? row.executedAt.toISOString() : undefined,
       error: row.error || undefined,
     }
   }

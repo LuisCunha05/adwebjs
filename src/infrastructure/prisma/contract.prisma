@@ -1,0 +1,39 @@
+// use prisma-8
+
+model Vacation {
+  id          Int                          @id @default(autoincrement())
+  userId      String                       @map("user_id")
+  startDate   DateTime(storage: timestamp) @map("start_date")
+  endDate     DateTime(storage: timestamp) @map("end_date")
+  description String?
+  createdAt   DateTime(storage: timestamp) @default(now()) @map("created_at")
+
+  @@map("vacations")
+}
+
+model ScheduledTask {
+  id           Int                           @id @default(autoincrement())
+  type         String(storage: varchar, length: 50)
+  status       String(storage: varchar, length: 20) @default("PENDING")
+  runAt        DateTime(storage: timestamp)  @map("run_at")
+  relatedTable String(storage: varchar, length: 50) @map("related_table")
+  relatedId    Int                           @map("related_id")
+  createdAt    DateTime(storage: timestamp)  @default(now()) @map("created_at")
+  executedAt   DateTime(storage: timestamp)? @map("executed_at")
+  error        String?
+
+  @@map("scheduled_tasks")
+}
+
+model AuditLog {
+  id        Int                          @id @default(autoincrement())
+  createdAt DateTime(storage: timestamp) @default(now()) @map("created_at")
+  action    String(storage: varchar, length: 255)
+  actor     String(storage: varchar, length: 255)
+  target    String(storage: varchar, length: 255)?
+  details   String?
+  success   Boolean
+  error     String?
+
+  @@map("audit_logs")
+}

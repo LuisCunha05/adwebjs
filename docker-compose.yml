@@ -29,10 +29,10 @@ services:
       target: builder
     command: >
       sh -c "
-        if [ -d src/infrastructure/prisma/migrations ] && [ -n \"\$(ls -A src/infrastructure/prisma/migrations 2>/dev/null)\" ]; then
-          pnpm exec prisma migrate deploy --schema src/infrastructure/prisma/schema.prisma;
+        if ls src/infrastructure/prisma/migrations/app/*/migration.json >/dev/null 2>&1; then
+          pnpm exec prisma db migrate --no-advance-ref;
         else
-          pnpm exec prisma db push --schema src/infrastructure/prisma/schema.prisma;
+          pnpm exec prisma db update;
         fi
       "
     env_file:

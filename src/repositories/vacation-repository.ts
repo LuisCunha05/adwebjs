@@ -8,20 +8,17 @@ export class VacationRepository extends BaseRepository implements IVacationRepos
   }
 
   async add(vacation: Omit<Vacation, 'id' | 'createdAt'>): Promise<number> {
-    const result = await this.db.vacation.create({
-      data: {
-        userId: vacation.userId,
-        startDate: vacation.startDate,
-        endDate: vacation.endDate,
-        description: vacation.description || null,
-      },
-      select: { id: true },
+    const result = await this.db.orm.public.Vacation.select('id').create({
+      userId: vacation.userId,
+      startDate: new Date(vacation.startDate),
+      endDate: new Date(vacation.endDate),
+      description: vacation.description || null,
     })
     return result.id
   }
 
   async get(id: number): Promise<Vacation | undefined> {
-    const row = await this.db.vacation.findUnique({ where: { id } })
+    const row = await this.db.orm.public.Vacation.first({ id })
     if (!row) return undefined
     return {
       id: row.id,
@@ -34,9 +31,7 @@ export class VacationRepository extends BaseRepository implements IVacationRepos
   }
 
   async listAll(): Promise<Vacation[]> {
-    const rows = await this.db.vacation.findMany({
-      orderBy: { startDate: 'desc' },
-    })
+    const rows = await this.db.orm.public.Vacation.orderBy((v) => v.startDate.desc()).all()
     return rows.map((row) => ({
       id: row.id,
       userId: row.userId,
@@ -48,6 +43,6 @@ export class VacationRepository extends BaseRepository implements IVacationRepos
   }
 
   async remove(id: number): Promise<void> {
-    await this.db.vacation.delete({ where: { id } })
+    await this.db.orm.public.Vacation.where({ id }).delete()
   }
 }

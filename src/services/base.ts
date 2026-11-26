@@ -10,12 +10,8 @@ export abstract class BaseRepository {
   }
 
   async transaction(operation: (repo: DatabaseClient) => Promise<void>): Promise<void> {
-    if ('$transaction' in this.db) {
-      return await this.db.$transaction(async (tx) => {
-        return await operation(tx)
-      })
-    }
-
-    return await operation(this.db)
+    return await this.db.transaction(async (tx) => {
+      return await operation(tx)
+    })
   }
 }
