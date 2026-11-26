@@ -1,0 +1,166 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.audit_logs",
+    "label": "Create table \"audit_logs\"",
+    "summary": "Creates table \"audit_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "audit_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"audit_logs\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"audit_logs\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"audit_logs\"",
+        "sql": "CREATE TABLE \"public\".\"audit_logs\" (\n  \"action\" character varying(255) NOT NULL,\n  \"actor\" character varying(255) NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"details\" text,\n  \"error\" text,\n  \"id\" SERIAL NOT NULL,\n  \"success\" bool NOT NULL,\n  \"target\" character varying(255),\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"audit_logs\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"audit_logs\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.scheduled_tasks",
+    "label": "Create table \"scheduled_tasks\"",
+    "summary": "Creates table \"scheduled_tasks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "scheduled_tasks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"scheduled_tasks\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"scheduled_tasks\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"scheduled_tasks\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"scheduled_tasks\"",
+        "sql": "CREATE TABLE \"public\".\"scheduled_tasks\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"error\" text,\n  \"executed_at\" timestamp(3),\n  \"id\" SERIAL NOT NULL,\n  \"related_id\" int4 NOT NULL,\n  \"related_table\" character varying(50) NOT NULL,\n  \"run_at\" timestamp(3) NOT NULL,\n  \"status\" character varying(20) DEFAULT 'PENDING' NOT NULL,\n  \"type\" character varying(50) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"scheduled_tasks\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"scheduled_tasks\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"scheduled_tasks\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.vacations",
+    "label": "Create table \"vacations\"",
+    "summary": "Creates table \"vacations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "vacations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"vacations\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"vacations\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"vacations\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"vacations\"",
+        "sql": "CREATE TABLE \"public\".\"vacations\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"end_date\" timestamp(3) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"start_date\" timestamp(3) NOT NULL,\n  \"user_id\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"vacations\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"vacations\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"vacations\""
+        }
+      }
+    ]
+  }
+]
