@@ -10,7 +10,7 @@ export function escapeDN(value: string): string {
 
   // 1. Escape NUL bytes (Security precaution against byte poisoning)
   // NUL must be hex-escaped in LDAP.
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: Function to escape DN in ldap
+  // oxlint-disable-next-line no-control-regex -- Function to escape DN in ldap
   let escaped = value.replace(/\x00/g, '\\00')
 
   // 2. Escape standard RFC 4514 special characters: , + " \ < > ; =

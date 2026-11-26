@@ -1,5 +1,5 @@
-import type { Result } from '@/types/utils'
 import type { InternalError } from '@/types/error'
+import type { Result } from '@/types/utils'
 import { errorResult } from '@/utils/error'
 import type { IScheduleRepository, ScheduledTask } from '../types/schedule'
 

@@ -5,7 +5,7 @@ export abstract class BaseRepository {
 
   withTransaction(tx: DatabaseClient): this {
     // Creates a new instance of repository using a client that is already in a transaction
-    // biome-ignore lint/suspicious/noExplicitAny: Creates a instance of the class
+    // oxlint-disable-next-line typescript/no-explicit-any -- Creates an instance of the class
     return new (this.constructor as any)(tx)
   }
 

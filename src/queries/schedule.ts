@@ -1,12 +1,12 @@
 import 'server-only'
 import { cache } from 'react'
-import { getSessionCached } from '@/queries/session'
 import { listUsersCached } from '@/queries/ldap'
+import { getSessionCached } from '@/queries/session'
 import { scheduleService, vacationService } from '@/services/container'
 import type { InternalError } from '@/types/error'
 import type { ScheduledTask } from '@/types/schedule'
-import type { Vacation } from '@/types/vacation'
 import type { Result } from '@/types/utils'
+import type { Vacation } from '@/types/vacation'
 import { errorResult } from '@/utils/error'
 
 export const listScheduleCached = cache(
@@ -21,17 +21,15 @@ export const listScheduleCached = cache(
   },
 )
 
-export const listVacationsCached = cache(
-  async (): Promise<Result<Vacation[], InternalError>> => {
-    await getSessionCached()
-    try {
-      const vacations = await vacationService.list()
-      return { ok: true, value: vacations }
-    } catch (err: unknown) {
-      return errorResult('Internal', err instanceof Error ? err.message : 'Vacation list failed')
-    }
-  },
-)
+export const listVacationsCached = cache(async (): Promise<Result<Vacation[], InternalError>> => {
+  await getSessionCached()
+  try {
+    const vacations = await vacationService.list()
+    return { ok: true, value: vacations }
+  } catch (err: unknown) {
+    return errorResult('Internal', err instanceof Error ? err.message : 'Vacation list failed')
+  }
+})
 
 export async function listSchedulePaginated(filters: {
   page: number
@@ -72,9 +70,7 @@ export async function listSchedulePaginated(filters: {
           (u.cn && u.cn.toLowerCase().includes(lowerPerson)),
       )
       const matchingUserIds = matchingUsers.map((u) => u.sAMAccountName)
-      const matchingVacations = vacations.filter((v) =>
-        matchingUserIds.includes(v.userId),
-      )
+      const matchingVacations = vacations.filter((v) => matchingUserIds.includes(v.userId))
       vacationIds = matchingVacations.map((v) => v.id)
     }
 
@@ -135,12 +131,7 @@ export async function listScheduleAllFiltered(filters: {
   person?: string
   startDate?: string
   endDate?: string
-}): Promise<
-  Result<
-    (ScheduledTask & { userId: string; displayName: string })[],
-    InternalError
-  >
-> {
+}): Promise<Result<(ScheduledTask & { userId: string; displayName: string })[], InternalError>> {
   await getSessionCached()
 
   try {
@@ -163,9 +154,7 @@ export async function listScheduleAllFiltered(filters: {
           (u.cn && u.cn.toLowerCase().includes(lowerPerson)),
       )
       const matchingUserIds = matchingUsers.map((u) => u.sAMAccountName)
-      const matchingVacations = vacations.filter((v) =>
-        matchingUserIds.includes(v.userId),
-      )
+      const matchingVacations = vacations.filter((v) => matchingUserIds.includes(v.userId))
       vacationIds = matchingVacations.map((v) => v.id)
     }
 

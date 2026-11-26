@@ -1,5 +1,4 @@
 import { Suspense } from 'react'
-
 import { listAuditLogs } from '@/actions/audit'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'

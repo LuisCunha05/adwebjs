@@ -235,12 +235,7 @@ export function VacationList({ actions, totalCount, currentPage, pageSize }: Vac
             />
           </div>
           <div className="flex gap-2">
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isPending}
-              className="h-9 text-xs"
-            >
+            <Button type="submit" size="sm" disabled={isPending} className="h-9 text-xs">
               Buscar
             </Button>
             {hasActiveFilters && (

@@ -80,8 +80,8 @@ function Field({
   ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof fieldVariants>) {
   return (
-    // biome-ignore lint/a11y/useSemanticElements: FieldSet pode ser usando separadamente
     <div
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- FieldSet pode ser usado separadamente
       role="group"
       data-slot="field"
       data-orientation={orientation}

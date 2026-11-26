@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 import path from 'node:path'
-
 import { AD_EXTRA_ATTRIBUTES, SCHEDULE_DATA_DIR } from '../constants/config'
 import { DEFAULT_EDIT, DEFAULT_FETCH } from '../constants/ldap'
 import type { ConfigFile, EditAttribute } from '../types/ldap'

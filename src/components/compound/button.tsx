@@ -1,7 +1,6 @@
 import { IconManager } from '@compound/icon-manager'
 import { BaseButton } from '@ui/button'
 import type { IconNames } from '@ui/client-icon-manager'
-
 import type * as React from 'react'
 import { cn } from '@/lib/utils'
 

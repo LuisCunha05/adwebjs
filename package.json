@@ -8,8 +8,9 @@
     "prebuild": "prisma contract emit",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check . --write",
-    "format": "biome format . --fix",
+    "lint": "oxlint --fix",
+    "format": "oxfmt '**/*.{ts,tsx,js,mjs}' package.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.config.json --noEmit",
     "cron": "node --import=tsx --env-file=.env src/tasks/cron.ts",
     "gen:client": "prisma contract emit",
     "gen:migration": "prisma migration plan"
@@ -43,12 +44,13 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.9",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^26.6.10",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.3",
     "@types/react-dom": "^19.3.0",
+    "oxfmt": "^0.80.0",
+    "oxlint": "^1.95.0",
     "prisma": "^8.0.0-rc.35",
     "tailwindcss": "^4.3.5",
     "tsx": "^4.23.15",
